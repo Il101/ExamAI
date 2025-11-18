@@ -322,9 +322,9 @@ CREATE INDEX idx_exam_topics_is_archived ON exam_topics(is_archived) WHERE is_ar
 
 ---
 
-### 6. `review_items` — Элементы повторения (SM-2)
+### 6. `review_items` — Элементы повторения (FSRS v4.5)
 
-Реализация алгоритма Spaced Repetition (SuperMemo-2).
+Реализация алгоритма Spaced Repetition (FSRS v4.5).
 
 ```sql
 CREATE TABLE review_items (
@@ -333,26 +333,26 @@ CREATE TABLE review_items (
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     session_id UUID REFERENCES review_sessions(id) ON DELETE SET NULL,
     
-    -- SM-2 Algorithm fields
-    repetition_number INTEGER DEFAULT 0,  -- n
-    easiness_factor DECIMAL(3,2) DEFAULT 2.5,  -- EF (1.3 - 2.5)
-    interval_days INTEGER DEFAULT 1,  -- I
+    -- FSRS Algorithm fields
+    stability DOUBLE PRECISION DEFAULT 0.0,      -- S: days to 90% retention
+    difficulty DOUBLE PRECISION DEFAULT 0.0,     -- D: 0-10 scale
+    elapsed_days INTEGER DEFAULT 0,              -- Days since last review
+    scheduled_days INTEGER DEFAULT 0,            -- Scheduled interval
+    reps INTEGER DEFAULT 0,                      -- Total review count
+    lapses INTEGER DEFAULT 0,                    -- Number of failures
+    state VARCHAR(20) DEFAULT 'new',             -- new, learning, review, relearning
+    
     next_review_date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     last_reviewed_at TIMESTAMP WITH TIME ZONE,
     
     -- User response tracking
-    quality_response INTEGER,  -- 0-5 (SM-2 quality rating)
-    response_time_seconds INTEGER,  -- Time taken to answer
-    was_correct BOOLEAN,
+    last_review_rating INTEGER,     -- 1=Again, 2=Hard, 3=Good, 4=Easy
     
     -- Metadata
-    total_reviews INTEGER DEFAULT 0,
-    streak_count INTEGER DEFAULT 0,  -- Consecutive correct answers
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     
-    CONSTRAINT check_quality_response CHECK (quality_response >= 0 AND quality_response <= 5),
-    CONSTRAINT check_easiness_factor CHECK (easiness_factor >= 1.3 AND easiness_factor <= 2.5)
+    CONSTRAINT check_fsrs_rating CHECK (last_review_rating >= 1 AND last_review_rating <= 4)
 );
 
 CREATE INDEX idx_review_items_topic_id ON review_items(topic_id);
@@ -362,42 +362,21 @@ CREATE INDEX idx_review_items_next_review_date ON review_items(next_review_date)
 CREATE INDEX idx_review_items_user_next_review ON review_items(user_id, next_review_date);
 ```
 
-**SM-2 Algorithm Implementation:**
+**FSRS Algorithm Implementation:**
 
-```python
-# Псевдокод для обновления review item
-def update_review_item(quality: int, item: ReviewItem):
-    """
-    quality: 0-5
-    0 - complete blackout
-    1 - incorrect response, correct one remembered
-    2 - incorrect response, correct one seemed easy to recall
-    3 - correct response recalled with serious difficulty
-    4 - correct response after hesitation
-    5 - perfect response
-    """
-    
-    if quality >= 3:
-        if item.repetition_number == 0:
-            item.interval_days = 1
-        elif item.repetition_number == 1:
-            item.interval_days = 6
-        else:
-            item.interval_days = round(item.interval_days * item.easiness_factor)
-        
-        item.repetition_number += 1
-    else:
-        # Reset if quality < 3
-        item.repetition_number = 0
-        item.interval_days = 1
-    
-    # Update EF
-    item.easiness_factor = item.easiness_factor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02))
-    item.easiness_factor = max(1.3, item.easiness_factor)
-    
-    item.next_review_date = datetime.now() + timedelta(days=item.interval_days)
-    item.last_reviewed_at = datetime.now()
-```
+Алгоритм FSRS (Free Spaced Repetition Scheduler) v4.5 заменяет устаревший SM-2.
+Основные параметры:
+- **Stability (S)**: Интервал (в днях), при котором вероятность вспомнить материал составляет 90%.
+- **Difficulty (D)**: Сложность материала от 0 до 10.
+- **Retrievability (R)**: Вероятность успешного вспоминания в данный момент.
+
+Рейтинги:
+1. **Again** (Забыл) - сброс интервала, уменьшение стабильности.
+2. **Hard** (Вспомнил с трудом) - меньший рост стабильности.
+3. **Good** (Вспомнил) - стандартный рост стабильности.
+4. **Easy** (Легко) - бонус к стабильности.
+
+См. `backend/app/domain/review.py` для полной реализации формул.
 
 ---
 
