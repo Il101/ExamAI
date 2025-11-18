@@ -86,7 +86,6 @@ class UserModel(Base):
     
     # Basic info
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
-    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
     
     # Role & subscription
@@ -95,7 +94,7 @@ class UserModel(Base):
     
     # Verification
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    verification_token: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    # verification_token is handled by Supabase Auth
     
     # Preferences
     preferred_language: Mapped[str] = mapped_column(String(10), default="ru", nullable=False)
@@ -294,10 +293,14 @@ class ReviewItemModel(Base):
     question: Mapped[str] = mapped_column(Text, nullable=False)
     answer: Mapped[str] = mapped_column(Text, nullable=False)
     
-    # SM-2 algorithm parameters
-    repetition_number: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    easiness_factor: Mapped[float] = mapped_column(Float, default=2.5, nullable=False)
-    interval_days: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    # FSRS algorithm parameters
+    stability: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    difficulty: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    elapsed_days: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    scheduled_days: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    reps: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    lapses: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    state: Mapped[str] = mapped_column(String(20), default="new", nullable=False)
     
     # Review history
     next_review_date: Mapped[datetime] = mapped_column(
@@ -310,11 +313,7 @@ class ReviewItemModel(Base):
         DateTime(timezone=True),
         nullable=True
     )
-    last_quality_rating: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    
-    # Statistics
-    total_reviews: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    total_correct: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    last_review_rating: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     
     # Relationships
     topic: Mapped["TopicModel"] = relationship("TopicModel", back_populates="review_items")

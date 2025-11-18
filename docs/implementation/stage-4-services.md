@@ -560,65 +560,28 @@ class CostGuardService:
 
 ## 4.4 Authentication Service
 
-### Step 4.4.1: Auth Service Implementation
+### Step 4.4.1: Auth Service Implementation (Supabase)
 ```python
 # backend/app/services/auth_service.py
 from datetime import datetime, timedelta
-from typing import Optional
-from uuid import uuid4
-from jose import JWTError, jwt
-from passlib.context import CryptContext
+from typing import Optional, Dict, Any
+from uuid import UUID
+from supabase import create_client, Client
+from jose import jwt, JWTError
 from app.domain.user import User
 from app.repositories.user_repository import UserRepository
 from app.core.config import settings
-import re
-
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 class AuthService:
     """
-    Authentication service.
-    Handles registration, login, password hashing, JWT tokens.
+    Authentication service using Supabase Auth.
+    Handles registration, login, and token verification via Supabase.
     """
     
     def __init__(self, user_repo: UserRepository):
         self.user_repo = user_repo
-    
-    # Password management
-    
-    def hash_password(self, password: str) -> str:
-        """Hash password with bcrypt"""
-        return pwd_context.hash(password)
-    
-    def verify_password(self, plain_password: str, hashed_password: str) -> bool:
-        """Verify password against hash"""
-        return pwd_context.verify(plain_password, hashed_password)
-    
-    def validate_password_strength(self, password: str) -> tuple[bool, Optional[str]]:
-        """
-        Validate password strength.
-        
-        Returns:
-            (is_valid, error_message)
-        """
-        if len(password) < 8:
-            return False, "Password must be at least 8 characters"
-        
-        if not re.search(r"[A-Z]", password):
-            return False, "Password must contain uppercase letter"
-        
-        if not re.search(r"[a-z]", password):
-            return False, "Password must contain lowercase letter"
-        
-        if not re.search(r"\d", password):
-            return False, "Password must contain digit"
-        
-        if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
-            return False, "Password must contain special character"
-        
-        return True, None
+        self.supabase: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
     
     # Registration
     
@@ -629,7 +592,7 @@ class AuthService:
         full_name: str
     ) -> User:
         """
-        Register new user.
+        Register new user via Supabase Auth.
         
         Args:
             email: User email
@@ -642,92 +605,89 @@ class AuthService:
         Raises:
             ValueError: If validation fails or email exists
         """
-        # Check if email exists
-        existing = await self.user_repo.get_by_email(email)
-        if existing:
-            raise ValueError("Email already registered")
-        
-        # Validate password
-        is_valid, error = self.validate_password_strength(password)
-        if not is_valid:
-            raise ValueError(error)
-        
-        # Create user
-        user = User(
-            email=email.lower().strip(),
-            password_hash=self.hash_password(password),
-            full_name=full_name.strip(),
-            verification_token=str(uuid4()),  # Email verification token
-        )
-        
-        # Save to database
-        created = await self.user_repo.create(user)
-        
-        # TODO: Send verification email
-        
-        return created
+        try:
+            # 1. Register with Supabase Auth
+            auth_response = self.supabase.auth.sign_up({
+                "email": email,
+                "password": password,
+                "options": {
+                    "data": {
+                        "full_name": full_name
+                    }
+                }
+            })
+            
+            if not auth_response.user:
+                raise ValueError("Registration failed: No user returned from Supabase")
+                
+            user_id = UUID(auth_response.user.id)
+            
+            # 2. Create user profile in our DB (public.users)
+            # Note: In a real Supabase setup, you might use a Trigger for this.
+            # But doing it here ensures our domain logic is applied.
+            
+            user = User(
+                id=user_id,
+                email=email.lower().strip(),
+                full_name=full_name.strip(),
+                is_verified=False # Supabase handles verification
+            )
+            
+            created = await self.user_repo.create(user)
+            
+            return created
+            
+        except Exception as e:
+            # Map Supabase errors to ValueError
+            raise ValueError(f"Registration failed: {str(e)}")
     
     # Login
     
-    async def authenticate(self, email: str, password: str) -> Optional[User]:
+    async def authenticate(self, email: str, password: str) -> Optional[Dict[str, Any]]:
         """
-        Authenticate user by email and password.
+        Authenticate user by email and password via Supabase.
         
         Returns:
-            User if credentials valid, None otherwise
+            Dict with session info (access_token, refresh_token, user)
         """
-        user = await self.user_repo.get_by_email(email.lower().strip())
-        
-        if not user:
+        try:
+            response = self.supabase.auth.sign_in_with_password({
+                "email": email,
+                "password": password
+            })
+            
+            if not response.session:
+                return None
+                
+            return {
+                "access_token": response.session.access_token,
+                "refresh_token": response.session.refresh_token,
+                "user": response.user
+            }
+            
+        except Exception:
             return None
-        
-        if not self.verify_password(password, user.password_hash):
-            return None
-        
-        # Update last login
-        user.update_last_login()
-        await self.user_repo.update(user)
-        
-        return user
     
-    # JWT Tokens
-    
-    def create_access_token(self, user_id: str, expires_delta: Optional[timedelta] = None) -> str:
-        """Create JWT access token"""
-        expire = datetime.utcnow() + (expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES))
-        
-        to_encode = {
-            "sub": str(user_id),
-            "exp": expire,
-            "iat": datetime.utcnow(),
-            "type": "access"
-        }
-        
-        return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
-    
-    def create_refresh_token(self, user_id: str) -> str:
-        """Create JWT refresh token"""
-        expire = datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
-        
-        to_encode = {
-            "sub": str(user_id),
-            "exp": expire,
-            "iat": datetime.utcnow(),
-            "type": "refresh"
-        }
-        
-        return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    # Token Verification
     
     def verify_token(self, token: str) -> Optional[str]:
         """
-        Verify JWT token and extract user_id.
+        Verify Supabase JWT token and extract user_id.
         
         Returns:
             user_id if valid, None otherwise
         """
         try:
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-            user_id: str = payload.get("sub")
+            # Supabase JWTs are signed with the project's JWT Secret (HS256)
+            # We use settings.SECRET_KEY which should be set to Supabase JWT Secret
+            payload = jwt.decode(
+                token, 
+                settings.SECRET_KEY, 
+                algorithms=[settings.ALGORITHM],
+                audience="authenticated" # Supabase default audience
+            )
+            
+            user_id: Optional[str] = payload.get("sub")
             
             if user_id is None:
                 return None
@@ -741,12 +701,10 @@ class AuthService:
     
     async def verify_email(self, token: str) -> bool:
         """
-        Verify user email with token.
-        
-        Returns:
-            True if verified, False otherwise
+        Verify user email.
+        With Supabase, this is usually handled by the frontend or Supabase's email link.
         """
-        user = await self.user_repo.get_by_verification_token(token)
+        raise NotImplementedError("Email verification is handled by Supabase directly")
         
         if not user:
             return False
