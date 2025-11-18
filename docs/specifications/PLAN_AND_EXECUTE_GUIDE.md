@@ -101,11 +101,29 @@ class AgentState:
 import json
 from typing import List
 import google.generativeai as genai
+from pydantic import BaseModel, Field
+
+# Pydantic модели для structured output
+class PlanStepSchema(BaseModel):
+    """Schema для одного шага плана"""
+    id: int = Field(..., description="Уникальный ID темы")
+    title: str = Field(..., min_length=2, description="Название темы")
+    description: str = Field(..., min_length=10, description="Описание того, что нужно осветить")
+    priority: int = Field(..., ge=1, le=3, description="Приоритет: 1-высокий, 2-средний, 3-низкий")
+    estimated_paragraphs: int = Field(..., ge=3, le=8, description="Примерный объём в абзацах")
+    dependencies: List[int] = Field(default_factory=list, description="ID тем-зависимостей")
 
 class CoursePlanner:
     def __init__(self, api_key: str):
         genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-2.5-flash')
+        # Используем native structured output от Gemini
+        self.model = genai.GenerativeModel(
+            'gemini-2.5-flash',
+            generation_config={
+                "response_mime_type": "application/json",
+                "response_schema": list[PlanStepSchema]
+            }
+        )
 
     def make_plan(self, state: AgentState) -> List[PlanStep]:
         # Создаёт план конспекта на основе запроса пользователя
@@ -113,15 +131,12 @@ class CoursePlanner:
         prompt = self._build_planning_prompt(state)
         response = self.model.generate_content(prompt)
 
-        # Парсим JSON из ответа
-        json_text = response.text.strip()
-        if json_text.startswith('```json'):
-            json_text = json_text[7:-3].strip()
-        elif json_text.startswith('```'):
-            json_text = json_text[3:-3].strip()
-
-        plan_data = json.loads(json_text)
-        return [PlanStep(**step) for step in plan_data]
+        # Gemini гарантирует валидный JSON благодаря response_schema
+        plan_data = json.loads(response.text)
+        
+        # Валидация через Pydantic
+        validated_steps = [PlanStepSchema(**step) for step in plan_data]
+        return [PlanStep(**step.model_dump()) for step in validated_steps]
 
     def _build_planning_prompt(self, state: AgentState) -> str:
         return f'''Ты опытный методист. Твоя задача — составить структурированный план конспекта для подготовки к экзамену.
@@ -140,7 +155,7 @@ class CoursePlanner:
    - priority: 1 (обязательная), 2 (важная), 3 (дополнительная)
    - estimated_paragraphs: сколько абзацев нужно (3-8)
 
-**Формат ответа:** JSON массив объектов.
+**Формат ответа:** JSON массив объектов (формат уже задан через response_schema).
 
 Пример структуры:
 [
@@ -154,7 +169,8 @@ class CoursePlanner:
   }}
 ]
 
-Верни ТОЛЬКО JSON, без дополнительного текста.'''
+**ВАЖНО:** Gemini автоматически вернёт валидный JSON благодаря response_schema.
+Любые отклонения от схемы будут автоматически исправлены или вызовут повторный запрос.'''
 ```
 
 ---
