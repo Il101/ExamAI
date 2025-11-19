@@ -35,6 +35,7 @@ if not database_url:
         "DATABASE_URL is not set. Please set it in .env file or as environment variable."
     )
 
+print(f"DEBUG: Alembic using database_url: {database_url}")
 config.set_main_option("sqlalchemy.url", database_url)
 
 if config.config_file_name is not None:
