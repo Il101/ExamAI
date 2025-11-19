@@ -1,11 +1,12 @@
 from typing import List
 from uuid import UUID
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domain.topic import Topic
-from app.db.models.topic import TopicModel
 from app.db.mappers.topic_mapper import TopicMapper
+from app.db.models.topic import TopicModel
+from app.domain.topic import Topic
 from app.repositories.base import BaseRepository
 
 

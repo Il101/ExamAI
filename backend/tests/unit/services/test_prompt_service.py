@@ -1,7 +1,9 @@
-import pytest
 from pathlib import Path
-from app.services.prompt_service import PromptService
+
+import pytest
+
 from app.core.config import settings
+from app.services.prompt_service import PromptService
 
 
 class TestPromptService:

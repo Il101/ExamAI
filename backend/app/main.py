@@ -1,17 +1,19 @@
+from contextlib import asynccontextmanager
+from datetime import datetime
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
-from contextlib import asynccontextmanager
-from datetime import datetime
 
+from app.api.v1.router import api_router
 from app.core.config import settings
 from app.core.exceptions import AppException
-from app.core.monitoring import init_monitoring
 from app.core.logging import setup_logging
-from app.middleware.security import SecurityHeadersMiddleware, RequestLoggingMiddleware
-from app.api.v1.router import api_router
-from app.db.session import init_db, close_db
+from app.core.monitoring import init_monitoring
+from app.db.session import close_db, init_db
+from app.middleware.security import (RequestLoggingMiddleware,
+                                     SecurityHeadersMiddleware)
 
 
 @asynccontextmanager

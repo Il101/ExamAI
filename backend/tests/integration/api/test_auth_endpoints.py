@@ -1,6 +1,7 @@
 # backend/tests/integration/api/test_auth_endpoints.py
-import pytest
 from unittest.mock import AsyncMock
+
+import pytest
 
 
 @pytest.mark.integration

@@ -1,6 +1,7 @@
 from typing import cast
-from app.domain.review import ReviewItem, CardState, Rating
+
 from app.db.models.review import ReviewItemModel
+from app.domain.review import CardState, Rating, ReviewItem
 
 
 class ReviewItemMapper:

@@ -1,9 +1,11 @@
-import pytest
 from unittest.mock import AsyncMock, Mock
 from uuid import uuid4
-from app.services.exam_service import ExamService
-from app.domain.user import User, SubscriptionPlan
+
+import pytest
+
 from app.domain.exam import Exam
+from app.domain.user import SubscriptionPlan, User
+from app.services.exam_service import ExamService
 
 
 class TestExamService:

@@ -1,9 +1,11 @@
 from typing import Optional
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.domain.user import User
-from app.db.models.user import UserModel
+
 from app.db.mappers.user_mapper import UserMapper
+from app.db.models.user import UserModel
+from app.domain.user import User
 from app.repositories.base import BaseRepository
 
 

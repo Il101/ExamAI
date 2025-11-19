@@ -1,8 +1,10 @@
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlalchemy.pool import NullPool
 from typing import AsyncGenerator
-from app.core.config import settings
 
+from sqlalchemy.ext.asyncio import (AsyncSession, async_sessionmaker,
+                                    create_async_engine)
+from sqlalchemy.pool import NullPool
+
+from app.core.config import settings
 
 # Create async engine
 engine = create_async_engine(
@@ -46,14 +48,13 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 async def init_db():
     """Initialize database (create all tables)"""
     from app.db.base import Base
-
-    # Import all models so they are registered with Base.metadata
-    from app.db.models.user import UserModel
     from app.db.models.exam import ExamModel
-    from app.db.models.topic import TopicModel
     from app.db.models.review import ReviewItemModel
     from app.db.models.study_session import StudySessionModel
     from app.db.models.subscription import SubscriptionModel
+    from app.db.models.topic import TopicModel
+    # Import all models so they are registered with Base.metadata
+    from app.db.models.user import UserModel
 
     async with engine.begin() as conn:
         # await conn.run_sync(Base.metadata.drop_all)

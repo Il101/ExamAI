@@ -1,10 +1,12 @@
 """Quick test to verify topics are returned in exam response"""
 
+from datetime import datetime
+from uuid import uuid4
+
 import pytest
+
 from app.schemas.exam import ExamResponse
 from app.schemas.topic import TopicResponse
-from uuid import uuid4
-from datetime import datetime
 
 
 def test_exam_response_with_topics():

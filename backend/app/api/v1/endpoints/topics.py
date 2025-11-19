@@ -1,12 +1,13 @@
-from fastapi import APIRouter, Depends, Query
-from uuid import UUID
 from typing import List
+from uuid import UUID
 
-from app.schemas.topic import TopicResponse
-from app.repositories.topic_repository import TopicRepository
+from fastapi import APIRouter, Depends, Query
+
+from app.core.exceptions import NotFoundException
 from app.dependencies import get_current_active_user, get_topic_repo
 from app.domain.user import User
-from app.core.exceptions import NotFoundException
+from app.repositories.topic_repository import TopicRepository
+from app.schemas.topic import TopicResponse
 
 router = APIRouter()
 

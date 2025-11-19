@@ -1,9 +1,8 @@
 # backend/app/domain/subscription.py
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Optional, Literal
+from typing import Literal, Optional
 from uuid import UUID, uuid4
-
 
 SubscriptionStatus = Literal["active", "canceled", "past_due", "trialing"]
 

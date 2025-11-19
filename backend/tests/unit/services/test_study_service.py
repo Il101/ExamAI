@@ -1,9 +1,11 @@
-import pytest
+from datetime import datetime
 from unittest.mock import AsyncMock, Mock
 from uuid import uuid4
-from datetime import datetime
+
+import pytest
+
+from app.domain.review import Rating, ReviewItem
 from app.services.study_service import StudyService
-from app.domain.review import ReviewItem, Rating
 
 
 @pytest.fixture

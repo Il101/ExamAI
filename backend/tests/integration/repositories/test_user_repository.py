@@ -1,9 +1,11 @@
 # backend/tests/integration/repositories/test_user_repository.py
-import pytest
-from uuid import uuid4
 from datetime import datetime
-from app.repositories.user_repository import UserRepository
+from uuid import uuid4
+
+import pytest
+
 from app.domain.user import User
+from app.repositories.user_repository import UserRepository
 
 
 @pytest.mark.asyncio

@@ -1,5 +1,7 @@
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
-from unittest.mock import MagicMock, AsyncMock
+
 from app.agent.finalizer import NoteFinalizer
 from app.agent.state import AgentState, PlanStep, StepResult
 from app.integrations.llm.base import LLMResponse

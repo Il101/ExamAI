@@ -1,6 +1,7 @@
 from typing import cast
-from app.domain.user import User, UserRole, SubscriptionPlan
+
 from app.db.models.user import UserModel
+from app.domain.user import SubscriptionPlan, User, UserRole
 
 
 class UserMapper:

@@ -1,7 +1,9 @@
-import google.generativeai as genai
-from typing import Optional, Any
-import time
 import logging
+import time
+from typing import Any, Optional
+
+import google.generativeai as genai
+
 from app.integrations.llm.base import LLMProvider, LLMResponse
 
 logger = logging.getLogger(__name__)

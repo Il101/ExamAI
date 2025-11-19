@@ -1,19 +1,20 @@
-from celery import Task
-from uuid import UUID
 import asyncio
-from typing import Optional
 from datetime import datetime
+from typing import Optional
+from uuid import UUID
 
-from app.tasks.celery_app import celery_app
+from celery import Task
+
+from app.agent.orchestrator import PlanAndExecuteAgent
+from app.core.config import settings
 from app.db.session import AsyncSessionLocal
+from app.integrations.llm.gemini import GeminiProvider
 from app.repositories.exam_repository import ExamRepository
 from app.repositories.topic_repository import TopicRepository
 from app.repositories.user_repository import UserRepository
-from app.services.cost_guard_service import CostGuardService
 from app.services.agent_service import AgentService
-from app.integrations.llm.gemini import GeminiProvider
-from app.agent.orchestrator import PlanAndExecuteAgent
-from app.core.config import settings
+from app.services.cost_guard_service import CostGuardService
+from app.tasks.celery_app import celery_app
 
 
 class ExamGenerationTask(Task):

@@ -1,10 +1,12 @@
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 from uuid import UUID
+
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
-from app.domain.user import User
+
 from app.db.models.llm_usage import LLMUsageLogModel
+from app.domain.user import User
 
 
 class CostGuardService:

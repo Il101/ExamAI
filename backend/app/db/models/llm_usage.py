@@ -1,10 +1,13 @@
-from sqlalchemy import String, Integer, Float, Boolean, DateTime, ForeignKey, Text
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.dialects.postgresql import JSONB, UUID
-from typing import Optional, Any
-from datetime import datetime
-from app.db.base import Base
 import uuid
+from datetime import datetime
+from typing import Any, Optional
+
+from sqlalchemy import (Boolean, DateTime, Float, ForeignKey, Integer, String,
+                        Text)
+from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.db.base import Base
 
 
 class LLMUsageLogModel(Base):

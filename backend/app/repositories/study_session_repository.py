@@ -1,10 +1,12 @@
 from typing import List, Optional
 from uuid import UUID
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.domain.study_session import StudySession
-from app.db.models.study_session import StudySessionModel
+
 from app.db.mappers.study_session_mapper import StudySessionMapper
+from app.db.models.study_session import StudySessionModel
+from app.domain.study_session import StudySession
 from app.repositories.base import BaseRepository
 
 

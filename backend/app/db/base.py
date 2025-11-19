@@ -1,10 +1,10 @@
+import uuid
 from datetime import datetime
 from typing import Any
-from sqlalchemy import MetaData, DateTime
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy.dialects.postgresql import UUID
-import uuid
 
+from sqlalchemy import DateTime, MetaData
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 # Naming convention for constraints
 NAMING_CONVENTION = {

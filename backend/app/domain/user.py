@@ -1,10 +1,9 @@
 # backend/app/domain/user.py
+import re
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional, Literal
+from typing import Literal, Optional
 from uuid import UUID, uuid4
-import re
-
 
 UserRole = Literal["student", "teacher", "admin"]
 SubscriptionPlan = Literal["free", "pro", "premium"]

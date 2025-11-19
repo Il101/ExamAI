@@ -4,14 +4,15 @@ Health check endpoints for monitoring and load balancers.
 Provides basic and detailed health checks for the application and its dependencies.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import text
-from typing import Dict, Any
 import logging
+from typing import Any, Dict
 
-from app.db.session import get_db
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.config import settings
+from app.db.session import get_db
 
 router = APIRouter(tags=["Health"])
 logger = logging.getLogger(__name__)

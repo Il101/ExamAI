@@ -1,11 +1,12 @@
-from celery import Task
-from typing import List
 import smtplib
-from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from typing import List
 
-from app.tasks.celery_app import celery_app
+from celery import Task
+
 from app.core.config import settings
+from app.tasks.celery_app import celery_app
 
 
 @celery_app.task(name="send_email", max_retries=3, default_retry_delay=30)
