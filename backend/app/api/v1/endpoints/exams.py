@@ -6,13 +6,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import NotFoundException, ValidationException
 from app.db.session import get_db
-from app.dependencies import (get_agent_service, get_current_active_user,
-                              get_exam_service)
+from app.dependencies import (
+    get_agent_service,
+    get_current_active_user,
+    get_exam_service,
+)
 from app.domain.user import User
 from app.repositories.topic_repository import TopicRepository
-from app.schemas.exam import (ExamCreate, ExamListResponse, ExamResponse,
-                              ExamUpdate, GenerationStatusResponse,
-                              StartGenerationRequest)
+from app.schemas.exam import (
+    ExamCreate,
+    ExamListResponse,
+    ExamResponse,
+    ExamUpdate,
+    GenerationStatusResponse,
+    StartGenerationRequest,
+)
 from app.schemas.topic import TopicResponse
 from app.services.agent_service import AgentService
 from app.services.exam_service import ExamService

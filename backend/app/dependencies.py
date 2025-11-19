@@ -10,6 +10,7 @@ from app.agent.orchestrator import PlanAndExecuteAgent
 from app.core.config import settings
 from app.db.session import get_db
 from app.domain.user import User
+
 # Integrations
 from app.integrations.llm.base import LLMProvider
 from app.integrations.llm.gemini import GeminiProvider
@@ -17,9 +18,11 @@ from app.repositories.exam_repository import ExamRepository
 from app.repositories.review_repository import ReviewItemRepository
 from app.repositories.study_session_repository import StudySessionRepository
 from app.repositories.topic_repository import TopicRepository
+
 # Repositories
 from app.repositories.user_repository import UserRepository
 from app.services.agent_service import AgentService
+
 # Services
 from app.services.auth_service import AuthService
 from app.services.cost_guard_service import CostGuardService

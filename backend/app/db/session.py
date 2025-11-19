@@ -1,7 +1,6 @@
 from typing import AsyncGenerator
 
-from sqlalchemy.ext.asyncio import (AsyncSession, async_sessionmaker,
-                                    create_async_engine)
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
@@ -53,6 +52,7 @@ async def init_db():
     from app.db.models.study_session import StudySessionModel
     from app.db.models.subscription import SubscriptionModel
     from app.db.models.topic import TopicModel
+
     # Import all models so they are registered with Base.metadata
     from app.db.models.user import UserModel
 
