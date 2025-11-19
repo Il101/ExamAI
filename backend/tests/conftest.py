@@ -19,7 +19,7 @@ async def test_engine():
     else:
         # Fallback for local testing if .env not loaded
         test_db_url = (
-            "postgresql+asyncpg://postgres:postgres@localhost:5432/examai_test"
+            "postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/examai_test"
         )
 
     engine = create_async_engine(test_db_url, echo=False)
