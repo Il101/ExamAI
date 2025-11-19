@@ -47,6 +47,8 @@ jobs:
           echo "GEMINI_API_KEY=dummy_key" >> .env
           
           # Build and start services
+          # Ensure we start with a clean slate
+          docker compose -f docker-compose.yml down -v
           docker compose -f docker-compose.yml up -d --build
       
       - name: Wait for services
