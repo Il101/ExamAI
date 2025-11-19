@@ -77,14 +77,29 @@ jobs:
       - name: Wait for services
         run: |
           echo "Waiting for Postgres..."
-          while ! nc -z localhost 5432; do
+          # Wait up to 30 seconds
+          for i in {1..30}; do
+            if nc -z 127.0.0.1 5432; then
+              echo "Postgres is up"
+              exit 0
+            fi
             sleep 1
           done
-          echo "Postgres is up"
+          echo "Postgres failed to start"
+          exit 1
+
+      - name: Debug Network
+        run: |
+          echo "Checking listening ports..."
+          sudo ss -tulpn
+          echo "Testing netcat connection..."
+          nc -zv 127.0.0.1 5432
+          echo "Testing Python socket connection..."
+          python -c "import socket; s = socket.create_connection(('127.0.0.1', 5432)); print('Socket connected successfully'); s.close()"
 
       - name: Run database migrations
         env:
-          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/examai_test
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/examai_test
           SECRET_KEY: test_secret_key_min_32_chars_long
           ENVIRONMENT: test
         run: |
@@ -93,8 +108,8 @@ jobs:
       
       - name: Run tests with coverage
         env:
-          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/examai_test
-          REDIS_URL: redis://localhost:6379/0
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/examai_test
+          REDIS_URL: redis://127.0.0.1:6379/0
           SECRET_KEY: test_secret_key_min_32_chars_long
           ENVIRONMENT: test
         run: |
