@@ -25,31 +25,6 @@ jobs:
     name: Backend Tests
     runs-on: ubuntu-latest
     
-    services:
-      postgres:
-        image: postgres:15-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: examai_test
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-      
-      redis:
-        image: redis:7-alpine
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 6379:6379
-    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -60,6 +35,28 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
       
+      - name: Start Database
+        run: |
+          docker run -d -p 5432:5432 \
+            -e POSTGRES_USER=postgres \
+            -e POSTGRES_PASSWORD=postgres \
+            -e POSTGRES_DB=examai_test \
+            --name postgres_db \
+            postgres:15-alpine
+            
+          docker run -d -p 6379:6379 \
+            --name redis_db \
+            redis:7-alpine
+            
+          echo "Waiting for services..."
+          for i in {1..30}; do
+            if nc -z 127.0.0.1 5432; then
+              echo "Postgres is up"
+              break
+            fi
+            sleep 1
+          done
+
       - name: Install dependencies
         run: |
           cd backend
@@ -74,52 +71,43 @@ jobs:
           isort --check-only app tests
           flake8 app tests
       
-      - name: Wait for services
+      - name: Verify Database Connection
         run: |
-          echo "Waiting for Postgres..."
-          # Wait up to 30 seconds
-          for i in {1..30}; do
-            if nc -z 127.0.0.1 5432; then
-              echo "Postgres is up on port 5432"
-              exit 0
-            fi
-            sleep 1
-          done
-          echo "Postgres failed to start"
-          exit 1
+          cd backend
+          python -c "
+          import asyncio
+          import asyncpg
+          import sys
+          
+          async def check():
+              try:
+                  conn = await asyncpg.connect('postgresql://postgres:postgres@127.0.0.1:5432/examai_test')
+                  print('Successfully connected to database!')
+                  await conn.close()
+                  sys.exit(0)
+              except Exception as e:
+                  print(f'Failed to connect: {e}')
+                  sys.exit(1)
+          
+          asyncio.run(check())
+          "
 
       - name: Run database migrations
         env:
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/examai_test
           SECRET_KEY: test_secret_key_min_32_chars_long
           ENVIRONMENT: test
         run: |
-          # Get the IP address of the postgres container
-          POSTGRES_CONTAINER=$(docker ps --filter "ancestor=postgres:15-alpine" --format "{{.ID}}" | head -n 1)
-          POSTGRES_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $POSTGRES_CONTAINER)
-          echo "Postgres Container IP: $POSTGRES_IP"
-          
-          # Set the DATABASE_URL dynamically
-          export DATABASE_URL="postgresql+asyncpg://postgres:postgres@$POSTGRES_IP:5432/examai_test"
-          
           cd backend
           alembic upgrade head
       
       - name: Run tests with coverage
         env:
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/examai_test
+          REDIS_URL: redis://127.0.0.1:6379/0
           SECRET_KEY: test_secret_key_min_32_chars_long
           ENVIRONMENT: test
         run: |
-          # Get the IP address of the postgres container
-          POSTGRES_CONTAINER=$(docker ps --filter "ancestor=postgres:15-alpine" --format "{{.ID}}" | head -n 1)
-          POSTGRES_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $POSTGRES_CONTAINER)
-          
-          # Get Redis IP too just in case
-          REDIS_CONTAINER=$(docker ps --filter "ancestor=redis:7-alpine" --format "{{.ID}}" | head -n 1)
-          REDIS_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $REDIS_CONTAINER)
-          
-          export DATABASE_URL="postgresql+asyncpg://postgres:postgres@$POSTGRES_IP:5432/examai_test"
-          export REDIS_URL="redis://$REDIS_IP:6379/0"
-          
           cd backend
           pytest tests/ -v --cov=app --cov-report=xml --cov-report=term-missing --ignore=tests/e2e
       
