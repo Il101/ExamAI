@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FileUploadZone } from './file-upload-zone';
 import { useExams } from '@/lib/hooks/use-exams';
+import type { CreateExamRequest } from '@/lib/api/exams';
 
 const createExamSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters'),
@@ -25,6 +26,8 @@ type CreateExamFormData = z.infer<typeof createExamSchema>;
 export function CreateExamForm({ onSuccess }: { onSuccess?: () => void }) {
   const { createExam, isCreating } = useExams();
   const [uploadedFile, setUploadedFile] = useState<string>('');
+  const [examType, setExamType] = useState<'oral' | 'written' | 'test'>('written');
+  const [level, setLevel] = useState<'school' | 'bachelor' | 'master' | 'phd'>('bachelor');
 
   const form = useForm<CreateExamFormData>({
     resolver: zodResolver(createExamSchema),
@@ -53,7 +56,7 @@ export function CreateExamForm({ onSuccess }: { onSuccess?: () => void }) {
       exam_type,
       level,
       original_content,
-    } as any, {
+    } as CreateExamRequest, {
       onSuccess: () => {
         form.reset();
         onSuccess?.();
@@ -96,8 +99,12 @@ export function CreateExamForm({ onSuccess }: { onSuccess?: () => void }) {
         <div>
           <Label>Exam Type</Label>
           <Select
-            value={form.watch('exam_type')}
-            onValueChange={(value) => form.setValue('exam_type', value as 'oral' | 'written' | 'test')}
+            value={examType}
+            onValueChange={(value) => {
+              const newValue = value as 'oral' | 'written' | 'test';
+              setExamType(newValue);
+              form.setValue('exam_type', newValue);
+            }}
           >
             <SelectTrigger>
               <SelectValue />
@@ -113,8 +120,12 @@ export function CreateExamForm({ onSuccess }: { onSuccess?: () => void }) {
         <div>
           <Label>Academic Level</Label>
           <Select
-            value={form.watch('level')}
-            onValueChange={(value) => form.setValue('level', value as 'school' | 'bachelor' | 'master' | 'phd')}
+            value={level}
+            onValueChange={(value) => {
+              const newValue = value as 'school' | 'bachelor' | 'master' | 'phd';
+              setLevel(newValue);
+              form.setValue('level', newValue);
+            }}
           >
             <SelectTrigger>
               <SelectValue />

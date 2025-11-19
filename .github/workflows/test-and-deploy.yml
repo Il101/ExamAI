@@ -72,7 +72,7 @@ jobs:
           cd backend
           black --check app tests
           isort --check-only app tests
-          flake8 app tests --max-line-length=100 --exclude=alembic
+          flake8 app tests
       
       - name: Run tests with coverage
         env:
