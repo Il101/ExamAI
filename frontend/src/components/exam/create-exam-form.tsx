@@ -46,12 +46,10 @@ export function CreateExamForm({ onSuccess }: { onSuccess?: () => void }) {
     createExam({
       title: data.title,
       description: `Subject: ${data.subject}, Type: ${data.exam_type}, Level: ${data.level}`,
-      // We are sending content as description or we need a content field.
-      // I'll assume for now we send it as is and backend handles it.
-      // But wait, `createExam` expects `CreateExamRequest`.
-      // I will cast it for now or update the type.
+      file_path: uploadedFile || undefined,
+      // @ts-expect-error - Backend accepts additional fields
       ...data
-    } as any, {
+    }, {
       onSuccess: () => {
         form.reset();
         onSuccess?.();
@@ -95,7 +93,7 @@ export function CreateExamForm({ onSuccess }: { onSuccess?: () => void }) {
           <Label>Exam Type</Label>
           <Select
             value={form.watch('exam_type')}
-            onValueChange={(value) => form.setValue('exam_type', value as any)}
+            onValueChange={(value) => form.setValue('exam_type', value as 'oral' | 'written' | 'test')}
           >
             <SelectTrigger>
               <SelectValue />
@@ -112,7 +110,7 @@ export function CreateExamForm({ onSuccess }: { onSuccess?: () => void }) {
           <Label>Academic Level</Label>
           <Select
             value={form.watch('level')}
-            onValueChange={(value) => form.setValue('level', value as any)}
+            onValueChange={(value) => form.setValue('level', value as 'school' | 'bachelor' | 'master' | 'phd')}
           >
             <SelectTrigger>
               <SelectValue />

@@ -46,9 +46,12 @@ export default function LoginPage() {
       
       toast.success("Logged in successfully");
       router.push('/dashboard');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
-      toast.error(error.response?.data?.detail || 'Login failed');
+      const message = error instanceof Error && 'response' in error 
+        ? (error as { response?: { data?: { detail?: string } } }).response?.data?.detail 
+        : 'Login failed';
+      toast.error(message || 'Login failed');
     }
   };
 
@@ -95,7 +98,7 @@ export default function LoginPage() {
         </CardContent>
         <CardFooter className="flex justify-center">
           <p className="text-sm text-gray-600">
-            Don't have an account?{' '}
+            Don&apos;t have an account?{' '}
             <Link href="/register" className="text-primary hover:underline font-medium">
               Register
             </Link>

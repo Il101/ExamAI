@@ -16,8 +16,11 @@ export function useExams() {
       queryClient.invalidateQueries({ queryKey: ['exams'] });
       toast.success('Exam created successfully');
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Failed to create exam');
+    onError: (error: unknown) => {
+      const message = error instanceof Error && 'response' in error 
+        ? (error as { response?: { data?: { detail?: string } } }).response?.data?.detail 
+        : 'Failed to create exam';
+      toast.error(message || 'Failed to create exam');
     },
   });
 
@@ -27,7 +30,7 @@ export function useExams() {
       queryClient.invalidateQueries({ queryKey: ['exams'] });
       toast.success('Exam deleted');
     },
-    onError: (error: any) => {
+    onError: () => {
       toast.error('Failed to delete exam');
     },
   });

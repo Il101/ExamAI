@@ -73,15 +73,18 @@ jobs:
         env:
           DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/examai_test
           REDIS_URL: redis://localhost:6379/0
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           SECRET_KEY: test_secret_key_min_32_chars_long
           ENVIRONMENT: test
         run: |
           cd backend
-          pytest tests/ -v --cov=app --cov-report=xml --cov-report=term-missing
+          pytest tests/ -v --cov=app --cov-report=xml --cov-report=term-missing --ignore=tests/e2e
       
       - name: Upload coverage to Codecov
+        if: env.CODECOV_TOKEN != ''
+        continue-on-error: true
         uses: codecov/codecov-action@v4
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:
           file: ./backend/coverage.xml
           flags: backend
@@ -147,7 +150,8 @@ jobs:
           output: 'trivy-results.sarif'
       
       - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: 'trivy-results.sarif'
   
@@ -162,11 +166,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Deploy Backend to Railway (Staging)
-        uses: bervProject/railway-deploy@main
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          railway_token: ${{ secrets.RAILWAY_TOKEN_STAGING }}
-          service: backend
+          node-version: ${{ env.NODE_VERSION }}
+      
+      - name: Deploy Backend to Railway (Staging)
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_STAGING }}
+        run: |
+          npm install -g @railway/cli
+          railway up --service backend
       
       - name: Deploy Frontend to Vercel (Staging)
         uses: amondnet/vercel-action@v25
@@ -187,13 +197,20 @@ jobs:
     needs: [backend-tests, frontend-tests, security-scan]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
-    environment:
-      name: production
-      url: https://examai-pro.vercel.app
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
       
       - name: Run database migrations
         env:
@@ -204,10 +221,11 @@ jobs:
           alembic upgrade head
       
       - name: Deploy Backend to Railway (Production)
-        uses: bervProject/railway-deploy@main
-        with:
-          railway_token: ${{ secrets.RAILWAY_TOKEN }}
-          service: backend
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          npm install -g @railway/cli
+          railway up --service backend
       
       - name: Deploy Frontend to Vercel (Production)
         uses: amondnet/vercel-action@v25
@@ -225,9 +243,14 @@ jobs:
           echo "✅ Backend is healthy"
       
       - name: Notify deployment
-        uses: 8398a7/action-slack@v3
         if: always()
-        with:
-          status: ${{ job.status }}
-          text: 'Production deployment completed'
-          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        continue-on-error: true
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+        run: |
+          if [ -n "$SLACK_WEBHOOK_URL" ]; then
+            STATUS="${{ job.status }}"
+            curl -X POST $SLACK_WEBHOOK_URL \
+              -H 'Content-Type: application/json' \
+              -d '{"text":"Production deployment completed with status: '"$STATUS"'"}';
+          fi

@@ -41,9 +41,12 @@ export default function RegisterPage() {
       
       toast.success("Registration successful! Please login.");
       router.push('/login');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
-      toast.error(error.response?.data?.detail || 'Registration failed');
+      const message = error instanceof Error && 'response' in error 
+        ? (error as { response?: { data?: { detail?: string } } }).response?.data?.detail 
+        : 'Registration failed';
+      toast.error(message || 'Registration failed');
     }
   };
 
