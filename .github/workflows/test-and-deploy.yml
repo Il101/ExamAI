@@ -72,7 +72,7 @@ jobs:
       
       - name: Copy coverage report
         run: |
-          docker compose -f docker-compose.yml -f docker-compose.test.yml cp backend:/app/coverage.xml ./backend/coverage.xml
+          docker compose -f docker-compose.yml -f docker-compose.test.yml cp backend:/app/coverage.xml ./coverage.xml
       
       - name: Upload coverage to Codecov
         if: env.CODECOV_TOKEN != ''
@@ -81,7 +81,7 @@ jobs:
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:
-          file: ./backend/coverage.xml
+          file: ./coverage.xml
           flags: backend
           token: ${{ secrets.CODECOV_TOKEN }}
   
