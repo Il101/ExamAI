@@ -1,9 +1,6 @@
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from typing import List
-
-from celery import Task
 
 from app.core.config import settings
 from app.tasks.celery_app import celery_app

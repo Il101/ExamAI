@@ -54,7 +54,7 @@ class TestUserRepository:
         # Act
         created.full_name = "Updated Name"
         created.subscription_plan = "pro"
-        updated = await repo.update(created)
+        await repo.update(created)
         await test_session.flush()
 
         # Assert

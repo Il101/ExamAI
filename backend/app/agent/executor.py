@@ -149,7 +149,7 @@ class TopicExecutor:
 
             if relevant_lines:
                 content_context = (
-                    f"\n**Relevant excerpts from user materials:**\n"
+                    "\n**Relevant excerpts from user materials:**\n"
                     + "\n".join(relevant_lines[:10])
                     + "\n"
                 )

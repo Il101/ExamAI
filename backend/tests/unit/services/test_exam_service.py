@@ -3,8 +3,7 @@ from uuid import uuid4
 
 import pytest
 
-from app.domain.exam import Exam
-from app.domain.user import SubscriptionPlan, User
+from app.domain.user import User
 from app.services.exam_service import ExamService
 
 

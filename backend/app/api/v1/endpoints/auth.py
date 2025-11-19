@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 
 from app.core.exceptions import AuthenticationException, ValidationException
 from app.dependencies import get_auth_service, get_current_user
@@ -97,7 +97,6 @@ async def verify_email(
     # For now, we'll keep it as a placeholder or remove it if not needed.
     # If using Supabase, the user clicks a link that goes to the frontend,
     # which then might call an endpoint or just use the Supabase JS client.
-    pass
 
 
 @router.get("/me", response_model=UserResponse)

@@ -5,7 +5,6 @@ import pytest
 
 from app.agent.state import AgentState, PlanStep, StepResult
 from app.domain.exam import Exam
-from app.domain.topic import Topic
 from app.domain.user import User
 from app.services.agent_service import AgentService
 

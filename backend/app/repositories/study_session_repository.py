@@ -19,7 +19,8 @@ class StudySessionRepository(BaseRepository[StudySession, StudySessionModel]):
     async def get_active_by_user(self, user_id: UUID) -> Optional[StudySession]:
         """Get active study session for user"""
         stmt = select(StudySessionModel).where(
-            StudySessionModel.user_id == user_id, StudySessionModel.is_active == True
+            StudySessionModel.user_id == user_id,
+            StudySessionModel.is_active.is_(True),
         )
 
         result = await self.session.execute(stmt)

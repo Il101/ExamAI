@@ -3,11 +3,9 @@ from uuid import UUID
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload
 
 from app.db.mappers.exam_mapper import ExamMapper
 from app.db.models.exam import ExamModel
-from app.db.models.topic import TopicModel
 from app.domain.exam import Exam, ExamStatus
 from app.repositories.base import BaseRepository
 

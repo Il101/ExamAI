@@ -3,7 +3,6 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
 
-from app.core.exceptions import NotFoundException
 from app.dependencies import get_current_active_user, get_topic_repo
 from app.domain.user import User
 from app.repositories.topic_repository import TopicRepository

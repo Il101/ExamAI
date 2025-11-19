@@ -1,5 +1,4 @@
 # backend/tests/unit/domain/test_user.py
-from datetime import datetime
 
 import pytest
 
