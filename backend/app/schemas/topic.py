@@ -1,13 +1,18 @@
 from pydantic import BaseModel
 from typing import Optional, List
 from uuid import UUID
+from datetime import datetime
 
 class TopicResponse(BaseModel):
     id: UUID
     exam_id: UUID
-    title: str
+    topic_name: str
     content: Optional[str]
-    order: int
+    order_index: int
+    difficulty_level: Optional[int] = None
+    estimated_study_minutes: Optional[int] = None
+    created_at: datetime
+    updated_at: datetime
     
     class Config:
         from_attributes = True

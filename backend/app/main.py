@@ -4,13 +4,15 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from datetime import datetime
-import sentry_sdk
-from sentry_sdk.integrations.fastapi import FastApiIntegration
 
 from app.core.config import settings
 from app.core.exceptions import AppException
+from app.core.monitoring import init_monitoring
+from app.core.logging import setup_logging
+from app.middleware.security import SecurityHeadersMiddleware, RequestLoggingMiddleware
 from app.api.v1.router import api_router
 from app.db.session import init_db, close_db
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -18,19 +20,18 @@ async def lifespan(app: FastAPI):
     # Startup
     print("🚀 Starting ExamAI Pro API...")
     
+    # Initialize logging
+    setup_logging(log_level="INFO" if settings.ENVIRONMENT == "production" else "DEBUG")
+    print("✅ Logging configured")
+    
+    # Initialize monitoring
+    init_monitoring()
+    if settings.SENTRY_DSN:
+        print("✅ Sentry monitoring initialized")
+    
     # Initialize database
     await init_db()
     print("✅ Database initialized")
-    
-    # Initialize Sentry (if production)
-    if settings.ENVIRONMENT == "production" and settings.SENTRY_DSN:
-        sentry_sdk.init(
-            dsn=settings.SENTRY_DSN,
-            integrations=[FastApiIntegration()],
-            environment=settings.ENVIRONMENT,
-            traces_sample_rate=0.1,
-        )
-        print("✅ Sentry initialized")
     
     yield
     
@@ -58,6 +59,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Security headers (production only)
+if settings.ENVIRONMENT == "production":
+    app.add_middleware(SecurityHeadersMiddleware)
+
+# Request logging
+app.add_middleware(RequestLoggingMiddleware)
 
 # Gzip compression
 app.add_middleware(GZipMiddleware, minimum_size=1000)

@@ -10,8 +10,11 @@ from app.schemas.exam import (
     StartGenerationRequest,
     GenerationStatusResponse
 )
+from app.schemas.topic import TopicResponse
 from app.services.exam_service import ExamService
 from app.services.agent_service import AgentService
+from app.repositories.topic_repository import TopicRepository
+from app.db.session import get_db
 from app.dependencies import (
     get_current_active_user,
     get_exam_service,
@@ -20,6 +23,7 @@ from app.dependencies import (
 from app.domain.user import User
 from app.core.exceptions import NotFoundException, ValidationException
 from app.tasks.exam_tasks import generate_exam_content
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 router = APIRouter()
@@ -90,16 +94,35 @@ async def list_exams(
 async def get_exam(
     exam_id: UUID,
     current_user: User = Depends(get_current_active_user),
-    exam_service: ExamService = Depends(get_exam_service)
+    exam_service: ExamService = Depends(get_exam_service),
+    db: AsyncSession = Depends(get_db)
 ):
-    """Get exam by ID"""
+    """Get exam by ID with topics"""
     
     exam = await exam_service.get_exam(current_user.id, exam_id)
     
     if not exam:
         raise NotFoundException("Exam", str(exam_id))
     
-    return ExamResponse.from_orm(exam)
+    # Load topics
+    topic_repo = TopicRepository(db)
+    topics = await topic_repo.get_by_exam_id(exam_id)
+    
+    # Build response
+    response = ExamResponse.from_orm(exam)
+    response.topics = [TopicResponse(
+        id=t.id,
+        exam_id=t.exam_id,
+        topic_name=t.topic_name,
+        content=t.content,
+        order_index=t.order_index,
+        difficulty_level=t.difficulty_level,
+        estimated_study_minutes=t.estimated_study_minutes,
+        created_at=t.created_at,
+        updated_at=t.updated_at
+    ) for t in topics]
+    
+    return response
 
 
 @router.patch("/{exam_id}", response_model=ExamResponse)

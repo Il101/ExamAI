@@ -77,8 +77,8 @@ sentry-sdk[fastapi]==1.38.0
 ### Step 1.1.3: Core Configuration (app/core/config.py)
 ```python
 # backend/app/core/config.py
-from pydantic_settings import BaseSettings
-from typing import Literal, Optional
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import Literal, Optional, List
 from functools import lru_cache
 
 
@@ -87,6 +87,7 @@ class Settings(BaseSettings):
     Central application configuration.
     All settings from .env file.
     """
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True, extra="ignore")
     
     # Application
     APP_NAME: str = "ExamAI Pro"
@@ -94,82 +95,46 @@ class Settings(BaseSettings):
     ENVIRONMENT: Literal["development", "staging", "production"] = "development"
     DEBUG: bool = False
     API_V1_PREFIX: str = "/api/v1"
+    ALLOWED_ORIGINS: List[str] = ["http://localhost:3000"]
     
     # AI Configuration
-    GEMINI_API_KEY: str
+    GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-2.5-flash-lite"
     PROMPTS_DIR: str = "app/prompts"
 
     # Security
-    SECRET_KEY: str  # min 32 chars, used for JWT
+    SECRET_KEY: str = "" # min 32 chars, used for JWT
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     
-    # Database (Supabase)
-    DATABASE_URL: str
-    DB_POOL_SIZE: int = 10
-    DB_MAX_OVERFLOW: int = 20
-    DB_ECHO: bool = False  # SQL logging
+    # Database
+    DATABASE_URL: str = ""
     
-    SUPABASE_URL: str
-    SUPABASE_KEY: str
-    SUPABASE_SERVICE_KEY: str
+    # Supabase
+    SUPABASE_URL: str = ""
+    SUPABASE_KEY: str = ""  # Service_role key for admin tasks
     
-    # Redis (Upstash)
-    REDIS_URL: str
-    REDIS_MAX_CONNECTIONS: int = 50
+    # Redis
+    REDIS_URL: str = "redis://localhost:6379/0"
     
-    # LLM Provider
-    LLM_PROVIDER: Literal["gemini", "openai", "anthropic"] = "gemini"
-    GEMINI_API_KEY: str
-    GEMINI_MODEL: str = "gemini-2.5-flash"
-    OPENAI_API_KEY: Optional[str] = None
-    ANTHROPIC_API_KEY: Optional[str] = None
+    # Celery
+    CELERY_BROKER_URL: str = "redis://localhost:6379/0"
+    CELERY_RESULT_BACKEND: str = "redis://localhost:6379/0"
     
-    # Cost Limits (USD per day)
-    LLM_COST_LIMIT_FREE: float = 0.50
-    LLM_COST_LIMIT_PRO: float = 5.00
-    LLM_COST_LIMIT_ENTERPRISE: float = 100.00
-    
-    # Rate Limiting
-    RATE_LIMIT_FREE_TIER: str = "10/minute"
-    RATE_LIMIT_PRO_TIER: str = "60/minute"
-    
-    # File Upload
-    MAX_UPLOAD_SIZE_MB: int = 10
-    ALLOWED_UPLOAD_EXTENSIONS: list[str] = [".pdf", ".docx", ".txt"]
-    
-    # Email (SendGrid)
-    SENDGRID_API_KEY: Optional[str] = None
-    EMAIL_FROM: str = "noreply@examai.com"
-    
-    # Celery (Background Tasks)
-    CELERY_BROKER_URL: str
-    CELERY_RESULT_BACKEND: str
-    
-    # Monitoring
+    # Sentry
     SENTRY_DSN: Optional[str] = None
-    ENABLE_SENTRY: bool = False
+
+    # Email
+    EMAIL_FROM: str = "noreply@examai.pro"
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_TLS: bool = True
+    SMTP_USER: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
     
-    # Feature Flags
-    ENABLE_SPACED_REPETITION: bool = True
-    ENABLE_POMODORO: bool = False  # MVP: disabled
-    ENABLE_PUSH_NOTIFICATIONS: bool = False
-    
-    # CORS
-    BACKEND_CORS_ORIGINS: list[str] = [
-        "http://localhost:3000",
-        "http://localhost:8000",
-    ]
-    
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
-        
-    def get_database_url(self) -> str:
-        """Returns database URL for SQLAlchemy"""
-        return self.DATABASE_URL.replace("postgres://", "postgresql+asyncpg://")
+    # Frontend
+    FRONTEND_URL: str = "http://localhost:3000"
 
 
 @lru_cache()

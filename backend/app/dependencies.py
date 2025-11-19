@@ -68,7 +68,7 @@ def get_llm_provider() -> LLMProvider:
 # --- Agent ---
 
 def get_agent(llm_provider: LLMProvider = Depends(get_llm_provider)) -> PlanAndExecuteAgent:
-    return PlanAndExecuteAgent(llm_provider)
+    return PlanAndExecuteAgent(llm_provider, max_topics=settings.MAX_TOPICS)
 
 # --- Domain Services ---
 

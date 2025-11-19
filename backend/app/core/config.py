@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-2.5-flash-lite"
     PROMPTS_DIR: str = "app/prompts"
+    MAX_TOPICS: Optional[int] = None  # None = let AI decide based on content
 
     # Security
     SECRET_KEY: str = "" # min 32 chars, used for JWT

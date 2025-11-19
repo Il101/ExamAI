@@ -239,16 +239,16 @@
 
 | Этап | Статус | Время | Комментарии |
 |------|--------|-------|-------------|
-| 1. Infrastructure | ⏳ Not Started | 2-3 дня | - |
-| 2. Domain Layer | ⏳ Not Started | 2-3 дня | - |
-| 3. Data Layer | ⏳ Not Started | 3-4 дня | - |
-| 4. Service Layer | ⏳ Not Started | 3-4 дня | - |
-| 5. AI Agent | ⏳ Not Started | 4-5 дней | - |
-| 6. API Layer | ⏳ Not Started | 3-4 дня | - |
-| 7. Frontend Core | ⏳ Not Started | 3-4 дня | - |
-| 8. Frontend Features | ⏳ Not Started | 5-6 дней | - |
-| 9. Testing | ⏳ Not Started | 3-4 дня | - |
-| 10. Deployment | ⏳ Not Started | 2-3 дня | - |
+| 1. Infrastructure | ✅ Done | 2-3 дня | Config discrepancies noted |
+| 2. Domain Layer | ✅ Done | 2-3 дня | Uses FSRS instead of SM-2 |
+| 3. Data Layer | ✅ Done | 3-4 дня | - |
+| 4. Service Layer | ✅ Done | 3-4 дня | - |
+| 5. AI Agent | ✅ Done | 4-5 дней | - |
+| 6. API Layer | ✅ Done | 3-4 дня | - |
+| 7. Frontend Core | ✅ Done | 3-4 дня | - |
+| 8. Frontend Features | ✅ Done | 5-6 дней | - |
+| 9. Testing | 🚧 In Progress | 3-4 дня | Structure ready, tests pending run |
+| 10. Deployment | 📝 Docs Ready | 2-3 дня | Scripts ready |
 
 **Итого**: 30-40 дней работы (для одного разработчика full-time)
 

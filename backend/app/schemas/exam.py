@@ -1,7 +1,10 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List, TYPE_CHECKING
 from datetime import datetime
 from uuid import UUID
+
+if TYPE_CHECKING:
+    from app.schemas.topic import TopicResponse
 
 
 class ExamCreate(BaseModel):
@@ -48,6 +51,7 @@ class ExamResponse(BaseModel):
     token_count_input: Optional[int] = None
     token_count_output: Optional[int] = None
     generation_cost_usd: Optional[float] = None
+    topics: List["TopicResponse"] = []  # Related topics
     
     class Config:
         from_attributes = True
@@ -75,3 +79,8 @@ class GenerationStatusResponse(BaseModel):
     current_step: Optional[str] = None
     total_steps: Optional[int] = None
     completed_steps: Optional[int] = None
+
+
+# Resolve forward references
+from app.schemas.topic import TopicResponse
+ExamResponse.model_rebuild()
