@@ -10,7 +10,12 @@ async def test_engine():
     """Create test database engine"""
     # Use separate test database
     if settings.DATABASE_URL:
-        test_db_url = settings.DATABASE_URL.replace("/examai", "/examai_test")
+        # If DATABASE_URL already contains test database, use it as-is
+        # Otherwise, replace /examai with /examai_test
+        if "/examai_test" in settings.DATABASE_URL:
+            test_db_url = settings.DATABASE_URL
+        else:
+            test_db_url = settings.DATABASE_URL.replace("/examai", "/examai_test")
     else:
         # Fallback for local testing if .env not loaded
         test_db_url = (
