@@ -25,15 +25,17 @@ from app.db.models.subscription import SubscriptionModel
 config = context.config
 
 # Override sqlalchemy.url with actual DATABASE_URL
-# Use DATABASE_URL from settings if available and not empty
-if settings.DATABASE_URL and settings.DATABASE_URL.strip():
-    config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
-elif not config.get_main_option("sqlalchemy.url"):
-    # If no URL in config and no DATABASE_URL, fail early with helpful message
+# First try to get from settings, then from environment variable directly
+database_url = settings.DATABASE_URL
+if not database_url or database_url == "":
+    database_url = os.getenv("DATABASE_URL", "")
+
+if not database_url:
     raise ValueError(
-        "No DATABASE_URL configured. Set DATABASE_URL environment variable "
-        "or configure sqlalchemy.url in alembic.ini"
+        "DATABASE_URL is not set. Please set it in .env file or as environment variable."
     )
+
+config.set_main_option("sqlalchemy.url", database_url)
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
