@@ -47,14 +47,8 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 async def init_db():
     """Initialize database (create all tables)"""
     from app.db.base import Base
-    from app.db.models.exam import ExamModel
-    from app.db.models.review import ReviewItemModel
-    from app.db.models.study_session import StudySessionModel
-    from app.db.models.subscription import SubscriptionModel
-    from app.db.models.topic import TopicModel
 
     # Import all models so they are registered with Base.metadata
-    from app.db.models.user import UserModel
 
     async with engine.begin() as conn:
         # await conn.run_sync(Base.metadata.drop_all)

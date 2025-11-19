@@ -1,7 +1,7 @@
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import NotFoundException, ValidationException
@@ -19,7 +19,6 @@ from app.schemas.exam import (
     ExamResponse,
     ExamUpdate,
     GenerationStatusResponse,
-    StartGenerationRequest,
 )
 from app.schemas.topic import TopicResponse
 from app.services.agent_service import AgentService

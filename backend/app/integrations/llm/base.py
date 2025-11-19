@@ -56,21 +56,15 @@ class LLMProvider(ABC):
         Returns:
             LLMResponse with content and usage stats
         """
-        pass
 
     @abstractmethod
     async def count_tokens(self, text: str) -> int:
         """Count tokens in text for cost estimation"""
-        pass
 
     @abstractmethod
     def get_model_name(self) -> str:
         """Get model name"""
-        pass
-
-        pass
 
     @abstractmethod
     def calculate_cost(self, tokens_input: int, tokens_output: int) -> float:
         """Calculate cost in USD based on token usage"""
-        pass

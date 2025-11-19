@@ -4,7 +4,7 @@ from uuid import uuid4
 
 import pytest
 
-from app.domain.exam import Exam, ExamLevel, ExamStatus, ExamType
+from app.domain.exam import Exam
 
 
 class TestExamDomain:

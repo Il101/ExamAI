@@ -1,7 +1,7 @@
 from typing import List
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query
 
 from app.core.exceptions import NotFoundException
 from app.dependencies import get_current_active_user, get_study_service
@@ -55,7 +55,7 @@ async def submit_review(
 
         return ReviewItemResponse.from_orm(item)
 
-    except ValueError as e:
+    except ValueError:
         raise NotFoundException("Review item", str(review_id))
 
 

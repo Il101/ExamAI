@@ -1,7 +1,4 @@
 import asyncio
-from datetime import datetime, timedelta
-
-from celery import Task
 
 from app.core.config import settings
 from app.db.session import AsyncSessionLocal

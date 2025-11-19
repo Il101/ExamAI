@@ -1,11 +1,10 @@
 # backend/tests/unit/domain/test_review.py
 from datetime import datetime, timedelta
-from uuid import uuid4
 
 import pytest
 from freezegun import freeze_time
 
-from app.domain.review import Rating, ReviewItem
+from app.domain.review import ReviewItem
 
 
 class TestReviewItem:

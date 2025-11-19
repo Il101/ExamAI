@@ -1,10 +1,9 @@
-from datetime import datetime
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
 
-from app.domain.review import Rating, ReviewItem
+from app.domain.review import ReviewItem
 from app.services.study_service import StudyService
 
 

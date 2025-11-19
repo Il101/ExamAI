@@ -133,7 +133,7 @@ class AgentService:
 
             return updated
 
-        except Exception as e:
+        except Exception:
             # Mark as failed
             exam.mark_as_failed()
             await self.exam_repo.update(exam)

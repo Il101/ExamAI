@@ -1,9 +1,7 @@
-from typing import Annotated, AsyncGenerator
 from uuid import UUID
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agent.orchestrator import PlanAndExecuteAgent

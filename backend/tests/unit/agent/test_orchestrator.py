@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from app.agent.orchestrator import PlanAndExecuteAgent
-from app.agent.state import AgentState, ExecutionStatus, PlanStep
+from app.agent.state import ExecutionStatus, PlanStep
 
 
 @pytest.fixture

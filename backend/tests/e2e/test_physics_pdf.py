@@ -1,6 +1,5 @@
 """E2E test with real Physics PDF file"""
 
-import asyncio
 from pathlib import Path
 from unittest.mock import Mock
 from uuid import uuid4

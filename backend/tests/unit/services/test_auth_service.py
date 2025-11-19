@@ -5,7 +5,6 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from app.core.config import settings
 from app.domain.user import User
 from app.services.auth_service import AuthService
 

@@ -2,7 +2,7 @@ from uuid import uuid4
 
 import pytest
 
-from app.domain.exam import Exam, ExamStatus
+from app.domain.exam import Exam
 from app.domain.user import User
 from app.repositories.exam_repository import ExamRepository
 from app.repositories.user_repository import UserRepository

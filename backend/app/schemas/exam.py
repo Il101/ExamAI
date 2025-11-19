@@ -74,7 +74,6 @@ class StartGenerationRequest(BaseModel):
     """Start exam generation request"""
 
     # Empty for now, may add options later
-    pass
 
 
 class GenerationStatusResponse(BaseModel):
@@ -89,6 +88,7 @@ class GenerationStatusResponse(BaseModel):
 
 
 # Resolve forward references
-from app.schemas.topic import TopicResponse
+if not TYPE_CHECKING:
+    from app.schemas.topic import TopicResponse  # noqa: F811
 
-ExamResponse.model_rebuild()
+    ExamResponse.model_rebuild()
