@@ -25,6 +25,19 @@ jobs:
     name: Backend Tests
     runs-on: ubuntu-latest
     
+    env:
+      # Test environment variables
+      ENVIRONMENT: test
+      DEBUG: True
+      POSTGRES_DB: examai_test
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/examai_test
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      SECRET_KEY: test_secret_key_min_32_chars_long
+      GEMINI_API_KEY: dummy_key_for_testing
+      GEMINI_MODEL: gemini-2.5-flash-lite
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -33,64 +46,28 @@ jobs:
         uses: docker/setup-buildx-action@v3
       
       - name: Build and Start Services
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          SECRET_KEY: test_secret_key_min_32_chars_long
-          ENVIRONMENT: test
         run: |
-          # Create a .env file for docker-compose
-          echo "ENVIRONMENT=test" > .env
-          echo "DEBUG=True" >> .env
-          echo "REDIS_URL=redis://redis:6379/0" >> .env
-          echo "SECRET_KEY=test_secret_key_min_32_chars_long" >> .env
-          echo "GEMINI_API_KEY=dummy_key" >> .env
+          # Start services using both base and test compose files
+          # --wait will wait for health checks to pass
+          docker compose -f docker-compose.yml -f docker-compose.test.yml up -d --build --wait
           
-          # Build and start services
-          # Ensure we start with a clean slate
-          docker compose -f docker-compose.yml down -v
-          docker compose -f docker-compose.yml up -d --build
+          echo "✅ All services are healthy and ready"
       
-      - name: Wait for services
+      - name: Verify services are running
         run: |
-          echo "Waiting for Postgres..."
-          # Use a simple loop to check if the container is healthy/ready
-          # We can try to exec into the db container or just wait a bit
-          sleep 10
-          
-          # Check if services are running
-          docker compose ps
-      
-      - name: Reset database
-        run: |
-          echo "Ensuring clean database state..."
-          # Drop and recreate the database to ensure clean state
-          # Note: docker-compose.yml uses 'examai' as the database name
-          docker compose exec -T db psql -U postgres -c "DROP DATABASE IF EXISTS examai;"
-          docker compose exec -T db psql -U postgres -c "CREATE DATABASE examai;"
-          echo "✅ Database reset complete"
+          docker compose -f docker-compose.yml -f docker-compose.test.yml ps
       
       - name: Run database migrations
         run: |
-          docker compose exec -T backend alembic upgrade head
+          docker compose -f docker-compose.yml -f docker-compose.test.yml exec -T backend alembic upgrade head
       
       - name: Run tests with coverage
         run: |
-          docker compose exec -T backend pytest tests/ -v --cov=app --cov-report=xml --cov-report=term-missing --ignore=tests/e2e
+          docker compose -f docker-compose.yml -f docker-compose.test.yml exec -T backend pytest tests/ -v --cov=app --cov-report=xml --cov-report=term-missing --ignore=tests/e2e
       
       - name: Copy coverage report
         run: |
-          docker compose cp backend:/app/coverage.xml ./backend/coverage.xml
-      
-      - name: Upload coverage to Codecov
-        if: env.CODECOV_TOKEN != ''
-        continue-on-error: true
-        uses: codecov/codecov-action@v4
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        with:
-          file: ./backend/coverage.xml
-          flags: backend
-          token: ${{ secrets.CODECOV_TOKEN }}
+          docker compose -f docker-compose.yml -f docker-compose.test.yml cp backend:/app/coverage.xml ./backend/coverage.xml
       
       - name: Upload coverage to Codecov
         if: env.CODECOV_TOKEN != ''
