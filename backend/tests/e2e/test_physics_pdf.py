@@ -149,7 +149,7 @@ class TestPhysicsPDF:
                 )
                 final_exam = get_response.json()
 
-                print(f"\n[E2E-Physics] RESULTS:")
+                print("\n[E2E-Physics] RESULTS:")
                 print(f"  Status: {final_exam['status']}")
                 print(f"  Topics generated: {len(final_exam['topics'])}")
                 print(
@@ -162,7 +162,7 @@ class TestPhysicsPDF:
                 assert final_exam["ai_summary"] is not None
 
                 # Show generated topics
-                print(f"\n[E2E-Physics] Generated Topics:")
+                print("\n[E2E-Physics] Generated Topics:")
                 for i, topic in enumerate(final_exam["topics"], 1):
                     print(
                         f"  {i}. {topic['topic_name']} (difficulty: {topic['difficulty_level']}/5)"
@@ -176,7 +176,7 @@ class TestPhysicsPDF:
                         if first_topic["content"]
                         else "No content"
                     )
-                    print(f"\n[E2E-Physics] First Topic Preview:")
+                    print("\n[E2E-Physics] First Topic Preview:")
                     print(f"  {preview}...")
 
                 print("\n[E2E-Physics] ✅ Test PASSED!")

@@ -56,7 +56,7 @@ class TestReviewItem:
         item = ReviewItem(question="Test Question", answer="Test Answer")
 
         # First review: Easy (4)
-        next_date = item.review(rating=4)
+        item.review(rating=4)
 
         assert item.state == "review"
         assert item.reps == 1
@@ -112,7 +112,7 @@ class TestReviewItem:
             datetime(2024, 1, 1, 12, 0, 0) + timedelta(days=scheduled_days)
         ):
             # Review: Good (3)
-            next_date = item.review(rating=3)
+            item.review(rating=3)
 
             assert item.reps == 2
             assert item.elapsed_days == scheduled_days
