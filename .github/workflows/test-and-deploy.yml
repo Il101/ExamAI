@@ -74,6 +74,15 @@ jobs:
           isort --check-only app tests
           flake8 app tests
       
+      - name: Run database migrations
+        env:
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/examai_test
+          SECRET_KEY: test_secret_key_min_32_chars_long
+          ENVIRONMENT: test
+        run: |
+          cd backend
+          alembic upgrade head
+      
       - name: Run tests with coverage
         env:
           DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/examai_test
