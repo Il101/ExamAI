@@ -5,7 +5,7 @@ from app.db.models.user import UserModel
 
 class UserMapper:
     """Maps between User domain entity and UserModel DB model"""
-    
+
     @staticmethod
     def to_domain(model: UserModel) -> User:
         """Convert DB model to domain entity"""
@@ -23,7 +23,7 @@ class UserMapper:
             timezone=model.timezone,
             daily_study_goal_minutes=model.daily_study_goal_minutes,
         )
-    
+
     @staticmethod
     def to_model(domain: User) -> UserModel:
         """Convert domain entity to DB model"""
@@ -41,7 +41,7 @@ class UserMapper:
             timezone=domain.timezone,
             daily_study_goal_minutes=domain.daily_study_goal_minutes,
         )
-    
+
     @staticmethod
     def update_model(model: UserModel, domain: User) -> UserModel:
         """Update existing DB model with domain data"""
@@ -55,5 +55,5 @@ class UserMapper:
         model.preferred_language = domain.preferred_language
         model.timezone = domain.timezone
         model.daily_study_goal_minutes = domain.daily_study_goal_minutes
-        
+
         return model

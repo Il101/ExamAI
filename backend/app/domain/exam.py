@@ -16,96 +16,95 @@ class Exam:
     Exam domain entity.
     Represents a study material with AI-generated content.
     """
-    
+
     id: UUID = field(default_factory=uuid4)
     user_id: UUID = field(default_factory=uuid4)
-    
+
     # Basic info
     title: str = ""
     subject: str = ""
     exam_type: ExamType = "written"
     level: ExamLevel = "bachelor"
-    
+
     # Content
     original_content: str = ""  # User-provided material
     ai_summary: Optional[str] = None  # Generated summary
-    
+
     # Metadata
     status: ExamStatus = "draft"
     created_at: datetime = field(default_factory=datetime.utcnow)
     updated_at: datetime = field(default_factory=datetime.utcnow)
-    
+
     # AI usage tracking
     token_count_input: int = 0
     token_count_output: int = 0
     generation_cost_usd: float = 0.0
-    
+
     # Topics (will be populated by Agent)
     topic_count: int = 0
-    
+
     def __post_init__(self):
         self._validate()
-    
+
     def _validate(self):
         """Validate exam data"""
         if not self.title or len(self.title.strip()) < 3:
             raise ValueError("Title must be at least 3 characters")
-        
+
         if not self.subject or len(self.subject.strip()) < 2:
             raise ValueError("Subject must be at least 2 characters")
-        
+
         if self.status == "ready" and not self.ai_summary:
             raise ValueError("Ready exam must have AI summary")
-    
+
     # Business logic
-    
+
     def can_generate(self) -> bool:
         """Check if exam can start generation"""
-        return (
-            self.status in ["draft", "failed"] and
-            len(self.original_content) >= 100
-        )
-    
+        return self.status in ["draft", "failed"] and len(self.original_content) >= 100
+
     def start_generation(self):
         """Mark exam as generating"""
         if not self.can_generate():
             raise ValueError(f"Cannot start generation: status={self.status}")
-        
+
         self.status = "generating"
         self.updated_at = datetime.utcnow()
-    
-    def mark_as_ready(self, ai_summary: str, token_input: int, token_output: int, cost: float):
+
+    def mark_as_ready(
+        self, ai_summary: str, token_input: int, token_output: int, cost: float
+    ):
         """Mark exam as successfully generated"""
         if self.status != "generating":
             raise ValueError("Can only mark generating exams as ready")
-        
+
         self.ai_summary = ai_summary
         self.token_count_input = token_input
         self.token_count_output = token_output
         self.generation_cost_usd = cost
         self.status = "ready"
         self.updated_at = datetime.utcnow()
-    
+
     def mark_as_failed(self):
         """Mark exam generation as failed"""
         if self.status != "generating":
             raise ValueError("Can only mark generating exams as failed")
-        
+
         self.status = "failed"
         self.updated_at = datetime.utcnow()
-    
+
     def archive(self):
         """Archive exam"""
         if self.status == "generating":
             raise ValueError("Cannot archive exam during generation")
-        
+
         self.status = "archived"
         self.updated_at = datetime.utcnow()
-    
+
     def get_estimated_tokens(self) -> int:
         """Estimate tokens for generation (rough: 1 token ≈ 4 chars)"""
         return len(self.original_content) // 4
-    
+
     def update_topic_count(self, count: int):
         """Update number of generated topics"""
         if count < 0:

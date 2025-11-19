@@ -3,6 +3,7 @@ from typing import Optional, List
 from uuid import UUID
 from datetime import datetime
 
+
 class TopicResponse(BaseModel):
     id: UUID
     exam_id: UUID
@@ -13,9 +14,10 @@ class TopicResponse(BaseModel):
     estimated_study_minutes: Optional[int] = None
     created_at: datetime
     updated_at: datetime
-    
+
     class Config:
         from_attributes = True
+
 
 class TopicListResponse(BaseModel):
     topics: List[TopicResponse]

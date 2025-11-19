@@ -5,6 +5,7 @@ from datetime import datetime
 from app.repositories.user_repository import UserRepository
 from app.domain.user import User
 
+
 @pytest.mark.asyncio
 class TestUserRepository:
     """Integration tests for UserRepository"""
@@ -17,17 +18,17 @@ class TestUserRepository:
             id=uuid4(),
             email="test_create@example.com",
             full_name="Test Create",
-            created_at=datetime.now()
+            created_at=datetime.now(),
         )
-        
+
         # Act
         created_user = await repo.create(user)
-        await test_session.flush() # Ensure ID is generated/propagated if needed
-        
+        await test_session.flush()  # Ensure ID is generated/propagated if needed
+
         # Assert
         assert created_user.id is not None
         assert created_user.email == "test_create@example.com"
-        
+
         # Verify persistence
         # We need to clear session or query directly to ensure it's in DB
         # But here we are in same transaction, so it should be visible
@@ -43,17 +44,17 @@ class TestUserRepository:
             id=uuid4(),
             email="update@test.com",
             full_name="Original Name",
-            created_at=datetime.now()
+            created_at=datetime.now(),
         )
         created = await repo.create(user)
         await test_session.flush()
-        
+
         # Act
         created.full_name = "Updated Name"
         created.subscription_plan = "pro"
         updated = await repo.update(created)
         await test_session.flush()
-        
+
         # Assert
         retrieved = await repo.get_by_id(created.id)
         assert retrieved.full_name == "Updated Name"
@@ -66,15 +67,15 @@ class TestUserRepository:
             id=uuid4(),
             email="findme@test.com",
             full_name="Find Me",
-            created_at=datetime.now()
+            created_at=datetime.now(),
         )
         await repo.create(user)
         await test_session.flush()
-        
+
         found = await repo.get_by_email("findme@test.com")
         assert found is not None
         assert found.id == user.id
-        
+
         not_found = await repo.get_by_email("missing@test.com")
         assert not_found is None
 
@@ -85,10 +86,10 @@ class TestUserRepository:
             id=uuid4(),
             email="exists@test.com",
             full_name="Exists",
-            created_at=datetime.now()
+            created_at=datetime.now(),
         )
         await repo.create(user)
         await test_session.flush()
-        
+
         assert await repo.exists_by_email("exists@test.com") is True
         assert await repo.exists_by_email("nope@test.com") is False

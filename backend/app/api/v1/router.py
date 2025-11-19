@@ -8,7 +8,7 @@ from app.api.v1.endpoints import (
     sessions,
     analytics,
     tasks,
-    health
+    health,
 )
 
 

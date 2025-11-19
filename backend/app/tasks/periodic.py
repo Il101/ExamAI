@@ -16,26 +16,26 @@ def send_daily_review_reminders():
     Send daily email reminders to users with pending reviews.
     Scheduled to run every day at 9 AM.
     """
-    
+
     return asyncio.run(_send_daily_review_reminders_async())
 
 
 async def _send_daily_review_reminders_async():
     """Async implementation"""
-    
+
     async with AsyncSessionLocal() as session:
         user_repo = UserRepository(session)
         review_repo = ReviewItemRepository(session)
-        
+
         # Get all users (in production, add pagination)
         users = await user_repo.list_all(limit=1000)
-        
+
         sent_count = 0
-        
+
         for user in users:
             # Get due reviews count
             due_count = await review_repo.count_due_by_user(user.id)
-            
+
             if due_count > 0:
                 # Send reminder email
                 send_email.delay(
@@ -46,8 +46,8 @@ async def _send_daily_review_reminders_async():
                     <p>Hi {user.full_name},</p>
                     <p>You have <strong>{due_count}</strong> flashcards due for review today.</p>
                     <p><a href="{settings.FRONTEND_URL}/study">Start Reviewing</a></p>
-                    """
+                    """,
                 )
                 sent_count += 1
-        
+
         return {"sent_reminders": sent_count}

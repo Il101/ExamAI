@@ -1,4 +1,5 @@
 """Deterministic LLM responses for testing"""
+
 import pytest
 
 MOCK_COURSE_PLAN = {
@@ -7,14 +8,14 @@ MOCK_COURSE_PLAN = {
             "topic_title": "Introduction to Calculus",
             "priority": 1,
             "dependencies": [],
-            "estimated_paragraphs": 5
+            "estimated_paragraphs": 5,
         },
         {
             "topic_title": "Limits and Continuity",
             "priority": 2,
             "dependencies": [1],
-            "estimated_paragraphs": 6
-        }
+            "estimated_paragraphs": 6,
+        },
     ]
 }
 
@@ -37,10 +38,10 @@ Solution: f'(x) = 2x
 def mock_gemini_provider(mocker):
     """Mock Gemini provider for tests"""
     mock_llm = mocker.Mock()
-    
+
     mock_llm.generate_json.return_value = MOCK_COURSE_PLAN
     mock_llm.generate_text.return_value = MOCK_TOPIC_CONTENT
     mock_llm.count_tokens.return_value = 100
     mock_llm.calculate_cost.return_value = 0.05
-    
+
     return mock_llm

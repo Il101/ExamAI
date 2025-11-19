@@ -5,7 +5,7 @@ from app.db.models.exam import ExamModel
 
 class ExamMapper:
     """Maps between Exam domain entity and ExamModel DB model"""
-    
+
     @staticmethod
     def to_domain(model: ExamModel) -> Exam:
         """Convert DB model to domain entity"""
@@ -26,7 +26,7 @@ class ExamMapper:
             generation_cost_usd=model.generation_cost_usd,
             topic_count=model.topic_count,
         )
-    
+
     @staticmethod
     def to_model(domain: Exam) -> ExamModel:
         """Convert domain entity to DB model"""
@@ -47,7 +47,7 @@ class ExamMapper:
             generation_cost_usd=domain.generation_cost_usd,
             topic_count=domain.topic_count,
         )
-    
+
     @staticmethod
     def update_model(model: ExamModel, domain: Exam) -> ExamModel:
         """Update existing DB model with domain data"""
@@ -62,5 +62,5 @@ class ExamMapper:
         model.token_count_output = domain.token_count_output
         model.generation_cost_usd = domain.generation_cost_usd
         model.topic_count = domain.topic_count
-        
+
         return model
