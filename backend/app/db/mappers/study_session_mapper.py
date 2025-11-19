@@ -6,7 +6,7 @@ from app.db.models.study_session import StudySessionModel
 
 class StudySessionMapper:
     """Maps between StudySession domain entity and StudySessionModel DB model"""
-    
+
     @staticmethod
     def to_domain(model: StudySessionModel) -> StudySession:
         """Convert DB model to domain entity"""
@@ -22,9 +22,9 @@ class StudySessionMapper:
             topic_ids=model.topic_ids or [],
             is_active=model.is_active,
             created_at=model.created_at,
-            updated_at=model.updated_at
+            updated_at=model.updated_at,
         )
-    
+
     @staticmethod
     def to_model(entity: StudySession) -> StudySessionModel:
         """Convert domain entity to DB model"""
@@ -40,5 +40,5 @@ class StudySessionMapper:
             topic_ids=entity.topic_ids,
             is_active=entity.is_active,
             created_at=entity.created_at,
-            updated_at=entity.updated_at
+            updated_at=entity.updated_at,
         )

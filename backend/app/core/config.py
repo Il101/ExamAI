@@ -2,13 +2,17 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Literal, Optional, List
 from functools import lru_cache
 
+
 class Settings(BaseSettings):
     """
     Central application configuration.
     All settings from .env file.
     """
-    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True, extra="ignore")
-    
+
+    model_config = SettingsConfigDict(
+        env_file=".env", case_sensitive=True, extra="ignore"
+    )
+
     # Application
     APP_NAME: str = "ExamAI Pro"
     VERSION: str = "0.1.0"
@@ -16,7 +20,7 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     API_V1_PREFIX: str = "/api/v1"
     ALLOWED_ORIGINS: List[str] = ["http://localhost:3000"]
-    
+
     # AI Configuration
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-2.5-flash-lite"
@@ -24,25 +28,25 @@ class Settings(BaseSettings):
     MAX_TOPICS: Optional[int] = None  # None = let AI decide based on content
 
     # Security
-    SECRET_KEY: str = "" # min 32 chars, used for JWT
+    SECRET_KEY: str = ""  # min 32 chars, used for JWT
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
-    
+
     # Database
     DATABASE_URL: str = ""
-    
+
     # Supabase
     SUPABASE_URL: str = ""
     SUPABASE_KEY: str = ""  # Service_role key for admin tasks
-    
+
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
-    
+
     # Celery
     CELERY_BROKER_URL: str = "redis://localhost:6379/0"
     CELERY_RESULT_BACKEND: str = "redis://localhost:6379/0"
-    
+
     # Sentry
     SENTRY_DSN: Optional[str] = None
 
@@ -53,12 +57,14 @@ class Settings(BaseSettings):
     SMTP_TLS: bool = True
     SMTP_USER: Optional[str] = None
     SMTP_PASSWORD: Optional[str] = None
-    
+
     # Frontend
     FRONTEND_URL: str = "http://localhost:3000"
+
 
 @lru_cache()
 def get_settings():
     return Settings()
+
 
 settings = get_settings()

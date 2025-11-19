@@ -4,6 +4,7 @@ from uuid import uuid4
 from datetime import datetime
 from app.domain.exam import Exam, ExamStatus, ExamType, ExamLevel
 
+
 class TestExamDomain:
     """Unit tests for Exam domain model"""
 
@@ -16,10 +17,10 @@ class TestExamDomain:
             subject="Mathematics",
             exam_type="written",
             level="bachelor",
-            original_content="Course notes..." * 10, # Ensure enough content
-            created_at=datetime.now()
+            original_content="Course notes..." * 10,  # Ensure enough content
+            created_at=datetime.now(),
         )
-        
+
         assert exam.status == "draft"
         assert exam.topic_count == 0
         assert exam.can_generate() is True
@@ -28,7 +29,7 @@ class TestExamDomain:
         """Test validation logic"""
         with pytest.raises(ValueError, match="Title must be at least 3 characters"):
             Exam(title="Hi", subject="Math")
-            
+
         with pytest.raises(ValueError, match="Subject must be at least 2 characters"):
             Exam(title="Math", subject="A")
 
@@ -39,25 +40,22 @@ class TestExamDomain:
             user_id=uuid4(),
             title="Test Exam",
             subject="Test",
-            original_content="Content" * 20, # > 100 chars
-            created_at=datetime.now()
+            original_content="Content" * 20,  # > 100 chars
+            created_at=datetime.now(),
         )
-        
+
         exam.start_generation()
-        
+
         assert exam.status == "generating"
         assert exam.can_generate() is False
 
     def test_cannot_generate_insufficient_content(self):
         """Test cannot generate with short content"""
         exam = Exam(
-            title="Test",
-            subject="Test",
-            original_content="Short",
-            status="draft"
+            title="Test", subject="Test", original_content="Short", status="draft"
         )
         assert exam.can_generate() is False
-        
+
         with pytest.raises(ValueError, match="Cannot start generation"):
             exam.start_generation()
 
@@ -67,16 +65,13 @@ class TestExamDomain:
             title="Test",
             subject="Test",
             original_content="Content" * 20,
-            status="generating"
+            status="generating",
         )
-        
+
         exam.mark_as_ready(
-            ai_summary="Summary",
-            token_input=100,
-            token_output=50,
-            cost=0.05
+            ai_summary="Summary", token_input=100, token_output=50, cost=0.05
         )
-        
+
         assert exam.status == "ready"
         assert exam.ai_summary == "Summary"
         assert exam.generation_cost_usd == 0.05
@@ -88,11 +83,11 @@ class TestExamDomain:
             title="Test",
             subject="Test",
             original_content="Content" * 20,
-            status="generating"
+            status="generating",
         )
-        
+
         exam.mark_as_failed()
-        
+
         assert exam.status == "failed"
         # Failed exam can be retried
         assert exam.can_generate() is True
@@ -103,34 +98,25 @@ class TestExamDomain:
             title="Test",
             subject="Test",
             original_content="Content" * 20,
-            status="generating"
+            status="generating",
         )
-        
+
         assert exam.can_generate() is False
-        
+
         with pytest.raises(ValueError):
             exam.start_generation()
 
     def test_archive(self):
         """Test archiving exam"""
-        exam = Exam(
-            title="Test",
-            subject="Test",
-            status="ready",
-            ai_summary="Summary"
-        )
-        
+        exam = Exam(title="Test", subject="Test", status="ready", ai_summary="Summary")
+
         exam.archive()
         assert exam.status == "archived"
 
     def test_cannot_archive_generating(self):
         """Test cannot archive while generating"""
-        exam = Exam(
-            title="Test",
-            subject="Test",
-            status="generating"
-        )
-        
+        exam = Exam(title="Test", subject="Test", status="generating")
+
         with pytest.raises(ValueError, match="Cannot archive exam during generation"):
             exam.archive()
 
@@ -139,6 +125,6 @@ class TestExamDomain:
         exam = Exam(title="Test", subject="Test")
         exam.update_topic_count(5)
         assert exam.topic_count == 5
-        
+
         with pytest.raises(ValueError):
             exam.update_topic_count(-1)

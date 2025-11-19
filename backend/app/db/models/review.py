@@ -13,28 +13,28 @@ if TYPE_CHECKING:
 
 class ReviewItemModel(Base):
     """SQLAlchemy ReviewItem model for spaced repetition"""
-    
+
     __tablename__ = "review_items"
-    
+
     # Foreign keys
     topic_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("topics.id", ondelete="CASCADE"),
         nullable=False,
-        index=True
+        index=True,
     )
-    
+
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
-        index=True
+        index=True,
     )
-    
+
     # Question/Answer
     question: Mapped[str] = mapped_column(Text, nullable=False)
     answer: Mapped[str] = mapped_column(Text, nullable=False)
-    
+
     # FSRS algorithm parameters
     stability: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     difficulty: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
@@ -43,23 +43,24 @@ class ReviewItemModel(Base):
     reps: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     lapses: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     state: Mapped[str] = mapped_column(String(20), default="new", nullable=False)
-    
+
     # Review history
     next_review_date: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=datetime.utcnow,
         nullable=False,
-        index=True  # Index for efficient "due today" queries
+        index=True,  # Index for efficient "due today" queries
     )
     last_reviewed_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True),
-        nullable=True
+        DateTime(timezone=True), nullable=True
     )
     last_review_rating: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    
+
     # Relationships
-    topic: Mapped["TopicModel"] = relationship("TopicModel", back_populates="review_items")
+    topic: Mapped["TopicModel"] = relationship(
+        "TopicModel", back_populates="review_items"
+    )
     user: Mapped["UserModel"] = relationship("UserModel", back_populates="review_items")
-    
+
     def __repr__(self) -> str:
         return f"<ReviewItemModel(id={self.id}, next_review={self.next_review_date})>"

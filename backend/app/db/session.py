@@ -27,7 +27,7 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """
     Dependency for getting database session.
     Usage in FastAPI endpoints:
-    
+
     @app.get("/users")
     async def get_users(db: AsyncSession = Depends(get_db)):
         ...
@@ -46,6 +46,7 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 async def init_db():
     """Initialize database (create all tables)"""
     from app.db.base import Base
+
     # Import all models so they are registered with Base.metadata
     from app.db.models.user import UserModel
     from app.db.models.exam import ExamModel
@@ -53,7 +54,7 @@ async def init_db():
     from app.db.models.review import ReviewItemModel
     from app.db.models.study_session import StudySessionModel
     from app.db.models.subscription import SubscriptionModel
-    
+
     async with engine.begin() as conn:
         # await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)

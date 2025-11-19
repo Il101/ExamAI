@@ -3,9 +3,11 @@ from typing import Optional
 from datetime import datetime
 from uuid import UUID
 
+
 class StudySessionCreate(BaseModel):
     exam_id: UUID
     duration_minutes: int
+
 
 class StudySessionResponse(BaseModel):
     id: UUID
@@ -15,6 +17,6 @@ class StudySessionResponse(BaseModel):
     end_time: Optional[datetime]
     duration_minutes: int
     status: str
-    
+
     class Config:
         from_attributes = True

@@ -4,25 +4,27 @@ from app.agent.executor import TopicExecutor
 from app.agent.state import AgentState, PlanStep
 from app.integrations.llm.base import LLMResponse
 
+
 @pytest.fixture
 def mock_gemini_provider(mocker):
     """Mock Gemini provider for tests"""
     mock_llm = mocker.Mock()
-    
+
     mock_response = LLMResponse(
         content="## Introduction\nThis is the content for the topic.",
         model="gemini-pro",
         tokens_input=100,
         tokens_output=200,
         cost_usd=0.005,
-        finish_reason="stop"
+        finish_reason="stop",
     )
-    
+
     mock_llm.generate = AsyncMock(return_value=mock_response)
     mock_llm.count_tokens.return_value = 100
     mock_llm.calculate_cost.return_value = 0.05
-    
+
     return mock_llm
+
 
 @pytest.mark.asyncio
 class TestTopicExecutor:
@@ -36,9 +38,9 @@ class TestTopicExecutor:
             user_request="Teach me Calculus",
             subject="Calculus",
             exam_type="written",
-            level="bachelor"
+            level="bachelor",
         )
-        
+
         # Add a plan step
         step = PlanStep(
             id=1,
@@ -46,14 +48,14 @@ class TestTopicExecutor:
             description="Intro description",
             priority=1,
             estimated_paragraphs=3,
-            dependencies=[]
+            dependencies=[],
         )
         state.plan = [step]
         state.current_step_index = 0
-        
+
         # Act
         content = await executor.execute_step(state)
-        
+
         # Assert
         assert "Introduction" in content
         mock_gemini_provider.generate.assert_called_once()
@@ -68,10 +70,10 @@ class TestTopicExecutor:
             user_request="Teach me Calculus",
             subject="Calculus",
             exam_type="written",
-            level="bachelor"
+            level="bachelor",
         )
-        state.plan = [] # Empty plan
-        
+        state.plan = []  # Empty plan
+
         # Act & Assert
         with pytest.raises(ValueError, match="No current step"):
             await executor.execute_step(state)

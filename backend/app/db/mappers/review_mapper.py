@@ -5,7 +5,7 @@ from app.db.models.review import ReviewItemModel
 
 class ReviewItemMapper:
     """Maps between ReviewItem domain entity and ReviewItemModel DB model"""
-    
+
     @staticmethod
     def to_domain(model: ReviewItemModel) -> ReviewItem:
         """Convert DB model to domain entity"""
@@ -24,10 +24,14 @@ class ReviewItemMapper:
             state=cast(CardState, model.state),
             next_review_date=model.next_review_date,
             last_reviewed_at=model.last_reviewed_at,
-            last_review_rating=cast(Rating, model.last_review_rating) if model.last_review_rating is not None else None,
+            last_review_rating=(
+                cast(Rating, model.last_review_rating)
+                if model.last_review_rating is not None
+                else None
+            ),
             created_at=model.created_at,
         )
-    
+
     @staticmethod
     def to_model(domain: ReviewItem) -> ReviewItemModel:
         """Convert domain entity to DB model"""
@@ -49,7 +53,7 @@ class ReviewItemMapper:
             last_review_rating=domain.last_review_rating,
             created_at=domain.created_at,
         )
-    
+
     @staticmethod
     def update_model(model: ReviewItemModel, domain: ReviewItem) -> ReviewItemModel:
         """Update existing DB model with domain data"""
@@ -65,5 +69,5 @@ class ReviewItemMapper:
         model.next_review_date = domain.next_review_date
         model.last_reviewed_at = domain.last_reviewed_at
         model.last_review_rating = domain.last_review_rating
-        
+
         return model

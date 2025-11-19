@@ -4,7 +4,7 @@ from app.db.models.topic import TopicModel
 
 class TopicMapper:
     """Mapper between Topic domain entity and TopicModel"""
-    
+
     @staticmethod
     def to_domain(model: TopicModel) -> Topic:
         """Convert DB model to domain entity"""
@@ -17,9 +17,9 @@ class TopicMapper:
             order_index=model.order_index,
             difficulty_level=model.difficulty_level,
             created_at=model.created_at,
-            estimated_study_minutes=model.estimated_study_minutes
+            estimated_study_minutes=model.estimated_study_minutes,
         )
-    
+
     @staticmethod
     def to_model(entity: Topic) -> TopicModel:
         """Convert domain entity to DB model"""
@@ -32,5 +32,5 @@ class TopicMapper:
             order_index=entity.order_index,
             difficulty_level=entity.difficulty_level,
             created_at=entity.created_at,
-            estimated_study_minutes=entity.estimated_study_minutes
+            estimated_study_minutes=entity.estimated_study_minutes,
         )

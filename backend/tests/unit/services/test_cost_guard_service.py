@@ -6,6 +6,7 @@ from uuid import uuid4
 from app.services.cost_guard_service import CostGuardService
 from app.domain.user import User
 
+
 @pytest.fixture
 def mock_session():
     session = AsyncMock()
@@ -14,9 +15,11 @@ def mock_session():
     session.execute.return_value = result_mock
     return session
 
+
 @pytest.fixture
 def cost_guard(mock_session):
     return CostGuardService(session=mock_session)
+
 
 class TestCostGuardService:
     """Unit tests for CostGuardService"""
@@ -30,18 +33,18 @@ class TestCostGuardService:
             email="test@test.com",
             full_name="Test User",
             subscription_plan="free",
-            created_at=datetime.now()
+            created_at=datetime.now(),
         )
-        
+
         # Mock today's usage: $0.30 out of $0.50 daily limit
         # Access the return value we set in the fixture
         mock_session.execute.return_value.scalar_one_or_none.return_value = 0.30
-        
+
         # Act
         # Remaining: 0.20. Safety buffer 95% -> 0.19 usable.
         # Cost 0.15 <= 0.19 -> Allowed
         result = await cost_guard.check_budget(user, estimated_cost=0.15)
-        
+
         # Assert
         assert result["allowed"] is True
         assert result["buffer_applied"] is True
@@ -55,17 +58,17 @@ class TestCostGuardService:
             email="test@test.com",
             full_name="Test User",
             subscription_plan="free",
-            created_at=datetime.now()
+            created_at=datetime.now(),
         )
-        
+
         # Mock today's usage: $0.30 out of $0.50 daily limit
         mock_session.execute.return_value.scalar_one_or_none.return_value = 0.30
-        
+
         # Act
         # Remaining: 0.20. Safety buffer 95% -> 0.19 usable.
         # Cost 0.195 > 0.19 -> Not Allowed (due to buffer)
         result = await cost_guard.check_budget(user, estimated_cost=0.195)
-        
+
         # Assert
         assert result["allowed"] is False
         assert "Insufficient budget" in result["reason"]
@@ -79,17 +82,19 @@ class TestCostGuardService:
             email="test@test.com",
             full_name="Test User",
             subscription_plan="free",
-            created_at=datetime.now()
+            created_at=datetime.now(),
         )
-        
+
         # Mock today's usage: $0.30 out of $0.50 daily limit
         mock_session.execute.return_value.scalar_one_or_none.return_value = 0.30
-        
+
         # Act
         # Remaining: 0.20. No buffer -> 0.20 usable.
         # Cost 0.195 <= 0.20 -> Allowed
-        result = await cost_guard.check_budget(user, estimated_cost=0.195, apply_buffer=False)
-        
+        result = await cost_guard.check_budget(
+            user, estimated_cost=0.195, apply_buffer=False
+        )
+
         # Assert
         assert result["allowed"] is True
 
@@ -97,16 +102,16 @@ class TestCostGuardService:
     async def test_handle_actual_cost_overage_free_tier(self, cost_guard):
         """Test overage handling for free tier (strict)"""
         user = User(
-            id=uuid4(), 
+            id=uuid4(),
             email="test@test.com",
             full_name="Test User",
-            subscription_plan="free"
+            subscription_plan="free",
         )
-        
+
         # Estimate 0.10, Actual 0.12 -> 20% overage
         # Free tier max overage is 0%
         result = await cost_guard.handle_actual_cost_overage(user, 0.10, 0.12)
-        
+
         assert result["action"] == "block"
         assert result["overage"] == pytest.approx(0.02)
 
@@ -114,16 +119,16 @@ class TestCostGuardService:
     async def test_handle_actual_cost_overage_premium_tier(self, cost_guard):
         """Test overage handling for premium tier (lenient)"""
         user = User(
-            id=uuid4(), 
+            id=uuid4(),
             email="test@test.com",
             full_name="Test User",
-            subscription_plan="premium"
+            subscription_plan="premium",
         )
-        
+
         # Estimate 0.10, Actual 0.105 -> 5% overage
         # Premium tier max overage is 10%
         result = await cost_guard.handle_actual_cost_overage(user, 0.10, 0.105)
-        
+
         assert result["action"] == "allow"
 
     @pytest.mark.asyncio
@@ -136,8 +141,8 @@ class TestCostGuardService:
             operation_type="chat",
             input_tokens=10,
             output_tokens=20,
-            cost_usd=0.01
+            cost_usd=0.01,
         )
-        
+
         mock_session.add.assert_called_once()
         mock_session.commit.assert_called_once()
