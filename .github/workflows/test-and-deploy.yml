@@ -63,8 +63,8 @@ jobs:
       
       - name: Clean up coverage files
         run: |
-          # Remove any existing coverage files to avoid permission issues
-          docker compose -f docker-compose.yml -f docker-compose.test.yml exec -T backend rm -f .coverage .coverage.* || true
+          # Remove any existing coverage files as root to avoid permission issues
+          docker compose -f docker-compose.yml -f docker-compose.test.yml exec -T --user root backend sh -c "rm -f /app/.coverage /app/.coverage.* && chown -R appuser:appuser /app" || true
       
       - name: Run tests with coverage
         run: |
