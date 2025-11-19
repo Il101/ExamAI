@@ -61,6 +61,14 @@ jobs:
           # Check if services are running
           docker compose ps
       
+      - name: Reset database
+        run: |
+          echo "Ensuring clean database state..."
+          # Drop and recreate the test database to ensure clean state
+          docker compose exec -T db psql -U postgres -c "DROP DATABASE IF EXISTS examai_test;"
+          docker compose exec -T db psql -U postgres -c "CREATE DATABASE examai_test;"
+          echo "✅ Database reset complete"
+      
       - name: Run database migrations
         run: |
           docker compose exec -T backend alembic upgrade head
