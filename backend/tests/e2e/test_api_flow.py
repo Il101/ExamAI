@@ -118,7 +118,7 @@ class TestEndToEndFlow:
                     )
                     current_exam = get_response.json()
                     status = current_exam["status"]
-                    print(f"[E2E] Polling {i+1}/{max_retries}: Status = {status}")
+                    print(f"[E2E] Polling {i + 1}/{max_retries}: Status = {status}")
 
                     if status == "ready":
                         print("[E2E] Exam generation complete!")
