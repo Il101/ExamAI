@@ -1,17 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from app.schemas.auth import (
-    RegisterRequest,
-    LoginRequest,
-    TokenResponse,
-    RefreshTokenRequest,
-    VerifyEmailRequest,
-)
-from app.schemas.user import UserResponse
-from app.services.auth_service import AuthService
+
+from app.core.exceptions import AuthenticationException, ValidationException
 from app.dependencies import get_auth_service, get_current_user
 from app.domain.user import User
-from app.core.exceptions import ValidationException, AuthenticationException
-
+from app.schemas.auth import (LoginRequest, RefreshTokenRequest,
+                              RegisterRequest, TokenResponse,
+                              VerifyEmailRequest)
+from app.schemas.user import UserResponse
+from app.services.auth_service import AuthService
 
 router = APIRouter()
 

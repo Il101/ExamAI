@@ -1,14 +1,16 @@
-from sqlalchemy import String, Text, Integer, Float, ForeignKey
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.dialects.postgresql import UUID
-from typing import Optional, TYPE_CHECKING
 import uuid
+from typing import TYPE_CHECKING, Optional
+
+from sqlalchemy import Float, ForeignKey, Integer, String, Text
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from app.db.base import Base
 
 if TYPE_CHECKING:
-    from .user import UserModel
-    from .topic import TopicModel
     from .study_session import StudySessionModel
+    from .topic import TopicModel
+    from .user import UserModel
 
 
 class ExamModel(Base):

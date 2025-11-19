@@ -1,12 +1,14 @@
-import pytest
 import asyncio
+from uuid import UUID, uuid4
+
 import httpx
+import pytest
 from httpx import AsyncClient
-from app.main import app
+
 from app.dependencies import get_current_user
 from app.domain.user import User
+from app.main import app
 from app.repositories.user_repository import UserRepository
-from uuid import uuid4, UUID
 
 # Mark all tests in this module as e2e
 pytestmark = pytest.mark.e2e
@@ -38,9 +40,10 @@ class TestEndToEndFlow:
 
             # Let's create a user using the repository directly
             # We need to manually create a session
+            from unittest.mock import Mock
+
             from app.db.session import AsyncSessionLocal
             from app.tasks.exam_tasks import _generate_exam_content_async
-            from unittest.mock import Mock
 
             user_id = uuid4()
             async with AsyncSessionLocal() as session:

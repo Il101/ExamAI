@@ -1,5 +1,5 @@
-from app.domain.topic import Topic
 from app.db.models.topic import TopicModel
+from app.domain.topic import Topic
 
 
 class TopicMapper:

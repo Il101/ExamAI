@@ -1,14 +1,16 @@
-from sqlalchemy import Integer, Boolean, ForeignKey, DateTime, ARRAY
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.dialects.postgresql import UUID
-from typing import Optional, TYPE_CHECKING
-from datetime import datetime
 import uuid
+from datetime import datetime
+from typing import TYPE_CHECKING, Optional
+
+from sqlalchemy import ARRAY, Boolean, DateTime, ForeignKey, Integer
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from app.db.base import Base
 
 if TYPE_CHECKING:
-    from .user import UserModel
     from .exam import ExamModel
+    from .user import UserModel
 
 
 class StudySessionModel(Base):

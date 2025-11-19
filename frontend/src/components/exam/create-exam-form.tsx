@@ -43,13 +43,17 @@ export function CreateExamForm({ onSuccess }: { onSuccess?: () => void }) {
     // For now I will map it to what I defined in exams.ts, or update exams.ts.
     // I'll update exams.ts later to include these fields.
     
+    const { title, subject, exam_type, level, original_content } = data;
+    
     createExam({
-      title: data.title,
-      description: `Subject: ${data.subject}, Type: ${data.exam_type}, Level: ${data.level}`,
+      title,
+      description: `Subject: ${subject}, Type: ${exam_type}, Level: ${level}`,
       file_path: uploadedFile || undefined,
-      // @ts-expect-error - Backend accepts additional fields
-      ...data
-    }, {
+      subject,
+      exam_type,
+      level,
+      original_content,
+    } as any, {
       onSuccess: () => {
         form.reset();
         onSuccess?.();

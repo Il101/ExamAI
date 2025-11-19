@@ -1,6 +1,7 @@
 from typing import cast
-from app.domain.exam import Exam, ExamType, ExamLevel, ExamStatus
+
 from app.db.models.exam import ExamModel
+from app.domain.exam import Exam, ExamLevel, ExamStatus, ExamType
 
 
 class ExamMapper:

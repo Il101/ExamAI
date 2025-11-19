@@ -1,13 +1,14 @@
-from celery import Task
-from datetime import datetime, timedelta
 import asyncio
+from datetime import datetime, timedelta
 
-from app.tasks.celery_app import celery_app
+from celery import Task
+
+from app.core.config import settings
 from app.db.session import AsyncSessionLocal
 from app.repositories.review_repository import ReviewItemRepository
 from app.repositories.user_repository import UserRepository
+from app.tasks.celery_app import celery_app
 from app.tasks.email_tasks import send_email
-from app.core.config import settings
 
 
 @celery_app.task(name="send_daily_review_reminders")

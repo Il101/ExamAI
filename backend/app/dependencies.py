@@ -1,33 +1,31 @@
-from typing import AsyncGenerator, Annotated
-from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.ext.asyncio import AsyncSession
-from jose import JWTError, jwt
+from typing import Annotated, AsyncGenerator
 from uuid import UUID
 
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError, jwt
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.agent.orchestrator import PlanAndExecuteAgent
 from app.core.config import settings
 from app.db.session import get_db
 from app.domain.user import User
-
-# Repositories
-from app.repositories.user_repository import UserRepository
+# Integrations
+from app.integrations.llm.base import LLMProvider
+from app.integrations.llm.gemini import GeminiProvider
 from app.repositories.exam_repository import ExamRepository
 from app.repositories.review_repository import ReviewItemRepository
 from app.repositories.study_session_repository import StudySessionRepository
 from app.repositories.topic_repository import TopicRepository
-
+# Repositories
+from app.repositories.user_repository import UserRepository
+from app.services.agent_service import AgentService
 # Services
 from app.services.auth_service import AuthService
 from app.services.cost_guard_service import CostGuardService
 from app.services.exam_service import ExamService
-from app.services.study_service import StudyService
 from app.services.prompt_service import PromptService
-from app.services.agent_service import AgentService
-
-# Integrations
-from app.integrations.llm.base import LLMProvider
-from app.integrations.llm.gemini import GeminiProvider
-from app.agent.orchestrator import PlanAndExecuteAgent
+from app.services.study_service import StudyService
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_PREFIX}/auth/login")
 

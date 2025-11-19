@@ -1,5 +1,7 @@
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
-from unittest.mock import MagicMock, AsyncMock
+
 from app.agent.executor import TopicExecutor
 from app.agent.state import AgentState, PlanStep
 from app.integrations.llm.base import LLMResponse

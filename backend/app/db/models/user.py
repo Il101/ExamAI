@@ -1,15 +1,17 @@
-from sqlalchemy import String, Boolean, Integer, DateTime
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from typing import Optional, TYPE_CHECKING
 from datetime import datetime
+from typing import TYPE_CHECKING, Optional
+
+from sqlalchemy import Boolean, DateTime, Integer, String
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from app.db.base import Base
 
 if TYPE_CHECKING:
     from .exam import ExamModel
-    from .topic import TopicModel
     from .review import ReviewItemModel
     from .study_session import StudySessionModel
     from .subscription import SubscriptionModel
+    from .topic import TopicModel
 
 
 class UserModel(Base):

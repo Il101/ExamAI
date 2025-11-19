@@ -1,7 +1,9 @@
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
-from unittest.mock import MagicMock, AsyncMock
+
 from app.agent.orchestrator import PlanAndExecuteAgent
-from app.agent.state import AgentState, PlanStep, ExecutionStatus
+from app.agent.state import AgentState, ExecutionStatus, PlanStep
 
 
 @pytest.fixture

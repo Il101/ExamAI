@@ -1,7 +1,8 @@
 from typing import List
 from uuid import UUID
-from app.domain.study_session import StudySession
+
 from app.db.models.study_session import StudySessionModel
+from app.domain.study_session import StudySession
 
 
 class StudySessionMapper:

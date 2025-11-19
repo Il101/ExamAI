@@ -1,20 +1,20 @@
 """E2E test with real Physics PDF file"""
 
-import pytest
 import asyncio
-import httpx
 from pathlib import Path
+from unittest.mock import Mock
 from uuid import uuid4
+
+import httpx
+import pytest
 from httpx import AsyncClient
 
-from app.main import app
+from app.db.session import AsyncSessionLocal
 from app.dependencies import get_current_user
 from app.domain.user import User
+from app.main import app
 from app.repositories.user_repository import UserRepository
-from app.db.session import AsyncSessionLocal
 from app.tasks.exam_tasks import _generate_exam_content_async
-from unittest.mock import Mock
-
 
 pytestmark = pytest.mark.e2e
 

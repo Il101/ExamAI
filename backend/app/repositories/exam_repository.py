@@ -1,12 +1,14 @@
 from typing import List, Optional
 from uuid import UUID
-from sqlalchemy import select, func
-from sqlalchemy.orm import joinedload
+
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.domain.exam import Exam, ExamStatus
+from sqlalchemy.orm import joinedload
+
+from app.db.mappers.exam_mapper import ExamMapper
 from app.db.models.exam import ExamModel
 from app.db.models.topic import TopicModel
-from app.db.mappers.exam_mapper import ExamMapper
+from app.domain.exam import Exam, ExamStatus
 from app.repositories.base import BaseRepository
 
 

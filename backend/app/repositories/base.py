@@ -1,10 +1,11 @@
-from typing import TypeVar, Generic, Optional, List, Type
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete, update, func
-from sqlalchemy.exc import IntegrityError
+from typing import Generic, List, Optional, Type, TypeVar
 from uuid import UUID
-from app.db.base import Base
 
+from sqlalchemy import delete, func, select, update
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.db.base import Base
 
 T = TypeVar("T")  # Domain entity type
 M = TypeVar("M", bound=Base)  # DB model type

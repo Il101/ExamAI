@@ -7,8 +7,8 @@ like CloudWatch, Datadog, or ELK stack.
 
 import logging
 import sys
-from typing import Any, Dict
 from datetime import datetime
+from typing import Any, Dict
 
 from pythonjsonlogger import jsonlogger
 

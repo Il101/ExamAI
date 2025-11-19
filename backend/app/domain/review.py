@@ -1,9 +1,9 @@
 # backend/app/domain/review.py
+import math
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Optional, Literal
+from typing import Literal, Optional
 from uuid import UUID, uuid4
-import math
 
 # FSRS Ratings
 Rating = Literal[1, 2, 3, 4]

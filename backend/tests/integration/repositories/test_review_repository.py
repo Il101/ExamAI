@@ -1,14 +1,16 @@
-import pytest
 from datetime import datetime, timedelta
 from uuid import uuid4
-from app.repositories.review_repository import ReviewItemRepository
-from app.repositories.exam_repository import ExamRepository
-from app.repositories.topic_repository import TopicRepository
-from app.repositories.user_repository import UserRepository
-from app.domain.review import ReviewItem
+
+import pytest
+
 from app.domain.exam import Exam
+from app.domain.review import ReviewItem
 from app.domain.topic import Topic
 from app.domain.user import User
+from app.repositories.exam_repository import ExamRepository
+from app.repositories.review_repository import ReviewItemRepository
+from app.repositories.topic_repository import TopicRepository
+from app.repositories.user_repository import UserRepository
 
 
 @pytest.mark.asyncio

@@ -6,15 +6,15 @@ in production environment.
 """
 
 import logging
-from typing import Optional, Dict, Any, Literal
+from typing import Any, Dict, Literal, Optional
 
 import sentry_sdk
-from sentry_sdk.types import Event, Hint
-from sentry_sdk.integrations.fastapi import FastApiIntegration
-from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
-from sentry_sdk.integrations.redis import RedisIntegration
 from sentry_sdk.integrations.celery import CeleryIntegration
+from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.logging import LoggingIntegration
+from sentry_sdk.integrations.redis import RedisIntegration
+from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
+from sentry_sdk.types import Event, Hint
 
 from app.core.config import settings
 

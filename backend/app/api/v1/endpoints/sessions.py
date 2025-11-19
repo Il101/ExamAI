@@ -1,11 +1,12 @@
-from fastapi import APIRouter, Depends, status
 from uuid import UUID
 
-from app.schemas.study_session import StudySessionCreate, StudySessionResponse
-from app.services.study_service import StudyService
+from fastapi import APIRouter, Depends, status
+
+from app.core.exceptions import NotFoundException
 from app.dependencies import get_current_active_user, get_study_service
 from app.domain.user import User
-from app.core.exceptions import NotFoundException
+from app.schemas.study_session import StudySessionCreate, StudySessionResponse
+from app.services.study_service import StudyService
 
 router = APIRouter()
 

@@ -1,11 +1,13 @@
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 from uuid import UUID
-from supabase import create_client, Client
-from jose import jwt, JWTError
+
+from jose import JWTError, jwt
+from supabase import Client, create_client
+
+from app.core.config import settings
 from app.domain.user import User
 from app.repositories.user_repository import UserRepository
-from app.core.config import settings
 
 
 class AuthService:

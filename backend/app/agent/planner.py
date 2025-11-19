@@ -1,9 +1,11 @@
 import json
 from typing import List
+
+import google.generativeai as genai
 from pydantic import BaseModel, Field
+
 from app.agent.state import AgentState, PlanStep, Priority
 from app.integrations.llm.base import LLMProvider
-import google.generativeai as genai
 
 
 class PlanStepSchema(BaseModel):

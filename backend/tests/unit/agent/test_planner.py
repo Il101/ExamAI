@@ -1,6 +1,8 @@
-import pytest
 import json
-from unittest.mock import MagicMock, AsyncMock
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+
 from app.agent.planner import CoursePlanner
 from app.agent.state import AgentState
 from app.integrations.llm.base import LLMResponse

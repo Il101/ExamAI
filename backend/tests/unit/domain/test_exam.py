@@ -1,8 +1,10 @@
 # backend/tests/unit/domain/test_exam.py
-import pytest
-from uuid import uuid4
 from datetime import datetime
-from app.domain.exam import Exam, ExamStatus, ExamType, ExamLevel
+from uuid import uuid4
+
+import pytest
+
+from app.domain.exam import Exam, ExamLevel, ExamStatus, ExamType
 
 
 class TestExamDomain:

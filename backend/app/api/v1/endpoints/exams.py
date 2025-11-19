@@ -1,30 +1,22 @@
-from fastapi import APIRouter, Depends, status, Query, BackgroundTasks
 from typing import Optional
 from uuid import UUID
 
-from app.schemas.exam import (
-    ExamCreate,
-    ExamUpdate,
-    ExamResponse,
-    ExamListResponse,
-    StartGenerationRequest,
-    GenerationStatusResponse,
-)
-from app.schemas.topic import TopicResponse
-from app.services.exam_service import ExamService
-from app.services.agent_service import AgentService
-from app.repositories.topic_repository import TopicRepository
-from app.db.session import get_db
-from app.dependencies import (
-    get_current_active_user,
-    get_exam_service,
-    get_agent_service,
-)
-from app.domain.user import User
-from app.core.exceptions import NotFoundException, ValidationException
-from app.tasks.exam_tasks import generate_exam_content
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.exceptions import NotFoundException, ValidationException
+from app.db.session import get_db
+from app.dependencies import (get_agent_service, get_current_active_user,
+                              get_exam_service)
+from app.domain.user import User
+from app.repositories.topic_repository import TopicRepository
+from app.schemas.exam import (ExamCreate, ExamListResponse, ExamResponse,
+                              ExamUpdate, GenerationStatusResponse,
+                              StartGenerationRequest)
+from app.schemas.topic import TopicResponse
+from app.services.agent_service import AgentService
+from app.services.exam_service import ExamService
+from app.tasks.exam_tasks import generate_exam_content
 
 router = APIRouter()
 

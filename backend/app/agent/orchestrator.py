@@ -1,11 +1,11 @@
-from typing import Optional, Callable, Awaitable
 from datetime import datetime
-from app.agent.state import AgentState, StepResult, ExecutionStatus
-from app.agent.planner import CoursePlanner
+from typing import Awaitable, Callable, Optional
+
 from app.agent.executor import TopicExecutor
 from app.agent.finalizer import NoteFinalizer
+from app.agent.planner import CoursePlanner
+from app.agent.state import AgentState, ExecutionStatus, StepResult
 from app.integrations.llm.base import LLMProvider
-
 
 ProgressCallback = Callable[[str, float], Awaitable[None]]
 

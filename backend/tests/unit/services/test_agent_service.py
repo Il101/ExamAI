@@ -1,11 +1,13 @@
-import pytest
 from unittest.mock import AsyncMock, Mock
 from uuid import uuid4
-from app.services.agent_service import AgentService
-from app.domain.exam import Exam
-from app.domain.user import User
-from app.domain.topic import Topic
+
+import pytest
+
 from app.agent.state import AgentState, PlanStep, StepResult
+from app.domain.exam import Exam
+from app.domain.topic import Topic
+from app.domain.user import User
+from app.services.agent_service import AgentService
 
 
 @pytest.mark.asyncio

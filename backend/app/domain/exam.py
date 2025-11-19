@@ -1,9 +1,8 @@
 # backend/app/domain/exam.py
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import List, Optional, Literal
+from typing import List, Literal, Optional
 from uuid import UUID, uuid4
-
 
 ExamStatus = Literal["draft", "generating", "ready", "failed", "archived"]
 ExamType = Literal["oral", "written", "test"]

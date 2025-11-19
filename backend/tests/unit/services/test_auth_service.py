@@ -1,11 +1,13 @@
 # backend/tests/unit/services/test_auth_service.py
-import pytest
-from unittest.mock import AsyncMock, Mock, patch
 from datetime import datetime
-from uuid import uuid4, UUID
-from app.services.auth_service import AuthService
-from app.domain.user import User
+from unittest.mock import AsyncMock, Mock, patch
+from uuid import UUID, uuid4
+
+import pytest
+
 from app.core.config import settings
+from app.domain.user import User
+from app.services.auth_service import AuthService
 
 
 @pytest.fixture

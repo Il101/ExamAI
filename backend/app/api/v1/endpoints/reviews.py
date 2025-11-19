@@ -1,17 +1,14 @@
-from fastapi import APIRouter, Depends, Query, status
 from typing import List
 from uuid import UUID
 
-from app.schemas.review import (
-    ReviewItemResponse,
-    SubmitReviewRequest,
-    ReviewStatsResponse,
-)
-from app.services.study_service import StudyService
+from fastapi import APIRouter, Depends, Query, status
+
+from app.core.exceptions import NotFoundException
 from app.dependencies import get_current_active_user, get_study_service
 from app.domain.user import User
-from app.core.exceptions import NotFoundException
-
+from app.schemas.review import (ReviewItemResponse, ReviewStatsResponse,
+                                SubmitReviewRequest)
+from app.services.study_service import StudyService
 
 router = APIRouter()
 
