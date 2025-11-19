@@ -41,7 +41,6 @@ jobs:
           # Create a .env file for docker-compose
           echo "ENVIRONMENT=test" > .env
           echo "DEBUG=True" >> .env
-          echo "DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/examai_test" >> .env
           echo "REDIS_URL=redis://redis:6379/0" >> .env
           echo "SECRET_KEY=test_secret_key_min_32_chars_long" >> .env
           echo "GEMINI_API_KEY=dummy_key" >> .env
@@ -64,9 +63,10 @@ jobs:
       - name: Reset database
         run: |
           echo "Ensuring clean database state..."
-          # Drop and recreate the test database to ensure clean state
-          docker compose exec -T db psql -U postgres -c "DROP DATABASE IF EXISTS examai_test;"
-          docker compose exec -T db psql -U postgres -c "CREATE DATABASE examai_test;"
+          # Drop and recreate the database to ensure clean state
+          # Note: docker-compose.yml uses 'examai' as the database name
+          docker compose exec -T db psql -U postgres -c "DROP DATABASE IF EXISTS examai;"
+          docker compose exec -T db psql -U postgres -c "CREATE DATABASE examai;"
           echo "✅ Database reset complete"
       
       - name: Run database migrations
