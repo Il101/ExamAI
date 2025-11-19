@@ -207,20 +207,19 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
       
-      - name: Run database migrations
-        env:
-          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
-        run: |
-          cd backend
-          pip install -r requirements.txt
-          alembic upgrade head
-      
       - name: Deploy Backend to Railway (Production)
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
           npm install -g @railway/cli
           railway up --service backend
+      
+      - name: Run database migrations on Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          # Run migrations on Railway environment where DB is accessible
+          railway run --service backend alembic upgrade head
       
       - name: Deploy Frontend to Vercel (Production)
         uses: amondnet/vercel-action@v25
