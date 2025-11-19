@@ -101,7 +101,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 
         # Log response
         logger.info(
-            f"Request completed",
+            "Request completed",
             extra={
                 "request_id": request_id,
                 "method": request.method,

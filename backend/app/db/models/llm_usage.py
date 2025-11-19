@@ -22,7 +22,9 @@ class LLMUsageLogModel(Base):
     )
     study_material_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True), nullable=True
-    )  # Assuming study_materials table exists but not strictly enforcing FK here to avoid circular deps if not needed, or I should check if StudyMaterialModel exists.
+    )
+    # Assuming study_materials table exists but not strictly enforcing FK
+    # to avoid circular dependencies if not needed
 
     # LLM details
     model_name: Mapped[str] = mapped_column(String(100), nullable=False, index=True)

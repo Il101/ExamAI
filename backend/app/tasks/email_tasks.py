@@ -67,11 +67,11 @@ def send_verification_email(user_email: str, verification_token: str):
         <style>
             body {{ font-family: Arial, sans-serif; }}
             .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
-            .button {{ 
-                background-color: #4CAF50; 
-                color: white; 
-                padding: 12px 24px; 
-                text-decoration: none; 
+            .button {{
+                background-color: #4CAF50;
+                color: white;
+                padding: 12px 24px;
+                text-decoration: none;
                 border-radius: 4px;
                 display: inline-block;
             }}
@@ -95,9 +95,9 @@ def send_verification_email(user_email: str, verification_token: str):
 
     text_content = f"""
     Welcome to ExamAI Pro!
-    
+
     Please verify your email by visiting: {verification_url}
-    
+
     This link will expire in 24 hours.
     """
 
