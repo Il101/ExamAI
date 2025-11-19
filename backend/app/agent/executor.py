@@ -28,6 +28,8 @@ class TopicExecutor:
         if not current_step:
             raise ValueError("No current step to execute")
         
+        print(f"[Executor] Generating content for topic {current_step.id}: '{current_step.title}'...")
+        
         # Build context from previous results
         previous_context = self._build_previous_context(state, current_step)
         
@@ -41,6 +43,8 @@ class TopicExecutor:
             max_tokens=2000,  # Limit per topic
             system_prompt="You are an expert educator writing study notes."
         )
+        
+        print(f"[Executor] Content generated for topic {current_step.id}. Tokens: {response.tokens_input}/{response.tokens_output}")
         
         # Track usage
         state.add_token_usage(

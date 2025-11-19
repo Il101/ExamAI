@@ -28,6 +28,7 @@ class Topic:
     difficulty_level: DifficultyLevel = 3  # 1=easy, 5=hard
     
     created_at: datetime = field(default_factory=datetime.utcnow)
+    updated_at: datetime = field(default_factory=datetime.utcnow)
     
     # Estimated study time (in minutes)
     estimated_study_minutes: int = 0

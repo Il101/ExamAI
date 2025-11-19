@@ -7,11 +7,15 @@ from app.api.v1.endpoints import (
     reviews,
     sessions,
     analytics,
-    tasks
+    tasks,
+    health
 )
 
 
 api_router = APIRouter()
+
+# Include health check endpoints (no prefix, available at root)
+api_router.include_router(health.router)
 
 # Include all endpoint routers
 api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])

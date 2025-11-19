@@ -16,9 +16,9 @@ class PlanAndExecuteAgent:
     Manages entire workflow: Plan → Execute → Finalize
     """
     
-    def __init__(self, llm_provider: LLMProvider):
+    def __init__(self, llm_provider: LLMProvider, max_topics: int | None = None):
         self.llm = llm_provider
-        self.planner = CoursePlanner(llm_provider)
+        self.planner = CoursePlanner(llm_provider, max_topics=max_topics)
         self.executor = TopicExecutor(llm_provider)
         self.finalizer = NoteFinalizer(llm_provider)
     

@@ -1,0 +1,15 @@
+# Railway.app Configuration for ExamAI Backend
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "backend/Dockerfile"
+
+[deploy]
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+healthcheckPath = "/health"
+healthcheckTimeout = 100
+numReplicas = 1
+
+# Environment variables (set in Railway dashboard)
+# Don't commit sensitive values here

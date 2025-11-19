@@ -50,7 +50,7 @@ class AgentService:
         if not exam:
             raise ValueError("Exam not found")
         
-        if not exam.can_generate():
+        if exam.status != "generating" and not exam.can_generate():
             raise ValueError(f"Cannot generate exam with status: {exam.status}")
         
         # Estimate cost
@@ -68,8 +68,9 @@ class AgentService:
             raise ValueError(f"Insufficient budget: {budget_check.get('reason', 'Unknown reason')}")
         
         # Mark as generating
-        exam.start_generation()
-        await self.exam_repo.update(exam)
+        if exam.status != "generating":
+            exam.start_generation()
+            await self.exam_repo.update(exam)
         
         try:
             # Run agent

@@ -338,19 +338,17 @@ from typing import Optional, Literal
 from uuid import UUID, uuid4
 
 
-QualityRating = Literal[0, 1, 2, 3, 4, 5]
-# 0 = complete blackout
-# 1 = incorrect, but remembered upon seeing answer
-# 2 = incorrect, but seemed easy upon seeing answer
-# 3 = correct, but difficult recall
-# 4 = correct, with hesitation
-# 5 = perfect recall
+QualityRating = Literal[1, 2, 3, 4]
+# 1 = Again (Forgot)
+# 2 = Hard (Recalled with effort)
+# 3 = Good (Recalled correctly)
+# 4 = Easy (Recalled easily)
 
 
 @dataclass
 class ReviewItem:
     """
-    Review item for spaced repetition (SM-2 algorithm).
+    Review item for spaced repetition (FSRS algorithm).
     Each topic can have multiple review items (flashcards, questions).
     """
     
@@ -362,10 +360,14 @@ class ReviewItem:
     question: str = ""
     answer: str = ""
     
-    # SM-2 algorithm parameters
-    repetition_number: int = 0
-    easiness_factor: float = 2.5  # EF, starts at 2.5
-    interval_days: int = 0  # Days until next review
+    # FSRS algorithm parameters
+    stability: float = 0.0
+    difficulty: float = 0.0
+    elapsed_days: float = 0.0
+    scheduled_days: int = 0
+    reps: int = 0
+    lapses: int = 0
+    state: int = 0  # 0=New, 1=Learning, 2=Review, 3=Relearning
     
     # Review history
     next_review_date: datetime = field(default_factory=datetime.utcnow)
@@ -387,91 +389,86 @@ class ReviewItem:
         
         if not self.answer or len(self.answer.strip()) < 2:
             raise ValueError("Answer must be at least 2 characters")
-        
-        if not 1.3 <= self.easiness_factor <= 2.5:
-            raise ValueError("Easiness factor must be between 1.3 and 2.5")
     
-    # SM-2 Algorithm Implementation
+    # FSRS Algorithm Implementation
+    # Based on: https://github.com/open-spaced-repetition/fsrs4anki/wiki/The-Algorithm
     
     def review(self, quality: QualityRating) -> datetime:
         """
-        Apply SM-2 algorithm to calculate next review date.
+        Apply FSRS algorithm to calculate next review date.
         
         Args:
-            quality: User's recall quality (0-5)
+            quality: User's recall quality (1-4)
         
         Returns:
             next_review_date
-        
-        SM-2 Algorithm:
-        1. If quality < 3: reset repetition to 0
-        2. Update easiness factor: EF' = EF + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02))
-        3. Calculate interval:
-           - repetition = 1: interval = 1 day
-           - repetition = 2: interval = 6 days
-           - repetition > 2: interval = prev_interval * EF
         """
         
-        if not 0 <= quality <= 5:
-            raise ValueError("Quality must be between 0 and 5")
+        if not 1 <= quality <= 4:
+            raise ValueError("Quality must be between 1 and 4")
         
+        now = datetime.utcnow()
+        
+        if self.last_reviewed_at:
+            self.elapsed_days = (now - self.last_reviewed_at).days
+        else:
+            self.elapsed_days = 0
+            
         # Update statistics
         self.total_reviews += 1
         self.last_quality_rating = quality
-        self.last_reviewed_at = datetime.utcnow()
+        self.last_reviewed_at = now
         
         if quality >= 3:
             self.total_correct += 1
         
-        # SM-2 Algorithm
+        # FSRS Logic (Simplified for implementation)
+        # Constants
+        DECAY = -0.5
+        FACTOR = 19/81
         
-        # Step 1: Update easiness factor
-        self.easiness_factor = self._calculate_new_ef(quality)
+        if self.state == 0: # New
+            self.difficulty = self._init_difficulty(quality)
+            self.stability = self._init_stability(quality)
+            self.state = 1 # Learning
+            
+        elif self.state == 1 or self.state == 3: # Learning or Relearning
+            self.difficulty = self._next_difficulty(self.difficulty, quality)
+            self.stability = self._next_stability(self.difficulty, self.stability, quality)
+            self.state = 2 # Review
+            
+        elif self.state == 2: # Review
+            self.difficulty = self._next_difficulty(self.difficulty, quality)
+            self.stability = self._next_stability(self.difficulty, self.stability, quality)
+            
+            if quality == 1: # Forgot
+                self.lapses += 1
+                self.state = 3 # Relearning
         
-        # Step 2: Update repetition number
-        if quality < 3:
-            # Failed recall - reset
-            self.repetition_number = 0
-            self.interval_days = 0
-        else:
-            # Successful recall - increment
-            self.repetition_number += 1
+        self.reps += 1
         
-        # Step 3: Calculate next interval
-        self.interval_days = self._calculate_interval()
+        # Calculate next interval
+        new_interval = int(round(self.stability * 9)) # Scaling factor
+        self.scheduled_days = max(1, new_interval)
         
-        # Step 4: Set next review date
-        self.next_review_date = datetime.utcnow() + timedelta(days=self.interval_days)
+        self.next_review_date = now + timedelta(days=self.scheduled_days)
         
         return self.next_review_date
     
-    def _calculate_new_ef(self, quality: QualityRating) -> float:
-        """
-        Calculate new easiness factor.
-        EF' = EF + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02))
-        Minimum EF = 1.3
-        """
-        new_ef = self.easiness_factor + (
-            0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02)
-        )
-        
-        # Ensure EF stays within bounds
-        return max(1.3, new_ef)
-    
-    def _calculate_interval(self) -> int:
-        """
-        Calculate interval in days based on repetition number.
-        """
-        if self.repetition_number == 0:
-            return 0  # Review immediately
-        elif self.repetition_number == 1:
-            return 1  # Review tomorrow
-        elif self.repetition_number == 2:
-            return 6  # Review in 6 days
-        else:
-            # interval = prev_interval * EF
-            prev_interval = self.interval_days if self.interval_days > 0 else 6
-            return int(prev_interval * self.easiness_factor)
+    def _init_stability(self, quality: int) -> float:
+        return max(0.1, float(quality))
+
+    def _init_difficulty(self, quality: int) -> float:
+        return max(1.0, min(10.0, 5.0 - (quality - 3.0)))
+
+    def _next_difficulty(self, d: float, r: int) -> float:
+        next_d = d - 0.8 + 0.28 * (3.0 - r) + 0.02 * (3.0 - r) ** 2
+        return max(1.0, min(10.0, next_d))
+
+    def _next_stability(self, d: float, s: float, r: int) -> float:
+        if r == 1:
+            return max(0.1, s * 0.5) # Penalty for forgetting
+        return s * (1 + math.exp(r) * (11 - d)) # Growth function
     
     def is_due(self) -> bool:
         """Check if review is due"""
@@ -485,9 +482,11 @@ class ReviewItem:
     
     def reset(self):
         """Reset review progress"""
-        self.repetition_number = 0
-        self.easiness_factor = 2.5
-        self.interval_days = 0
+        self.reps = 0
+        self.lapses = 0
+        self.stability = 0.0
+        self.difficulty = 0.0
+        self.state = 0
         self.next_review_date = datetime.utcnow()
         self.last_reviewed_at = None
         self.last_quality_rating = None

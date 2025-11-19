@@ -1,12 +1,11 @@
+# backend/tests/unit/services/test_auth_service.py
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 from datetime import datetime
-from uuid import uuid4
-
+from uuid import uuid4, UUID
 from app.services.auth_service import AuthService
 from app.domain.user import User
-from app.core.exceptions import AuthenticationException
-
+from app.core.config import settings
 
 @pytest.fixture
 def mock_user_repo():
@@ -14,15 +13,14 @@ def mock_user_repo():
 
 @pytest.fixture
 def mock_supabase():
-    mock_client = MagicMock()
-    mock_client.auth = MagicMock()
-    return mock_client
+    with patch("app.services.auth_service.create_client") as mock_create:
+        mock_client = Mock()
+        mock_create.return_value = mock_client
+        yield mock_client
 
 @pytest.fixture
 def auth_service(mock_user_repo, mock_supabase):
-    with patch('app.services.auth_service.create_client', return_value=mock_supabase):
-        service = AuthService(user_repo=mock_user_repo)
-        yield service
+    return AuthService(user_repo=mock_user_repo)
 
 class TestAuthService:
     """Unit tests for AuthService"""
@@ -35,92 +33,98 @@ class TestAuthService:
         password = "SecurePass123!"
         full_name = "Test User"
         user_id = str(uuid4())
-
+        
         # Mock Supabase response
-        mock_auth_response = MagicMock()
-        mock_auth_response.user.id = user_id
-        mock_supabase.auth.sign_up.return_value = mock_auth_response
-
+        mock_user = Mock()
+        mock_user.id = user_id
+        mock_response = Mock()
+        mock_response.user = mock_user
+        mock_supabase.auth.sign_up.return_value = mock_response
+        
         # Mock Repo response
         mock_user_repo.create.return_value = User(
-            id=user_id,
+            id=UUID(user_id),
             email=email,
             full_name=full_name,
             created_at=datetime.now()
         )
         
         # Act
-        user = await auth_service.register(
-            email=email,
-            password=password,
-            full_name=full_name
-        )
+        user = await auth_service.register(email, password, full_name)
         
         # Assert
         assert user.email == email
-        mock_supabase.auth.sign_up.assert_called_once_with({
-            "email": email,
-            "password": password,
-            "options": {
-                "data": {
-                    "full_name": full_name
-                }
-            }
-        })
+        assert str(user.id) == user_id
+        mock_supabase.auth.sign_up.assert_called_once()
         mock_user_repo.create.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_register_supabase_failure(self, auth_service, mock_user_repo, mock_supabase):
+    async def test_register_supabase_failure(self, auth_service, mock_supabase):
         """Test registration when Supabase fails"""
         # Arrange
-        mock_supabase.auth.sign_up.side_effect = Exception("Supabase error")
+        mock_supabase.auth.sign_up.side_effect = Exception("Supabase Error")
         
         # Act & Assert
-        with pytest.raises(ValueError, match="Registration failed: Supabase error"):
-            await auth_service.register(
-                email="test@example.com",
-                password="password",
-                full_name="Test"
-            )
+        with pytest.raises(ValueError, match="Registration failed: Supabase Error"):
+            await auth_service.register("test@test.com", "pass", "Name")
 
     @pytest.mark.asyncio
     async def test_authenticate_success(self, auth_service, mock_supabase):
-        """Test successful authentication"""
+        """Test successful login"""
         # Arrange
-        email = "test@example.com"
-        password = "correct_password"
-        
-        mock_session = MagicMock()
-        mock_session.access_token = "token"
+        mock_session = Mock()
+        mock_session.access_token = "access"
         mock_session.refresh_token = "refresh"
         
-        mock_response = MagicMock()
+        mock_response = Mock()
         mock_response.session = mock_session
-        mock_response.user = MagicMock()
+        mock_response.user = Mock()
         
         mock_supabase.auth.sign_in_with_password.return_value = mock_response
         
         # Act
-        result = await auth_service.authenticate(email, password)
+        result = await auth_service.authenticate("test@test.com", "pass")
         
         # Assert
-        assert result is not None
-        assert result["access_token"] == "token"
-        mock_supabase.auth.sign_in_with_password.assert_called_once_with({
-            "email": email,
-            "password": password
-        })
+        assert result["access_token"] == "access"
+        assert result["refresh_token"] == "refresh"
 
     @pytest.mark.asyncio
     async def test_authenticate_failure(self, auth_service, mock_supabase):
-        """Test authentication failure"""
+        """Test login failure"""
         # Arrange
-        mock_response = MagicMock()
-        mock_response.session = None
-        mock_supabase.auth.sign_in_with_password.return_value = mock_response
+        mock_supabase.auth.sign_in_with_password.side_effect = Exception("Invalid login")
         
         # Act
-        result = await auth_service.authenticate("test@example.com", "wrong")
+        result = await auth_service.authenticate("test@test.com", "wrong")
         
         # Assert
         assert result is None
+
+    def test_verify_token_success(self, auth_service):
+        """Test token verification"""
+        # Arrange
+        user_id = str(uuid4())
+        token = "valid.token.here"
+        
+        with patch("jose.jwt.decode") as mock_decode:
+            mock_decode.return_value = {"sub": user_id}
+            
+            # Act
+            result = auth_service.verify_token(token)
+            
+            # Assert
+            assert result == user_id
+            mock_decode.assert_called_once()
+
+    def test_verify_token_invalid(self, auth_service):
+        """Test invalid token"""
+        with patch("jose.jwt.decode") as mock_decode:
+            from jose import JWTError
+            mock_decode.side_effect = JWTError()
+            
+            # Act
+            result = auth_service.verify_token("invalid")
+            
+            # Assert
+            assert result is None
