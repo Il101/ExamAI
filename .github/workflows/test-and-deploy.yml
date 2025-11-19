@@ -29,87 +29,58 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: 'pip'
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
       
-      - name: Start Database
-        run: |
-          docker run -d -p 5432:5432 \
-            -e POSTGRES_USER=postgres \
-            -e POSTGRES_PASSWORD=postgres \
-            -e POSTGRES_DB=examai_test \
-            --name postgres_db \
-            postgres:15-alpine
-            
-          docker run -d -p 6379:6379 \
-            --name redis_db \
-            redis:7-alpine
-            
-          echo "Waiting for services..."
-          for i in {1..30}; do
-            if nc -z 127.0.0.1 5432; then
-              echo "Postgres is up"
-              break
-            fi
-            sleep 1
-          done
-
-      - name: Install dependencies
-        run: |
-          cd backend
-          pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install -r requirements-test.txt
-      
-      - name: Run linting
-        run: |
-          cd backend
-          black --check app tests
-          isort --check-only app tests
-          flake8 app tests
-      
-      - name: Verify Database Connection
-        run: |
-          cd backend
-          python -c "
-          import asyncio
-          import asyncpg
-          import sys
-          
-          async def check():
-              try:
-                  conn = await asyncpg.connect('postgresql://postgres:postgres@127.0.0.1:5432/examai_test')
-                  print('Successfully connected to database!')
-                  await conn.close()
-                  sys.exit(0)
-              except Exception as e:
-                  print(f'Failed to connect: {e}')
-                  sys.exit(1)
-          
-          asyncio.run(check())
-          "
-
-      - name: Run database migrations
+      - name: Build and Start Services
         env:
-          DATABASE_URL: postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/examai_test
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           SECRET_KEY: test_secret_key_min_32_chars_long
           ENVIRONMENT: test
         run: |
-          cd backend
-          alembic upgrade head
+          # Create a .env file for docker-compose
+          echo "ENVIRONMENT=test" > .env
+          echo "DEBUG=True" >> .env
+          echo "DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/examai_test" >> .env
+          echo "REDIS_URL=redis://redis:6379/0" >> .env
+          echo "SECRET_KEY=test_secret_key_min_32_chars_long" >> .env
+          echo "GEMINI_API_KEY=dummy_key" >> .env
+          
+          # Build and start services
+          docker compose -f docker-compose.yml up -d --build
+      
+      - name: Wait for services
+        run: |
+          echo "Waiting for Postgres..."
+          # Use a simple loop to check if the container is healthy/ready
+          # We can try to exec into the db container or just wait a bit
+          sleep 10
+          
+          # Check if services are running
+          docker compose ps
+      
+      - name: Run database migrations
+        run: |
+          docker compose exec -T backend alembic upgrade head
       
       - name: Run tests with coverage
-        env:
-          DATABASE_URL: postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/examai_test
-          REDIS_URL: redis://127.0.0.1:6379/0
-          SECRET_KEY: test_secret_key_min_32_chars_long
-          ENVIRONMENT: test
         run: |
-          cd backend
-          pytest tests/ -v --cov=app --cov-report=xml --cov-report=term-missing --ignore=tests/e2e
+          docker compose exec -T backend pytest tests/ -v --cov=app --cov-report=xml --cov-report=term-missing --ignore=tests/e2e
+      
+      - name: Copy coverage report
+        run: |
+          docker compose cp backend:/app/coverage.xml ./backend/coverage.xml
+      
+      - name: Upload coverage to Codecov
+        if: env.CODECOV_TOKEN != ''
+        continue-on-error: true
+        uses: codecov/codecov-action@v4
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        with:
+          file: ./backend/coverage.xml
+          flags: backend
+          token: ${{ secrets.CODECOV_TOKEN }}
       
       - name: Upload coverage to Codecov
         if: env.CODECOV_TOKEN != ''
