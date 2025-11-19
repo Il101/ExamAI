@@ -12,8 +12,7 @@ from app.core.exceptions import AppException
 from app.core.logging import setup_logging
 from app.core.monitoring import init_monitoring
 from app.db.session import close_db, init_db
-from app.middleware.security import (RequestLoggingMiddleware,
-                                     SecurityHeadersMiddleware)
+from app.middleware.security import RequestLoggingMiddleware, SecurityHeadersMiddleware
 
 
 @asynccontextmanager
