@@ -59,6 +59,13 @@ class Settings(BaseSettings):
     SMTP_USER: Optional[str] = None
     SMTP_PASSWORD: Optional[str] = None
 
+    # Stripe
+    STRIPE_SECRET_KEY: str = ""
+    STRIPE_PUBLISHABLE_KEY: str = ""
+    STRIPE_WEBHOOK_SECRET: str = ""
+    STRIPE_PRICE_ID_PRO: str = ""  # price_xxx from Stripe Dashboard
+    STRIPE_PRICE_ID_PREMIUM: str = ""  # price_xxx from Stripe Dashboard
+
     # Frontend
     FRONTEND_URL: str = "http://localhost:3000"
 

@@ -1,0 +1,137 @@
+'use client';
+
+import { Fragment } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { Dialog, Transition } from '@headlessui/react';
+import { X } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import {
+    LayoutDashboard,
+    BookOpen,
+    Brain,
+    BarChart3,
+    Settings,
+    CreditCard,
+    Shield,
+} from 'lucide-react';
+
+const navigation = [
+    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+    { name: 'Exams', href: '/dashboard/exams', icon: BookOpen },
+    { name: 'Study', href: '/dashboard/study', icon: Brain },
+    { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
+    { name: 'Settings', href: '/dashboard/settings', icon: Settings },
+    { name: 'Pricing', href: '/dashboard/pricing', icon: CreditCard },
+];
+
+const adminNavigation = [
+    { name: 'Admin Panel', href: '/dashboard/admin', icon: Shield },
+];
+
+interface MobileNavProps {
+    open: boolean;
+    onClose: () => void;
+    isAdmin?: boolean;
+}
+
+export function MobileNav({ open, onClose, isAdmin = false }: MobileNavProps) {
+    const pathname = usePathname();
+
+    const allNavigation = isAdmin
+        ? [...navigation, ...adminNavigation]
+        : navigation;
+
+    return (
+        <Transition.Root show={open} as={Fragment}>
+            <Dialog as="div" className="relative z-50 lg:hidden" onClose={onClose}>
+                <Transition.Child
+                    as={Fragment}
+                    enter="transition-opacity ease-linear duration-300"
+                    enterFrom="opacity-0"
+                    enterTo="opacity-100"
+                    leave="transition-opacity ease-linear duration-300"
+                    leaveFrom="opacity-100"
+                    leaveTo="opacity-0"
+                >
+                    <div className="fixed inset-0 bg-gray-900/80" />
+                </Transition.Child>
+
+                <div className="fixed inset-0 flex">
+                    <Transition.Child
+                        as={Fragment}
+                        enter="transition ease-in-out duration-300 transform"
+                        enterFrom="-translate-x-full"
+                        enterTo="translate-x-0"
+                        leave="transition ease-in-out duration-300 transform"
+                        leaveFrom="translate-x-0"
+                        leaveTo="-translate-x-full"
+                    >
+                        <Dialog.Panel className="relative mr-16 flex w-full max-w-xs flex-1">
+                            <Transition.Child
+                                as={Fragment}
+                                enter="ease-in-out duration-300"
+                                enterFrom="opacity-0"
+                                enterTo="opacity-100"
+                                leave="ease-in-out duration-300"
+                                leaveFrom="opacity-100"
+                                leaveTo="opacity-0"
+                            >
+                                <div className="absolute left-full top-0 flex w-16 justify-center pt-5">
+                                    <button type="button" className="-m-2.5 p-2.5" onClick={onClose}>
+                                        <span className="sr-only">Close sidebar</span>
+                                        <X className="h-6 w-6 text-white" aria-hidden="true" />
+                                    </button>
+                                </div>
+                            </Transition.Child>
+
+                            <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-white px-6 pb-4">
+                                <div className="flex h-16 shrink-0 items-center">
+                                    <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                                        ExamAI Pro
+                                    </h1>
+                                </div>
+                                <nav className="flex flex-1 flex-col">
+                                    <ul role="list" className="flex flex-1 flex-col gap-y-7">
+                                        <li>
+                                            <ul role="list" className="-mx-2 space-y-1">
+                                                {allNavigation.map((item) => {
+                                                    const isActive = pathname === item.href ||
+                                                        (item.href !== '/dashboard' && pathname.startsWith(item.href));
+
+                                                    return (
+                                                        <li key={item.name}>
+                                                            <Link
+                                                                href={item.href}
+                                                                onClick={onClose}
+                                                                className={cn(
+                                                                    isActive
+                                                                        ? 'bg-gray-50 text-blue-600'
+                                                                        : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50',
+                                                                    'group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold transition-colors'
+                                                                )}
+                                                            >
+                                                                <item.icon
+                                                                    className={cn(
+                                                                        isActive ? 'text-blue-600' : 'text-gray-400 group-hover:text-blue-600',
+                                                                        'h-6 w-6 shrink-0'
+                                                                    )}
+                                                                    aria-hidden="true"
+                                                                />
+                                                                {item.name}
+                                                            </Link>
+                                                        </li>
+                                                    );
+                                                })}
+                                            </ul>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            </div>
+                        </Dialog.Panel>
+                    </Transition.Child>
+                </div>
+            </Dialog>
+        </Transition.Root>
+    );
+}

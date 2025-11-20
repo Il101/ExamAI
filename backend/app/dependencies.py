@@ -1,5 +1,3 @@
-from uuid import UUID
-
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,6 +13,7 @@ from app.integrations.llm.gemini import GeminiProvider
 from app.repositories.exam_repository import ExamRepository
 from app.repositories.review_repository import ReviewItemRepository
 from app.repositories.study_session_repository import StudySessionRepository
+from app.repositories.subscription_repository import SubscriptionRepository
 from app.repositories.topic_repository import TopicRepository
 
 # Repositories
@@ -27,6 +26,8 @@ from app.services.cost_guard_service import CostGuardService
 from app.services.exam_service import ExamService
 from app.services.prompt_service import PromptService
 from app.services.study_service import StudyService
+from app.services.stripe_service import StripeService
+from app.services.subscription_service import SubscriptionService
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_PREFIX}/auth/login")
 
@@ -57,6 +58,12 @@ async def get_study_session_repo(
     return StudySessionRepository(session)
 
 
+async def get_subscription_repo(
+    session: AsyncSession = Depends(get_db),
+) -> SubscriptionRepository:
+    return SubscriptionRepository(session)
+
+
 # --- Core Services ---
 
 
@@ -74,6 +81,11 @@ async def get_cost_guard_service(
 
 def get_prompt_service() -> PromptService:
     return PromptService()
+
+
+def get_stripe_service() -> StripeService:
+    """Get Stripe service"""
+    return StripeService()
 
 
 # --- LLM Provider ---
@@ -120,42 +132,31 @@ async def get_study_service(
     return StudyService(review_repo, session_repo)
 
 
+async def get_subscription_service(
+    subscription_repo: SubscriptionRepository = Depends(get_subscription_repo),
+    stripe_service: StripeService = Depends(get_stripe_service),
+) -> SubscriptionService:
+    """Get subscription service"""
+    return SubscriptionService(subscription_repo, stripe_service)
+
+
 # --- Auth Dependencies ---
 
 
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
     auth_service: AuthService = Depends(get_auth_service),
-    user_repo: UserRepository = Depends(get_user_repo),
 ) -> User:
     """
-    Get current authenticated user.
-    Validates JWT token and retrieves user from DB.
+    Get current authenticated user from Supabase token.
+    Does NOT require user to exist in local DB - gets data from token via Supabase API.
     """
-    user_id = auth_service.verify_token(token)
-    if not user_id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    user = auth_service.get_user_by_token(token)
 
-    try:
-        user_uuid = UUID(user_id)
-    except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid user ID format",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    user = await user_repo.get_by_id(user_uuid)
     if not user:
-        # If user exists in Supabase but not in our DB, we might want to create it here.
-        # For now, we'll return 401, assuming registration flow handles DB creation.
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User profile not found",
+            detail="Could not validate credentials via Supabase",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
@@ -165,9 +166,28 @@ async def get_current_user(
 async def get_current_active_user(
     current_user: User = Depends(get_current_user),
 ) -> User:
-    """Get current user and check if active/verified"""
+    """
+    Get current user and verify they are active (verified).
+    """
     if not current_user.is_verified:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User account not verified. Please check your email.",
         )
+
+    return current_user
+
+
+async def get_current_admin(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    """
+    Verify current user has admin role.
+    """
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
+        )
+
     return current_user

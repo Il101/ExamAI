@@ -1,7 +1,7 @@
 import { api } from './client';
 
 export interface LoginRequest {
-  username: string; // OAuth2PasswordRequestForm expects username, but we use email as username
+  email: string;
   password: string;
 }
 
@@ -15,27 +15,23 @@ export interface AuthResponse {
   access_token: string;
   refresh_token: string;
   token_type: string;
+  expires_in?: number;
 }
 
 export interface User {
   id: string;
   email: string;
   full_name: string;
+  role: string;
   is_active: boolean;
   is_superuser: boolean;
 }
 
 export const authApi = {
   login: async (data: LoginRequest): Promise<AuthResponse> => {
-    // FastAPI OAuth2PasswordRequestForm expects form-data, not JSON
-    const formData = new FormData();
-    formData.append('username', data.username);
-    formData.append('password', data.password);
-    
-    const response = await api.post('/auth/login', formData, {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
+    const response = await api.post('/auth/login', {
+      email: data.email,
+      password: data.password,
     });
     return response.data;
   },
@@ -46,13 +42,26 @@ export const authApi = {
   },
 
   getCurrentUser: async (): Promise<User> => {
-    const response = await api.get('/users/me');
+    const response = await api.get('/auth/me');
     return response.data;
   },
 
   logout: async () => {
     // We just remove tokens on client side usually, but if there is an endpoint:
-    // await api.post('/auth/logout'); 
+    await api.post('/auth/logout');
     localStorage.removeItem('token');
+  },
+
+  requestPasswordReset: async (email: string): Promise<{ message: string }> => {
+    const response = await api.post('/auth/request-password-reset', { email });
+    return response.data;
+  },
+
+  resetPassword: async (token: string, newPassword: string): Promise<{ message: string }> => {
+    const response = await api.post('/auth/reset-password', {
+      token,
+      new_password: newPassword,
+    });
+    return response.data;
   },
 };

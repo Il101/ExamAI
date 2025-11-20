@@ -45,9 +45,9 @@ export function CreateExamForm({ onSuccess }: { onSuccess?: () => void }) {
     // I should probably update CreateExamRequest to match this form or map it.
     // For now I will map it to what I defined in exams.ts, or update exams.ts.
     // I'll update exams.ts later to include these fields.
-    
+
     const { title, subject, exam_type, level, original_content } = data;
-    
+
     createExam({
       title,
       description: `Subject: ${subject}, Type: ${exam_type}, Level: ${level}`,
@@ -100,10 +100,9 @@ export function CreateExamForm({ onSuccess }: { onSuccess?: () => void }) {
           <Label>Exam Type</Label>
           <Select
             value={examType}
-            onValueChange={(value) => {
-              const newValue = value as 'oral' | 'written' | 'test';
-              setExamType(newValue);
-              form.setValue('exam_type', newValue);
+            onValueChange={(value: 'oral' | 'written' | 'test') => {
+              setExamType(value);
+              form.setValue('exam_type', value);
             }}
           >
             <SelectTrigger>
@@ -121,10 +120,9 @@ export function CreateExamForm({ onSuccess }: { onSuccess?: () => void }) {
           <Label>Academic Level</Label>
           <Select
             value={level}
-            onValueChange={(value) => {
-              const newValue = value as 'school' | 'bachelor' | 'master' | 'phd';
-              setLevel(newValue);
-              form.setValue('level', newValue);
+            onValueChange={(value: 'school' | 'bachelor' | 'master' | 'phd') => {
+              setLevel(value);
+              form.setValue('level', value);
             }}
           >
             <SelectTrigger>
