@@ -126,7 +126,8 @@ jobs:
       - name: Install dependencies
         run: |
           cd frontend
-          npm ci
+          npm cache clean --force
+          npm ci --legacy-peer-deps
       
       - name: Run linting
         run: |
@@ -136,6 +137,7 @@ jobs:
       - name: Run type checking
         run: |
           cd frontend
+          rm -rf .next/cache
           npm run type-check
       
       - name: Run tests
@@ -146,6 +148,7 @@ jobs:
       - name: Build
         run: |
           cd frontend
+          rm -rf .next .turbo dist build node_modules/.cache
           npm run build
   
   # Security Scan
