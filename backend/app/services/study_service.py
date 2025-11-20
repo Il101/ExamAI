@@ -1,10 +1,18 @@
 from typing import Any, Dict, List
 from uuid import UUID
+from datetime import date, timedelta
+import random
 
 from app.domain.review import Rating, ReviewItem
 from app.domain.study_session import StudySession
 from app.repositories.review_repository import ReviewItemRepository
 from app.repositories.study_session_repository import StudySessionRepository
+from app.schemas.analytics import (
+    AnalyticsResponse,
+    DailyProgress,
+    RetentionPoint,
+    HeatmapPoint,
+)
 
 
 class StudyService:
@@ -77,28 +85,72 @@ class StudyService:
                 "streak_days": 7
             }
         """
-        # Get all user's reviews
-        # Note: list_by_user might be heavy if user has many items.
-        # Ideally we should have aggregated stats in DB or separate query.
-        # For now, we assume list_by_user is fine or we implement a lighter query.
-        # But ReviewItemRepository doesn't have list_by_user (it has list_due_by_user).
-        # I'll assume list_by_user exists or I should add it.
-        # Wait, ReviewItemRepository has list_by_topic, list_due_by_user.
-        # I should add list_by_user to ReviewItemRepository or use a count query.
-
-        # For now, I'll use count_due_by_user which exists.
         reviews_due = await self.review_repo.count_due_by_user(user_id)
 
-        # I need total reviews and success rate.
-        # I'll add a method to repository to get stats.
-        # For now, I'll return placeholders or implement a simple query if I can.
-
         return {
-            "total_reviews": 0,  # Placeholder
+            "total_reviews": 150,  # Placeholder
             "reviews_due": reviews_due,
-            "success_rate": 0.0,  # Placeholder
-            "streak_days": 0,  # Placeholder
+            "success_rate": 0.85,  # Placeholder
+            "streak_days": 3,  # Placeholder
         }
+
+    async def get_analytics(self, user_id: UUID) -> AnalyticsResponse:
+        """
+        Get comprehensive analytics for dashboard.
+        Currently returns mock data for visualization.
+        """
+        # TODO: Implement real aggregation queries in repositories
+
+        today = date.today()
+
+        # Mock Daily Progress (Last 7 days)
+        daily_progress = []
+        for i in range(6, -1, -1):
+            day = today - timedelta(days=i)
+            daily_progress.append(
+                DailyProgress(
+                    date=day,
+                    cards_reviewed=random.randint(10, 50),
+                    cards_learned=random.randint(5, 20),
+                    minutes_studied=random.randint(15, 60),
+                )
+            )
+
+        # Mock Retention Curve
+        retention_curve = [
+            RetentionPoint(days_since_review=1, retention_rate=1.0),
+            RetentionPoint(days_since_review=3, retention_rate=0.9),
+            RetentionPoint(days_since_review=7, retention_rate=0.75),
+            RetentionPoint(days_since_review=14, retention_rate=0.6),
+            RetentionPoint(days_since_review=30, retention_rate=0.45),
+        ]
+
+        # Mock Heatmap (Last 30 days)
+        activity_heatmap = []
+        for i in range(29, -1, -1):
+            day = today - timedelta(days=i)
+            count = random.randint(0, 20)
+            level = 0
+            if count > 0:
+                level = 1
+            if count > 5:
+                level = 2
+            if count > 10:
+                level = 3
+            if count > 15:
+                level = 4
+
+            activity_heatmap.append(HeatmapPoint(date=day, count=count, level=level))
+
+        return AnalyticsResponse(
+            daily_progress=daily_progress,
+            retention_curve=retention_curve,
+            activity_heatmap=activity_heatmap,
+            total_cards_learned=142,
+            total_minutes_studied=1250,
+            current_streak=3,
+            longest_streak=12,
+        )
 
     # Study Sessions
 

@@ -16,8 +16,10 @@ api.interceptors.request.use(
     // Check if we are in the browser
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('token');
+      console.log('Interceptor: token from localStorage:', token ? 'EXISTS' : 'NULL');
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
+        console.log('Interceptor: Authorization header set');
       }
     }
     return config;
@@ -30,7 +32,7 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    
+
     // Handle 401 Unauthorized (token expired)
     if (error.response?.status === 401 && !originalRequest._retry) {
       // Here we would handle token refresh logic
@@ -40,7 +42,7 @@ api.interceptors.response.use(
         window.location.href = '/login';
       }
     }
-    
+
     return Promise.reject(error);
   }
 );

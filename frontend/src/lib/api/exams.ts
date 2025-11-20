@@ -14,10 +14,26 @@ export interface Exam {
   id: string;
   title: string;
   description: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  subject?: string;
+  exam_type?: 'oral' | 'written' | 'test';
+  level?: 'school' | 'bachelor' | 'master' | 'phd';
+  status: 'draft' | 'generating' | 'ready' | 'failed';
+  topic_count: number;
   created_at: string;
   updated_at: string;
   user_id: string;
+  ai_summary?: string;
+}
+
+export interface ExamWithTopics extends Exam {
+  topics: Array<{
+    id: string;
+    topic_name: string;
+    content: string;
+    order_index: number;
+    difficulty_level: number;
+    estimated_study_minutes: number;
+  }>;
 }
 
 export const examsApi = {

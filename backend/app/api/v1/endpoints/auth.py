@@ -10,6 +10,11 @@ from app.schemas.auth import (
     TokenResponse,
     VerifyEmailRequest,
 )
+from app.schemas.password_reset import (
+    ForgotPasswordRequest,
+    ResetPasswordRequest,
+    PasswordResetResponse,
+)
 from app.schemas.user import UserResponse
 from app.services.auth_service import AuthService
 
@@ -126,3 +131,43 @@ async def logout(
     # For now, we'll just return success as the client should discard the token.
 
     return {"message": "Logged out successfully"}
+
+
+@router.post("/forgot-password", response_model=PasswordResetResponse)
+async def forgot_password(
+    request: ForgotPasswordRequest,
+    auth_service: AuthService = Depends(get_auth_service),
+):
+    """
+    Request password reset email.
+
+    Sends password reset link to user's email if it exists.
+    Always returns success for security (doesn't reveal if email exists).
+    """
+    await auth_service.request_password_reset(request.email)
+
+    return PasswordResetResponse(
+        message="If your email is registered, you will receive a password reset link."
+    )
+
+
+@router.post("/reset-password", response_model=PasswordResetResponse)
+async def reset_password(
+    request: ResetPasswordRequest,
+    auth_service: AuthService = Depends(get_auth_service),
+):
+    """
+    Reset password using recovery token from email.
+
+    - **token**: Recovery token from reset email
+    - **new_password**: New password (minimum 8 characters)
+    """
+    try:
+        await auth_service.reset_password_with_token(
+            request.token, request.new_password
+        )
+        return PasswordResetResponse(
+            message="Password reset successful. You can now log in."
+        )
+    except ValueError as e:
+        raise ValidationException(str(e))

@@ -14,9 +14,9 @@ interface ExamCardProps {
 
 export function ExamCard({ exam, onDelete, onGenerate }: ExamCardProps) {
   const statusColors: Record<string, string> = {
-    pending: 'bg-gray-100 text-gray-800 hover:bg-gray-100',
-    processing: 'bg-blue-100 text-blue-800 hover:bg-blue-100',
-    completed: 'bg-green-100 text-green-800 hover:bg-green-100',
+    draft: 'bg-gray-100 text-gray-800 hover:bg-gray-100',
+    generating: 'bg-blue-100 text-blue-800 hover:bg-blue-100',
+    ready: 'bg-green-100 text-green-800 hover:bg-green-100',
     failed: 'bg-red-100 text-red-800 hover:bg-red-100',
   };
 
@@ -39,14 +39,14 @@ export function ExamCard({ exam, onDelete, onGenerate }: ExamCardProps) {
             <p>Created {formatDistanceToNow(new Date(exam.created_at), { addSuffix: true })}</p>
           </div>
           <div className="flex gap-2">
-            {exam.status === 'pending' && onGenerate && (
+            {exam.status === 'draft' && onGenerate && (
               <Button size="sm" onClick={onGenerate} variant="outline">
                 <Play className="h-3 w-3 mr-1" />
                 Generate
               </Button>
             )}
-            {exam.status === 'completed' && (
-              <Link href={`/exams/${exam.id}`}>
+            {exam.status === 'ready' && (
+              <Link href={`/dashboard/exams/${exam.id}`}>
                 <Button size="sm" variant="outline">
                   <FileText className="h-3 w-3 mr-1" />
                   View

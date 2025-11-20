@@ -17,8 +17,8 @@ export function useExams() {
       toast.success('Exam created successfully');
     },
     onError: (error: unknown) => {
-      const message = error instanceof Error && 'response' in error 
-        ? (error as { response?: { data?: { detail?: string } } }).response?.data?.detail 
+      const message = error instanceof Error && 'response' in error
+        ? (error as { response?: { data?: { detail?: string } } }).response?.data?.detail
         : 'Failed to create exam';
       toast.error(message || 'Failed to create exam');
     },

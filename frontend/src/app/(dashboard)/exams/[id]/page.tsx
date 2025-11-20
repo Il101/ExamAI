@@ -1,0 +1,133 @@
+'use client';
+
+import { useState } from 'react';
+import { useParams } from 'next/navigation';
+import { useExamDetail } from '@/lib/hooks/use-exam-detail';
+import { ExamHeader } from '@/components/exam/exam-header';
+import { ExamSummary } from '@/components/exam/exam-summary';
+import { TopicList } from '@/components/exam/topic-list';
+import { Card, CardContent } from '@/components/ui/card';
+import { Loader2, AlertCircle } from 'lucide-react';
+import { ExamWithTopics } from '@/lib/api/exams';
+
+export default function ExamDetailPage() {
+    const params = useParams();
+    const examId = params.id as string;
+    const [viewMode, setViewMode] = useState<'summary' | 'topics'>('summary');
+
+    const { exam, isLoading, isError, error } = useExamDetail(examId);
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <div className="text-center">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+                    <p className="text-muted-foreground">Loading exam...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (isError) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <Card className="max-w-md">
+                    <CardContent className="pt-6">
+                        <div className="text-center">
+                            <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+                            <h2 className="text-xl font-semibold mb-2">Error Loading Exam</h2>
+                            <p className="text-muted-foreground">
+                                {error instanceof Error ? error.message : 'Failed to load exam details'}
+                            </p>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
+
+    if (!exam) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <Card className="max-w-md">
+                    <CardContent className="pt-6">
+                        <div className="text-center">
+                            <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                            <h2 className="text-xl font-semibold mb-2">Exam Not Found</h2>
+                            <p className="text-muted-foreground">
+                                The exam you&apos;re looking for doesn&apos;t exist or you don&apos;t have access to it.
+                            </p>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
+
+    const renderContent = () => {
+        if (exam.status === 'ready') {
+            if (viewMode === 'summary') {
+                return (
+                    <ExamSummary
+                        exam={exam}
+                        onGenerateTopics={() => setViewMode('topics')}
+                    />
+                );
+            } else {
+                return <TopicList exam={exam as ExamWithTopics} />;
+            }
+        }
+
+        if (exam.status === 'generating') {
+            return (
+                <div className="text-center py-12">
+                    <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
+                    <h3 className="text-lg font-semibold mb-2">Generating Exam Content</h3>
+                    <p className="text-muted-foreground mb-4">
+                        Your exam is being generated. This may take a few minutes.
+                    </p>
+                    <div className="max-w-xs mx-auto bg-muted rounded-full h-2 overflow-hidden">
+                        <div className="bg-primary h-full animate-pulse w-2/3"></div>
+                    </div>
+                </div>
+            );
+        }
+
+        if (exam.status === 'failed') {
+            return (
+                <div className="text-center py-12">
+                    <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">Generation Failed</h3>
+                    <p className="text-muted-foreground">
+                        There was an error generating your exam. Please try again.
+                    </p>
+                </div>
+            );
+        }
+
+        return (
+            <div className="text-center py-12 text-muted-foreground">
+                <p>This exam is in draft status.</p>
+                <p className="text-sm mt-2">Start generation to create topics and notes.</p>
+            </div>
+        );
+    };
+
+    return (
+        <div className="container max-w-5xl py-8">
+            <div className="mb-8">
+                <ExamHeader
+                    examId={exam.id}
+                    title={exam.title}
+                    subject={exam.subject}
+                    status={exam.status}
+                    topicCount={exam.topic_count}
+                    createdAt={exam.created_at}
+                    updatedAt={exam.updated_at}
+                />
+            </div>
+
+            {renderContent()}
+        </div>
+    );
+}
