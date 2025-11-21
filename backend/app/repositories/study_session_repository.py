@@ -1,7 +1,8 @@
-from typing import List, Optional
+from datetime import datetime, timedelta
+from typing import List, Optional, Dict, Any
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.mappers.study_session_mapper import StudySessionMapper
@@ -47,3 +48,63 @@ class StudySessionRepository(BaseRepository[StudySession, StudySessionModel]):
         models = result.scalars().all()
 
         return [self.mapper.to_domain(model) for model in models]
+
+    async def get_daily_study_minutes(
+        self, user_id: UUID, days: int = 7
+    ) -> List[Dict[str, Any]]:
+        """
+        Get total study minutes per day for the last N days.
+
+        Returns:
+            List of dicts: [{"date": date, "minutes": int}]
+        """
+        start_date = datetime.utcnow() - timedelta(days=days)
+
+        # Calculate duration as difference between ended_at and started_at,
+        # OR use pomodoros * duration if available?
+        # The model has `pomodoro_duration_minutes` and `pomodoros_completed`.
+        # But checking `ended_at - started_at` is more accurate for total time if recorded.
+        # Let's stick to a simpler metric if available or count pomodoros.
+        # Actually, `pomodoros_completed * pomodoro_duration_minutes` is a good proxy for focused time.
+
+        stmt = (
+            select(
+                func.date(StudySessionModel.started_at).label("session_date"),
+                func.sum(
+                    StudySessionModel.pomodoros_completed *
+                    StudySessionModel.pomodoro_duration_minutes
+                ).label("total_minutes")
+            )
+            .where(
+                StudySessionModel.user_id == user_id,
+                StudySessionModel.started_at >= start_date
+            )
+            .group_by("session_date")
+            .order_by("session_date")
+        )
+
+        result = await self.session.execute(stmt)
+
+        stats = []
+        for row in result:
+            stats.append({
+                "date": row.session_date,
+                "minutes": row.total_minutes or 0
+            })
+
+        return stats
+
+    async def get_total_study_minutes(self, user_id: UUID) -> int:
+        """Get total lifetime study minutes"""
+        stmt = (
+            select(
+                func.sum(
+                    StudySessionModel.pomodoros_completed *
+                    StudySessionModel.pomodoro_duration_minutes
+                )
+            )
+            .where(StudySessionModel.user_id == user_id)
+        )
+
+        result = await self.session.execute(stmt)
+        return result.scalar() or 0
