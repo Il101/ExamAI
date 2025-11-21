@@ -42,9 +42,6 @@ export function ProfileForm() {
                 daily_study_goal_minutes: data.daily_study_goal_minutes,
             });
 
-            // Update local store
-            // Note: The backend currently returns the user object, so we can update the store
-            // But we might need to merge if the backend response is partial or different
             if (user) {
                 setUser({ ...user, full_name: updatedUser.full_name });
             }
