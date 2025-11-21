@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -18,82 +20,88 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
-  const { login, isLoggingIn } = useAuth();
+  const { login, isLoggingIn, isAuthenticated, isLoading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      router.push('/dashboard');
+    }
+  }, [isLoading, isAuthenticated, router]);
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
   });
 
-  const onSubmit = (data: LoginFormData) => {
-    login(data);
+  const onSubmit = async (data: LoginFormData) => {
+    await login(data);
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4">
-      <Card className="w-full max-w-md p-8 shadow-lg">
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold mb-2">Welcome back</h1>
-          <p className="text-gray-600">Sign in to ExamAI Pro</p>
+    <Card className="w-full p-8 shadow-2xl border-white/10 bg-card/50 backdrop-blur-xl">
+      <div className="mb-8 text-center">
+        <h1 className="text-3xl font-bold mb-2 text-foreground">Welcome back</h1>
+        <p className="text-muted-foreground">Sign in to ExamAI Pro</p>
+      </div>
+
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <div>
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            type="email"
+            placeholder="you@example.com"
+            {...form.register('email')}
+            disabled={isLoggingIn}
+          />
+          {form.formState.errors.email && (
+            <p className="text-sm text-red-500 mt-1">
+              {form.formState.errors.email.message}
+            </p>
+          )}
         </div>
 
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <div>
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="you@example.com"
-              {...form.register('email')}
-              disabled={isLoggingIn}
-            />
-            {form.formState.errors.email && (
-              <p className="text-sm text-red-500 mt-1">
-                {form.formState.errors.email.message}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              {...form.register('password')}
-              disabled={isLoggingIn}
-            />
-            {form.formState.errors.password && (
-              <p className="text-sm text-red-500 mt-1">
-                {form.formState.errors.password.message}
-              </p>
-            )}
-          </div>
-
-          <div className="flex items-center justify-between text-sm">
-            <Link
-              href="/forgot-password"
-              className="text-primary hover:underline"
-            >
-              Forgot password?
-            </Link>
-          </div>
-
-          <Button
-            type="submit"
-            className="w-full"
+        <div>
+          <Label htmlFor="password">Password</Label>
+          <Input
+            id="password"
+            type="password"
+            placeholder="••••••••"
+            {...form.register('password')}
             disabled={isLoggingIn}
-          >
-            {isLoggingIn ? 'Signing in...' : 'Sign in'}
-          </Button>
-        </form>
+          />
+          {form.formState.errors.password && (
+            <p className="text-sm text-red-500 mt-1">
+              {form.formState.errors.password.message}
+            </p>
+          )}
+        </div>
 
-        <p className="text-center text-sm text-gray-600 mt-6">
-          Don&apos;t have an account?{' '}
-          <Link href="/register" className="text-primary hover:underline font-medium">
-            Sign up
+        <div className="flex items-center justify-between text-sm">
+          <Link
+            href="/forgot-password"
+            className="text-primary hover:text-accent hover:underline transition-colors"
+          >
+            Forgot password?
           </Link>
-        </p>
-      </Card>
-    </div>
+        </div>
+
+        <Button
+          type="submit"
+          className="w-full"
+          variant="glow"
+          disabled={isLoggingIn}
+        >
+          {isLoggingIn ? 'Signing in...' : 'Sign in'}
+        </Button>
+      </form>
+
+      <p className="text-center text-sm text-muted-foreground mt-6">
+        Don&apos;t have an account?{' '}
+        <Link href="/register" className="text-primary hover:text-accent hover:underline font-medium transition-colors">
+          Sign up
+        </Link>
+      </p>
+    </Card>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { Bell, Menu } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
@@ -20,6 +21,8 @@ interface HeaderProps {
 
 export function Header({ onMenuClick }: HeaderProps) {
     const { user, logout } = useAuth();
+    // TODO: Replace with actual notification state from backend
+    const hasNewNotifications = false;
 
     const getInitials = (name: string) => {
         return name
@@ -31,7 +34,7 @@ export function Header({ onMenuClick }: HeaderProps) {
     };
 
     return (
-        <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
+        <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-white/10 bg-background/50 backdrop-blur-xl px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
             <Button
                 variant="ghost"
                 size="icon"
@@ -49,9 +52,16 @@ export function Header({ onMenuClick }: HeaderProps) {
                     <ThemeToggle />
 
                     {/* Notifications */}
-                    <Button variant="ghost" size="icon" className="relative">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="relative"
+                        onClick={() => toast.info('No new notifications')}
+                    >
                         <Bell className="h-5 w-5" />
-                        <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500" />
+                        {hasNewNotifications && (
+                            <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500" />
+                        )}
                     </Button>
 
                     {/* User menu */}

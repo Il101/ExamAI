@@ -57,7 +57,7 @@ async def create_exam(
             original_content=request.original_content,
         )
 
-        return ExamResponse.from_orm(exam)
+        return ExamResponse.model_validate(exam)
 
     except ValueError as e:
         raise ValidationException(str(e))
@@ -88,7 +88,7 @@ async def list_exams(
     total = await exam_service.exam_repo.count_by_user(current_user.id, status)
 
     return ExamListResponse(
-        exams=[ExamResponse.from_orm(exam) for exam in exams],
+        exams=[ExamResponse.model_validate(exam) for exam in exams],
         total=total,
         limit=limit,
         offset=offset,
@@ -114,7 +114,7 @@ async def get_exam(
     topics = await topic_repo.get_by_exam_id(exam_id)
 
     # Build response
-    response = ExamResponse.from_orm(exam)
+    response = ExamResponse.model_validate(exam)
     response.topics = [
         TopicResponse(
             id=t.id,
@@ -145,13 +145,13 @@ async def update_exam(
     exam = await exam_service.update_exam(
         user_id=current_user.id,
         exam_id=exam_id,
-        updates=request.dict(exclude_unset=True),
+        updates=request.model_dump(exclude_unset=True),
     )
 
     if not exam:
         raise NotFoundException("Exam", str(exam_id))
 
-    return ExamResponse.from_orm(exam)
+    return ExamResponse.model_validate(exam)
 
 
 @router.delete("/{exam_id}", status_code=status.HTTP_204_NO_CONTENT)

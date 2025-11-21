@@ -2,12 +2,10 @@ import { api } from './client';
 
 export interface CreateExamRequest {
   title: string;
-  subject?: string;
-  exam_type?: 'oral' | 'written' | 'test';
-  level?: 'school' | 'bachelor' | 'master' | 'phd';
-  original_content?: string;
-  description?: string;
-  file_path?: string; // For file uploads
+  subject: string;
+  exam_type: 'oral' | 'written' | 'test';
+  level: 'school' | 'bachelor' | 'master' | 'phd';
+  original_content: string;
 }
 
 export interface Exam {
@@ -36,13 +34,20 @@ export interface ExamWithTopics extends Exam {
   }>;
 }
 
+export interface ExamListResponse {
+  exams: Exam[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
 export const examsApi = {
   create: async (data: CreateExamRequest) => {
-    const response = await api.post('/exams', data);
+    const response = await api.post('/exams/', data);
     return response.data;
   },
 
-  list: async (params?: { skip?: number; limit?: number }) => {
+  list: async (params?: { skip?: number; limit?: number }): Promise<ExamListResponse> => {
     const response = await api.get('/exams', { params });
     return response.data;
   },

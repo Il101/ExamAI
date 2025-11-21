@@ -15,7 +15,7 @@ api.interceptors.request.use(
   (config) => {
     // Check if we are in the browser
     if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('access_token');
       console.log('Interceptor: token from localStorage:', token ? 'EXISTS' : 'NULL');
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
@@ -33,12 +33,22 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // Handle network errors (backend not running)
+    if (!error.response) {
+      const networkError = new Error(
+        'Не удалось подключиться к серверу. Убедитесь, что бэкенд запущен на порту 8000.'
+      );
+      (networkError as any).isNetworkError = true;
+      return Promise.reject(networkError);
+    }
+
     // Handle 401 Unauthorized (token expired)
     if (error.response?.status === 401 && !originalRequest._retry) {
       // Here we would handle token refresh logic
       // For now, just redirect to login
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('token');
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
         window.location.href = '/login';
       }
     }
