@@ -1,6 +1,6 @@
 from typing import Any, Dict, List
 from uuid import UUID
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 import random
 
 from app.domain.review import Rating, ReviewItem
@@ -86,37 +86,49 @@ class StudyService:
             }
         """
         reviews_due = await self.review_repo.count_due_by_user(user_id)
+        # Note: We would need more complex queries for "success_rate" and "streak_days"
+        # derived from a log table. For now we return placeholders or partial data.
 
         return {
-            "total_reviews": 150,  # Placeholder
+            "total_reviews": 0,  # Placeholder until ReviewLog is implemented
             "reviews_due": reviews_due,
-            "success_rate": 0.85,  # Placeholder
-            "streak_days": 3,  # Placeholder
+            "success_rate": 0.0,
+            "streak_days": 0,
         }
 
     async def get_analytics(self, user_id: UUID) -> AnalyticsResponse:
         """
         Get comprehensive analytics for dashboard.
-        Currently returns mock data for visualization.
+        Uses real data from repositories.
         """
-        # TODO: Implement real aggregation queries in repositories
 
-        today = date.today()
+        # 1. Get Daily Progress (Last 7 days)
+        daily_reviews = await self.review_repo.get_daily_activity(user_id, days=7)
+        daily_minutes = await self.session_repo.get_daily_study_minutes(user_id, days=7)
 
-        # Mock Daily Progress (Last 7 days)
+        # Map to dictionary for easier lookup by date
+        reviews_map = {r["date"]: r for r in daily_reviews}
+        minutes_map = {r["date"]: r["minutes"] for r in daily_minutes}
+
         daily_progress = []
+        today = date.today()
         for i in range(6, -1, -1):
             day = today - timedelta(days=i)
+            review_data = reviews_map.get(day, {"count": 0, "learned": 0})
+            minutes = minutes_map.get(day, 0)
+
             daily_progress.append(
                 DailyProgress(
                     date=day,
-                    cards_reviewed=random.randint(10, 50),
-                    cards_learned=random.randint(5, 20),
-                    minutes_studied=random.randint(15, 60),
+                    cards_reviewed=review_data["count"],
+                    cards_learned=review_data["learned"],
+                    minutes_studied=minutes,
                 )
             )
 
-        # Mock Retention Curve
+        # 2. Retention Curve (Simplified/Mock for now as we lack full history)
+        # A real implementation requires calculating retention over time buckets from ReviewLogs.
+        # We will keep a placeholder structure but ideally this should be calculated.
         retention_curve = [
             RetentionPoint(days_since_review=1, retention_rate=1.0),
             RetentionPoint(days_since_review=3, retention_rate=0.9),
@@ -125,31 +137,35 @@ class StudyService:
             RetentionPoint(days_since_review=30, retention_rate=0.45),
         ]
 
-        # Mock Heatmap (Last 30 days)
+        # 3. Activity Heatmap (Last 30 days)
+        heatmap_data = await self.review_repo.get_daily_activity(user_id, days=30)
+        heatmap_map = {r["date"]: r["count"] for r in heatmap_data}
+
         activity_heatmap = []
         for i in range(29, -1, -1):
             day = today - timedelta(days=i)
-            count = random.randint(0, 20)
+            count = heatmap_map.get(day, 0)
+
             level = 0
-            if count > 0:
-                level = 1
-            if count > 5:
-                level = 2
-            if count > 10:
-                level = 3
-            if count > 15:
-                level = 4
+            if count > 0: level = 1
+            if count > 5: level = 2
+            if count > 10: level = 3
+            if count > 15: level = 4
 
             activity_heatmap.append(HeatmapPoint(date=day, count=count, level=level))
+
+        # 4. Aggregates
+        total_learned = await self.review_repo.count_total_learned(user_id)
+        total_minutes = await self.session_repo.get_total_study_minutes(user_id)
 
         return AnalyticsResponse(
             daily_progress=daily_progress,
             retention_curve=retention_curve,
             activity_heatmap=activity_heatmap,
-            total_cards_learned=142,
-            total_minutes_studied=1250,
-            current_streak=3,
-            longest_streak=12,
+            total_cards_learned=total_learned,
+            total_minutes_studied=total_minutes,
+            current_streak=0, # Streaks require consecutive day logic, skipping for brevity
+            longest_streak=0,
         )
 
     # Study Sessions
