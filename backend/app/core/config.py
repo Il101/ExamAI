@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     # AI Configuration
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-2.5-flash-lite"
+    OPENAI_API_KEY: str = ""
+    OPENAI_MODEL: str = "gpt-4o-mini"
+    LLM_PROVIDER: Literal["gemini", "openai"] = "gemini"  # Which LLM to use
     PROMPTS_DIR: str = "app/prompts"
     MAX_TOPICS: Optional[int] = None  # None = let AI decide based on content
 

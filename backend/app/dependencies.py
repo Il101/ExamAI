@@ -10,6 +10,7 @@ from app.domain.user import User
 # Integrations
 from app.integrations.llm.base import LLMProvider
 from app.integrations.llm.gemini import GeminiProvider
+from app.integrations.llm.openai import OpenAIProvider
 from app.repositories.exam_repository import ExamRepository
 from app.repositories.review_repository import ReviewItemRepository
 from app.repositories.study_session_repository import StudySessionRepository
@@ -92,8 +93,22 @@ def get_stripe_service() -> StripeService:
 
 
 def get_llm_provider() -> LLMProvider:
-    # In future we can switch based on settings.LLM_PROVIDER
-    return GeminiProvider(api_key=settings.GEMINI_API_KEY, model=settings.GEMINI_MODEL)
+    """
+    Get LLM provider based on configuration.
+    
+    Returns:
+        LLMProvider instance (Gemini or OpenAI)
+    """
+    if settings.LLM_PROVIDER == "openai":
+        return OpenAIProvider(
+            api_key=settings.OPENAI_API_KEY,
+            model=settings.OPENAI_MODEL
+        )
+    else:  # Default to Gemini
+        return GeminiProvider(
+            api_key=settings.GEMINI_API_KEY,
+            model=settings.GEMINI_MODEL
+        )
 
 
 # --- Agent ---

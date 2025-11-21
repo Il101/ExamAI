@@ -1,10 +1,13 @@
 from contextlib import asynccontextmanager
 from datetime import datetime
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
 from app.api.v1.router import api_router
 from app.core.config import settings
@@ -42,6 +45,34 @@ async def lifespan(app: FastAPI):
     print("✅ Database connections closed")
 
 
+# Custom rate limit key function that considers user tier
+async def get_rate_limit_key(request: Request) -> str:
+    """
+    Generate rate limit key based on user and their subscription tier.
+    Returns identifier for rate limiting (IP or user_id).
+    """
+    # Try to get user from request state (set by auth middleware)
+    if hasattr(request.state, "user") and request.state.user:
+        user = request.state.user
+        user_id = str(user.id)
+        # Use user ID as key for authenticated users
+        return f"user:{user_id}"
+    
+    # Fall back to IP-based rate limiting for unauthenticated requests
+    return get_remote_address(request)
+
+
+# Initialize rate limiter with Redis storage
+limiter = Limiter(
+    key_func=get_rate_limit_key,
+    storage_uri=settings.REDIS_URL,
+    default_limits=["200/hour"],  # Conservative default
+    headers_enabled=True,
+    swallow_errors=False,  # Raise errors in development
+)
+
+
+
 # Create FastAPI app
 app = FastAPI(
     title=settings.APP_NAME,
@@ -52,6 +83,10 @@ app = FastAPI(
     openapi_url="/api/openapi.json",
     lifespan=lifespan,
 )
+
+# Add rate limiter to app state
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS middleware
 app.add_middleware(
