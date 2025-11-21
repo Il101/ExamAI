@@ -41,94 +41,93 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4 py-8">
-      <Card className="w-full max-w-md p-8 shadow-lg">
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold mb-2">Create account</h1>
-          <p className="text-gray-600">Start your learning journey with ExamAI Pro</p>
+    <Card className="w-full p-8 shadow-2xl border-white/10 bg-card/50 backdrop-blur-xl">
+      <div className="mb-8 text-center">
+        <h1 className="text-3xl font-bold mb-2 text-foreground">Create account</h1>
+        <p className="text-muted-foreground">Start your learning journey with ExamAI Pro</p>
+      </div>
+
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <div>
+          <Label htmlFor="full_name">Full Name</Label>
+          <Input
+            id="full_name"
+            type="text"
+            placeholder="John Doe"
+            {...form.register('full_name')}
+            disabled={isRegistering}
+          />
+          {form.formState.errors.full_name && (
+            <p className="text-sm text-red-500 mt-1">
+              {form.formState.errors.full_name.message}
+            </p>
+          )}
         </div>
 
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <div>
-            <Label htmlFor="full_name">Full Name</Label>
-            <Input
-              id="full_name"
-              type="text"
-              placeholder="John Doe"
-              {...form.register('full_name')}
-              disabled={isRegistering}
-            />
-            {form.formState.errors.full_name && (
-              <p className="text-sm text-red-500 mt-1">
-                {form.formState.errors.full_name.message}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="you@example.com"
-              {...form.register('email')}
-              disabled={isRegistering}
-            />
-            {form.formState.errors.email && (
-              <p className="text-sm text-red-500 mt-1">
-                {form.formState.errors.email.message}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              {...form.register('password')}
-              disabled={isRegistering}
-            />
-            {form.formState.errors.password && (
-              <p className="text-sm text-red-500 mt-1">
-                {form.formState.errors.password.message}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="confirmPassword">Confirm Password</Label>
-            <Input
-              id="confirmPassword"
-              type="password"
-              placeholder="••••••••"
-              {...form.register('confirmPassword')}
-              disabled={isRegistering}
-            />
-            {form.formState.errors.confirmPassword && (
-              <p className="text-sm text-red-500 mt-1">
-                {form.formState.errors.confirmPassword.message}
-              </p>
-            )}
-          </div>
-
-          <Button
-            type="submit"
-            className="w-full"
+        <div>
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            type="email"
+            placeholder="you@example.com"
+            {...form.register('email')}
             disabled={isRegistering}
-          >
-            {isRegistering ? 'Creating account...' : 'Create account'}
-          </Button>
-        </form>
+          />
+          {form.formState.errors.email && (
+            <p className="text-sm text-red-500 mt-1">
+              {form.formState.errors.email.message}
+            </p>
+          )}
+        </div>
 
-        <p className="text-center text-sm text-gray-600 mt-6">
-          Already have an account?{' '}
-          <Link href="/login" className="text-primary hover:underline font-medium">
-            Sign in
-          </Link>
-        </p>
-      </Card>
-    </div>
+        <div>
+          <Label htmlFor="password">Password</Label>
+          <Input
+            id="password"
+            type="password"
+            placeholder="••••••••"
+            {...form.register('password')}
+            disabled={isRegistering}
+          />
+          {form.formState.errors.password && (
+            <p className="text-sm text-red-500 mt-1">
+              {form.formState.errors.password.message}
+            </p>
+          )}
+        </div>
+
+        <div>
+          <Label htmlFor="confirmPassword">Confirm Password</Label>
+          <Input
+            id="confirmPassword"
+            type="password"
+            placeholder="••••••••"
+            {...form.register('confirmPassword')}
+            disabled={isRegistering}
+          />
+          {form.formState.errors.confirmPassword && (
+            <p className="text-sm text-red-500 mt-1">
+              {form.formState.errors.confirmPassword.message}
+            </p>
+          )}
+        </div>
+
+        <Button
+          type="submit"
+          className="w-full"
+          variant="glow"
+          disabled={isRegistering}
+        >
+          {isRegistering ? 'Creating account...' : 'Create account'}
+        </Button>
+      </form>
+
+      <p className="text-center text-sm text-muted-foreground mt-6">
+        Already have an account?{' '}
+        <Link href="/login" className="text-primary hover:text-accent hover:underline font-medium transition-colors">
+          Sign in
+        </Link>
+      </p>
+    </Card>
   );
 }

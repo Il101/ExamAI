@@ -18,7 +18,7 @@ export function PricingCard({ plan, currentPlan, onSelect, isLoading }: PricingC
     const isPaid = plan.price.amount > 0;
 
     return (
-        <Card className={`relative ${plan.popular ? 'border-primary shadow-lg' : ''}`}>
+        <Card className={`relative ${plan.popular ? 'shadow-lg' : ''} border-0`}>
             {plan.popular && (
                 <Badge className="absolute top-0 right-0 transform translate-x-2 -translate-y-2">Popular</Badge>
             )}

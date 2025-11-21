@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 export function useExams() {
   const queryClient = useQueryClient();
 
-  const { data: exams, isLoading } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['exams'],
     queryFn: () => examsApi.list(),
   });
@@ -36,7 +36,7 @@ export function useExams() {
   });
 
   return {
-    exams: exams || [],
+    exams: data?.exams || [],
     isLoading,
     createExam: createMutation.mutate,
     deleteExam: deleteMutation.mutate,

@@ -49,7 +49,8 @@ export const authApi = {
   logout: async () => {
     // We just remove tokens on client side usually, but if there is an endpoint:
     await api.post('/auth/logout');
-    localStorage.removeItem('token');
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
   },
 
   requestPasswordReset: async (email: string): Promise<{ message: string }> => {

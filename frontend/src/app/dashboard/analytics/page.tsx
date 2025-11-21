@@ -18,7 +18,7 @@ export default function AnalyticsPage() {
         return (
             <div className="space-y-6">
                 <div className="animate-pulse">
-                    <div className="h-8 bg-gray-200 rounded w-1/3 mb-4" />
+                    <div className="h-8 bg-muted rounded w-1/3 mb-4" />
                     <div className="grid gap-6 md:grid-cols-4">
                         {[1, 2, 3, 4].map((i) => (
                             <Card key={i} className="p-6">
@@ -36,8 +36,8 @@ export default function AnalyticsPage() {
         <div className="space-y-8">
             {/* Header */}
             <div>
-                <h1 className="text-3xl font-bold text-gray-900">Analytics</h1>
-                <p className="mt-2 text-gray-600">
+                <h1 className="text-3xl font-bold text-foreground">Analytics</h1>
+                <p className="mt-2 text-muted">
                     Track your learning progress and performance
                 </p>
             </div>
@@ -95,18 +95,18 @@ export default function AnalyticsPage() {
                             {stats?.daily_progress && stats.daily_progress.length > 0 ? (
                                 <div className="space-y-2">
                                     {stats.daily_progress.slice(0, 7).map((day, index) => (
-                                        <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                                        <div key={index} className="flex items-center justify-between p-3 bg-muted rounded">
                                             <div className="flex items-center gap-3">
-                                                <Calendar className="h-4 w-4 text-gray-400" />
+                                                <Calendar className="h-4 w-4 text-muted-foreground" />
                                                 <span className="text-sm font-medium">
                                                     {new Date(day.date).toLocaleDateString()}
                                                 </span>
                                             </div>
                                             <div className="flex gap-6 text-sm">
-                                                <span className="text-gray-600">
+                                                <span className="text-muted">
                                                     {day.cards_reviewed} cards
                                                 </span>
-                                                <span className="text-gray-600">
+                                                <span className="text-muted">
                                                     {day.minutes_studied} min
                                                 </span>
                                             </div>

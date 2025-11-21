@@ -15,6 +15,7 @@ services:
       - SECRET_KEY=${SECRET_KEY:-dev_secret_key_min_32_chars_long_random_string}
       - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/0}
       - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000}
     volumes:
       - ./backend:/app
     depends_on:

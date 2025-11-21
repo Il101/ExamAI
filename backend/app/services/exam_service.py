@@ -59,8 +59,33 @@ class ExamService:
                 f"Exam limit reached ({max_exams} for {user.subscription_plan} plan)"
             )
 
+        # Clean content: remove null bytes and other invalid UTF-8 characters
+        # PostgreSQL TEXT doesn't allow null bytes (0x00)
+        # Also handle cases where PDF extraction might produce binary data
+        try:
+            # Remove null bytes
+            cleaned_content = original_content.replace('\x00', '')
+            # Remove other control characters except newlines and tabs
+            cleaned_content = ''.join(
+                char for char in cleaned_content 
+                if ord(char) >= 32 or char in '\n\t\r'
+            )
+            # Ensure valid UTF-8 encoding
+            cleaned_content = cleaned_content.encode('utf-8', errors='ignore').decode('utf-8')
+        except Exception as e:
+            raise ValueError(f"Failed to clean content: {str(e)}")
+        
+        # Validate cleaned content length
+        cleaned_length = len(cleaned_content.strip())
+        if cleaned_length < 100:
+            raise ValueError(
+                f"Content must be at least 100 characters after cleaning. "
+                f"Got {cleaned_length} characters. "
+                f"Original length: {len(original_content)}"
+            )
+
         # Estimate cost
-        estimated_tokens = len(original_content) // 4
+        estimated_tokens = len(cleaned_content) // 4
         estimated_cost = self.llm.calculate_cost(estimated_tokens, estimated_tokens * 2)
 
         # Check budget
@@ -76,7 +101,7 @@ class ExamService:
             subject=subject,
             exam_type=exam_type,
             level=level,
-            original_content=original_content,
+            original_content=cleaned_content,
             status="draft",
         )
 
@@ -104,6 +129,39 @@ class ExamService:
         return await self.exam_repo.list_by_user(
             user_id=user_id, status=status, limit=limit, offset=offset
         )
+
+    async def update_exam(
+        self, user_id: UUID, exam_id: UUID, updates: dict
+    ) -> Optional[Exam]:
+        """
+        Update exam (with authorization check).
+
+        Args:
+            user_id: User ID
+            exam_id: Exam ID
+            updates: Dictionary with fields to update
+
+        Returns:
+            Updated exam if found and owned by user, None otherwise
+        """
+        # Check ownership
+        exam = await self.exam_repo.get_by_user_and_id(user_id, exam_id)
+        if not exam:
+            return None
+
+        # Cannot update during generation
+        if exam.status == "generating":
+            raise ValueError("Cannot update exam during generation")
+
+        # Apply updates
+        for key, value in updates.items():
+            if hasattr(exam, key):
+                setattr(exam, key, value)
+
+        # Validate
+        exam._validate()
+
+        return await self.exam_repo.update(exam)
 
     async def delete_exam(self, user_id: UUID, exam_id: UUID) -> bool:
         """

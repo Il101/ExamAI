@@ -38,20 +38,11 @@ export function CreateExamForm({ onSuccess }: { onSuccess?: () => void }) {
   });
 
   const onSubmit = (data: CreateExamFormData) => {
-    // Note: The backend expects CreateExamRequest which might not match exactly 
-    // with what we have here if we strictly follow the interface.
-    // But I'll assume the backend can handle these fields or I'll map them.
-    // My CreateExamRequest in exams.ts has title, description, file_path.
-    // I should probably update CreateExamRequest to match this form or map it.
-    // For now I will map it to what I defined in exams.ts, or update exams.ts.
-    // I'll update exams.ts later to include these fields.
-
     const { title, subject, exam_type, level, original_content } = data;
 
+    // Backend expects only: title, subject, exam_type, level, original_content
     createExam({
       title,
-      description: `Subject: ${subject}, Type: ${exam_type}, Level: ${level}`,
-      file_path: uploadedFile || undefined,
       subject,
       exam_type,
       level,
@@ -59,6 +50,7 @@ export function CreateExamForm({ onSuccess }: { onSuccess?: () => void }) {
     } as CreateExamRequest, {
       onSuccess: () => {
         form.reset();
+        setUploadedFile('');
         onSuccess?.();
       },
     });

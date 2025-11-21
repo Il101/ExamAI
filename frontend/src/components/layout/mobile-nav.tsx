@@ -85,9 +85,9 @@ export function MobileNav({ open, onClose, isAdmin = false }: MobileNavProps) {
                                 </div>
                             </Transition.Child>
 
-                            <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-white px-6 pb-4">
+                            <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-background/95 backdrop-blur-xl px-6 pb-4 border-r border-white/10">
                                 <div className="flex h-16 shrink-0 items-center">
-                                    <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                                    <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                                         ExamAI Pro
                                     </h1>
                                 </div>
@@ -106,16 +106,17 @@ export function MobileNav({ open, onClose, isAdmin = false }: MobileNavProps) {
                                                                 onClick={onClose}
                                                                 className={cn(
                                                                     isActive
-                                                                        ? 'bg-gray-50 text-blue-600'
-                                                                        : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50',
+                                                                        ? 'bg-white/10 text-primary'
+                                                                        : 'text-muted-foreground hover:text-primary hover:bg-white/5',
                                                                     'group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold transition-colors'
                                                                 )}
                                                             >
                                                                 <item.icon
                                                                     className={cn(
-                                                                        isActive ? 'text-blue-600' : 'text-gray-400 group-hover:text-blue-600',
-                                                                        'h-6 w-6 shrink-0'
+                                                                        isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-primary',
+                                                                        'h-6 w-6 shrink-0 border-0 outline-none [&>*]:border-0 [&>*]:outline-none [&_rect]:border-0 [&_rect]:outline-none'
                                                                     )}
+                                                                    style={{ border: 'none', outline: 'none' }}
                                                                     aria-hidden="true"
                                                                 />
                                                                 {item.name}

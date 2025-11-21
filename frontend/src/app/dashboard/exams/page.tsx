@@ -77,9 +77,6 @@ export default function ExamsPage() {
                 </Card>
             ) : (
                 <Card className="p-12 text-center">
-                    <div className="h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
-                        <Plus className="h-6 w-6 text-gray-400" />
-                    </div>
                     <h3 className="text-lg font-medium text-gray-900 mb-2">
                         No exams yet
                     </h3>
