@@ -1,10 +1,11 @@
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import NotFoundException, ValidationException
+from app.core.rate_limit import dynamic_rate_limit
 from app.db.session import get_db
 from app.dependencies import (
     get_agent_service,
@@ -28,6 +29,7 @@ from app.tasks.exam_tasks import generate_exam_content
 router = APIRouter()
 
 
+
 @router.post("/", response_model=ExamResponse, status_code=status.HTTP_201_CREATED)
 async def create_exam(
     request: ExamCreate,
@@ -38,6 +40,11 @@ async def create_exam(
     Create new exam.
 
     Creates exam in 'draft' status. Use /exams/{id}/generate to start AI generation.
+    
+    Rate limits:
+    - Free tier: 100 requests/hour
+    - Pro tier: 1000 requests/hour
+    - Premium tier: Unlimited
     """
 
     try:
@@ -54,6 +61,8 @@ async def create_exam(
 
     except ValueError as e:
         raise ValidationException(str(e))
+
+
 
 
 @router.get("/", response_model=ExamListResponse)

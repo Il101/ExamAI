@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 interface HeaderProps {
     onMenuClick: () => void;
@@ -44,6 +45,9 @@ export function Header({ onMenuClick }: HeaderProps) {
                 <div className="flex flex-1" />
 
                 <div className="flex items-center gap-x-4 lg:gap-x-6">
+                    {/* Theme toggle */}
+                    <ThemeToggle />
+
                     {/* Notifications */}
                     <Button variant="ghost" size="icon" className="relative">
                         <Bell className="h-5 w-5" />
