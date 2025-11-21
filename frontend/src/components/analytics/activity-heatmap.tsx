@@ -1,73 +1,100 @@
 'use client';
 
-import { HeatmapPoint } from '@/lib/api/analytics';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { format, parseISO } from 'date-fns';
+import { addDays, format, startOfWeek, subWeeks } from 'date-fns';
+
+interface HeatmapPoint {
+  date: string;
+  count: number;
+  level: number;
+}
 
 interface ActivityHeatmapProps {
-    data: HeatmapPoint[];
+  data: HeatmapPoint[];
 }
 
 export function ActivityHeatmap({ data }: ActivityHeatmapProps) {
-    // Ensure we have data for the last 30 days, filling gaps with 0
-    // The backend should return it, but safety first
+  // Generate calendar grid for last 12 weeks
+  const today = new Date();
+  const startDate = startOfWeek(subWeeks(today, 11)); // Start 11 weeks ago
 
-    const getLevelColor = (level: number) => {
-        switch (level) {
-            case 0: return 'bg-muted/20';
-            case 1: return 'bg-emerald-200 dark:bg-emerald-900/50';
-            case 2: return 'bg-emerald-300 dark:bg-emerald-800/70';
-            case 3: return 'bg-emerald-400 dark:bg-emerald-600';
-            case 4: return 'bg-emerald-500 dark:bg-emerald-500';
-            default: return 'bg-muted/20';
-        }
-    };
+  // Create a map for quick lookup
+  const dataMap = new Map(data.map(d => [new Date(d.date).toISOString().split('T')[0], d]));
 
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Study Activity</CardTitle>
-                <CardDescription>Your study intensity over the last 30 days.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="flex flex-col gap-2">
-                    <div className="flex flex-wrap gap-1 justify-center sm:justify-start">
-                        <TooltipProvider>
-                            {data.map((point) => (
-                                <Tooltip key={point.date}>
-                                    <TooltipTrigger asChild>
-                                        <div
-                                            className={cn(
-                                                "w-4 h-4 sm:w-6 sm:h-6 rounded-sm transition-colors cursor-default",
-                                                getLevelColor(point.level)
-                                            )}
-                                        />
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p className="font-medium">{format(parseISO(point.date), 'MMM d, yyyy')}</p>
-                                        <p className="text-xs text-muted-foreground">
-                                            {point.count} {point.count === 1 ? 'review' : 'reviews'}
-                                        </p>
-                                    </TooltipContent>
-                                </Tooltip>
-                            ))}
-                        </TooltipProvider>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
-                        <span>Less</span>
-                        <div className="flex gap-1">
-                            <div className={cn("w-3 h-3 rounded-sm", getLevelColor(0))} />
-                            <div className={cn("w-3 h-3 rounded-sm", getLevelColor(1))} />
-                            <div className={cn("w-3 h-3 rounded-sm", getLevelColor(2))} />
-                            <div className={cn("w-3 h-3 rounded-sm", getLevelColor(3))} />
-                            <div className={cn("w-3 h-3 rounded-sm", getLevelColor(4))} />
-                        </div>
-                        <span>More</span>
-                    </div>
-                </div>
-            </CardContent>
-        </Card>
-    );
+  const weeks = [];
+  let currentDate = startDate;
+
+  for (let i = 0; i < 12; i++) {
+    const week = [];
+    for (let j = 0; j < 7; j++) {
+      const dateStr = currentDate.toISOString().split('T')[0];
+      const point = dataMap.get(dateStr) || { date: dateStr, count: 0, level: 0 };
+      week.push({
+        date: currentDate,
+        ...point
+      });
+      currentDate = addDays(currentDate, 1);
+    }
+    weeks.push(week);
+  }
+
+  const getLevelColor = (level: number) => {
+    switch (level) {
+      case 0: return 'bg-gray-100 dark:bg-gray-800';
+      case 1: return 'bg-green-200 dark:bg-green-900/40';
+      case 2: return 'bg-green-400 dark:bg-green-700';
+      case 3: return 'bg-green-600 dark:bg-green-500';
+      case 4: return 'bg-green-800 dark:bg-green-300';
+      default: return 'bg-gray-100 dark:bg-gray-800';
+    }
+  };
+
+  return (
+    <div className="w-full overflow-x-auto">
+      <div className="flex gap-1 min-w-max">
+        {/* Week days labels */}
+        <div className="flex flex-col gap-1 mr-2 text-xs text-gray-400 pt-6">
+          <div className="h-3">Mon</div>
+          <div className="h-3"></div>
+          <div className="h-3">Wed</div>
+          <div className="h-3"></div>
+          <div className="h-3">Fri</div>
+        </div>
+
+        {/* Grid */}
+        {weeks.map((week, wIndex) => (
+          <div key={wIndex} className="flex flex-col gap-1">
+            {/* Month label if first week of month */}
+            <div className="h-4 text-xs text-gray-400">
+              {week[0].date.getDate() <= 7 ? format(week[0].date, 'MMM') : ''}
+            </div>
+
+            {week.map((day, dIndex) => (
+              <div
+                key={dIndex}
+                className={cn(
+                  "h-3 w-3 rounded-sm transition-colors hover:ring-1 hover:ring-gray-400",
+                  getLevelColor(day.level)
+                )}
+                title={`${format(day.date, 'MMM d, yyyy')}: ${day.count} reviews`}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+
+      <div className="flex items-center gap-2 mt-4 text-xs text-gray-500">
+        <span>Less</span>
+        <div className="flex gap-1">
+          <div className="h-3 w-3 rounded-sm bg-gray-100 dark:bg-gray-800" />
+          <div className="h-3 w-3 rounded-sm bg-green-200 dark:bg-green-900/40" />
+          <div className="h-3 w-3 rounded-sm bg-green-400 dark:bg-green-700" />
+          <div className="h-3 w-3 rounded-sm bg-green-600 dark:bg-green-500" />
+          <div className="h-3 w-3 rounded-sm bg-green-800 dark:bg-green-300" />
+        </div>
+        <span>More</span>
+      </div>
+    </div>
+  );
 }
