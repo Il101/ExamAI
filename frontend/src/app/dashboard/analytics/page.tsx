@@ -3,12 +3,15 @@
 import { useAnalytics } from '@/lib/hooks/use-analytics';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { RetentionChart } from '@/components/analytics/retention-chart';
+import { ActivityHeatmap } from '@/components/analytics/activity-heatmap';
 import {
     TrendingUp,
     Calendar,
     Brain,
     Clock,
-    Target
+    Target,
+    Loader2
 } from 'lucide-react';
 
 export default function AnalyticsPage() {
@@ -31,6 +34,18 @@ export default function AnalyticsPage() {
             </div>
         );
     }
+
+    // Transform data for retention chart if empty (fallback for MVP)
+    const retentionData = stats?.retention_curve || [
+        { days_since_review: 1, retention_rate: 1.0 },
+        { days_since_review: 3, retention_rate: 0.9 },
+        { days_since_review: 7, retention_rate: 0.75 },
+        { days_since_review: 14, retention_rate: 0.6 },
+        { days_since_review: 30, retention_rate: 0.45 },
+    ];
+
+    // Transform data for heatmap if empty (fallback for MVP)
+    const heatmapData = stats?.activity_heatmap || [];
 
     return (
         <div className="space-y-8">
@@ -123,19 +138,25 @@ export default function AnalyticsPage() {
 
                     <TabsContent value="retention" className="mt-6">
                         <div className="space-y-4">
-                            <h3 className="text-lg font-semibold">Retention Curve</h3>
-                            <p className="text-gray-500 text-center py-8">
-                                Retention curve visualization coming soon
+                            <h3 className="text-lg font-semibold">Forgetting Curve</h3>
+                            <p className="text-sm text-gray-500 mb-4">
+                                Shows how your memory retention decays over time without review (based on FSRS model).
                             </p>
+                            <div className="bg-white dark:bg-gray-900 p-4 rounded-lg border">
+                                <RetentionChart data={retentionData} />
+                            </div>
                         </div>
                     </TabsContent>
 
                     <TabsContent value="activity" className="mt-6">
                         <div className="space-y-4">
-                            <h3 className="text-lg font-semibold">Activity Heatmap</h3>
-                            <p className="text-gray-500 text-center py-8">
-                                Activity heatmap visualization coming soon
+                            <h3 className="text-lg font-semibold">Study Activity</h3>
+                            <p className="text-sm text-gray-500 mb-4">
+                                Your study consistency over the last 3 months.
                             </p>
+                            <div className="bg-white dark:bg-gray-900 p-4 rounded-lg border overflow-hidden">
+                                <ActivityHeatmap data={heatmapData} />
+                            </div>
                         </div>
                     </TabsContent>
                 </Tabs>

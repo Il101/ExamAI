@@ -1,41 +1,17 @@
 'use client';
 
-import { useState } from 'react';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { User, Lock, Bell, Trash2 } from 'lucide-react';
+import { ProfileForm } from '@/components/settings/profile-form';
+import { PasswordForm } from '@/components/settings/password-form';
 
 export default function SettingsPage() {
     const { user } = useAuth();
-    const [isUpdating, setIsUpdating] = useState(false);
-
-    const handleUpdateProfile = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        setIsUpdating(true);
-
-        // Simulate API call
-        setTimeout(() => {
-            toast.success('Profile updated successfully');
-            setIsUpdating(false);
-        }, 1000);
-    };
-
-    const handleUpdatePassword = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        setIsUpdating(true);
-
-        // Simulate API call
-        setTimeout(() => {
-            toast.success('Password updated successfully');
-            setIsUpdating(false);
-        }, 1000);
-    };
 
     const handleDeleteAccount = () => {
         if (confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
@@ -54,8 +30,8 @@ export default function SettingsPage() {
             </div>
 
             {/* Settings Tabs */}
-            <Card className="p-6">
-                <Tabs defaultValue="profile" className="w-full">
+            <Tabs defaultValue="profile" className="w-full space-y-6">
+                <Card className="p-1">
                     <TabsList className="grid w-full grid-cols-3">
                         <TabsTrigger value="profile">
                             <User className="h-4 w-4 mr-2" />
@@ -70,116 +46,45 @@ export default function SettingsPage() {
                             Notifications
                         </TabsTrigger>
                     </TabsList>
+                </Card>
 
-                    {/* Profile Tab */}
-                    <TabsContent value="profile" className="mt-6 space-y-6">
-                        <div>
-                            <h3 className="text-lg font-semibold mb-4">Profile Information</h3>
-                            <form onSubmit={handleUpdateProfile} className="space-y-4">
-                                <div>
-                                    <Label htmlFor="full_name">Full Name</Label>
-                                    <Input
-                                        id="full_name"
-                                        defaultValue={user?.full_name}
-                                        placeholder="John Doe"
-                                    />
-                                </div>
+                {/* Profile Tab */}
+                <TabsContent value="profile">
+                    <ProfileForm />
+                </TabsContent>
 
+                {/* Security Tab */}
+                <TabsContent value="security" className="space-y-6">
+                    <PasswordForm />
+
+                    <Separator />
+
+                    <div>
+                        <h3 className="text-lg font-semibold mb-2 text-red-600">Danger Zone</h3>
+                        <Card className="p-4 border-red-200 bg-red-50">
+                            <div className="flex items-start justify-between">
                                 <div>
-                                    <Label htmlFor="email">Email</Label>
-                                    <Input
-                                        id="email"
-                                        type="email"
-                                        defaultValue={user?.email}
-                                        placeholder="john@example.com"
-                                        disabled
-                                    />
-                                    <p className="text-xs text-gray-500 mt-1">
-                                        Email cannot be changed
+                                    <h4 className="font-medium text-red-900">Delete Account</h4>
+                                    <p className="text-sm text-red-700 mt-1">
+                                        Once you delete your account, there is no going back. Please be certain.
                                     </p>
                                 </div>
-
-                                <div>
-                                    <Label htmlFor="role">Role</Label>
-                                    <Input
-                                        id="role"
-                                        defaultValue={user?.role}
-                                        disabled
-                                    />
-                                </div>
-
-                                <Button type="submit" disabled={isUpdating}>
-                                    {isUpdating ? 'Saving...' : 'Save Changes'}
+                                <Button
+                                    variant="destructive"
+                                    onClick={handleDeleteAccount}
+                                    className="ml-4"
+                                >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete
                                 </Button>
-                            </form>
-                        </div>
-                    </TabsContent>
+                            </div>
+                        </Card>
+                    </div>
+                </TabsContent>
 
-                    {/* Security Tab */}
-                    <TabsContent value="security" className="mt-6 space-y-6">
-                        <div>
-                            <h3 className="text-lg font-semibold mb-4">Change Password</h3>
-                            <form onSubmit={handleUpdatePassword} className="space-y-4">
-                                <div>
-                                    <Label htmlFor="current_password">Current Password</Label>
-                                    <Input
-                                        id="current_password"
-                                        type="password"
-                                        placeholder="••••••••"
-                                    />
-                                </div>
-
-                                <div>
-                                    <Label htmlFor="new_password">New Password</Label>
-                                    <Input
-                                        id="new_password"
-                                        type="password"
-                                        placeholder="••••••••"
-                                    />
-                                </div>
-
-                                <div>
-                                    <Label htmlFor="confirm_password">Confirm New Password</Label>
-                                    <Input
-                                        id="confirm_password"
-                                        type="password"
-                                        placeholder="••••••••"
-                                    />
-                                </div>
-
-                                <Button type="submit" disabled={isUpdating}>
-                                    {isUpdating ? 'Updating...' : 'Update Password'}
-                                </Button>
-                            </form>
-                        </div>
-
-                        <Separator />
-
-                        <div>
-                            <h3 className="text-lg font-semibold mb-2 text-red-600">Danger Zone</h3>
-                            <Card className="p-4 border-red-200 bg-red-50">
-                                <div className="flex items-start justify-between">
-                                    <div>
-                                        <h4 className="font-medium text-red-900">Delete Account</h4>
-                                        <p className="text-sm text-red-700 mt-1">
-                                            Once you delete your account, there is no going back. Please be certain.
-                                        </p>
-                                    </div>
-                                    <Button
-                                        variant="destructive"
-                                        onClick={handleDeleteAccount}
-                                        className="ml-4"
-                                    >
-                                        <Trash2 className="h-4 w-4 mr-2" />
-                                        Delete
-                                    </Button>
-                                </div>
-                            </Card>
-                        </div>
-                    </TabsContent>
-
-                    {/* Notifications Tab */}
-                    <TabsContent value="notifications" className="mt-6 space-y-6">
+                {/* Notifications Tab */}
+                <TabsContent value="notifications">
+                    <Card className="p-6">
                         <div>
                             <h3 className="text-lg font-semibold mb-4">Notification Preferences</h3>
                             <div className="space-y-4">
@@ -224,13 +129,13 @@ export default function SettingsPage() {
                                 </div>
                             </div>
 
-                            <Button className="mt-6">
+                            <Button className="mt-6" onClick={() => toast.success('Preferences saved')}>
                                 Save Preferences
                             </Button>
                         </div>
-                    </TabsContent>
-                </Tabs>
-            </Card>
+                    </Card>
+                </TabsContent>
+            </Tabs>
         </div>
     );
 }

@@ -179,27 +179,19 @@ async def generate_exam_content_endpoint(
 
     Returns task ID to poll for progress.
     """
-
-    # Verify exam exists and belongs to user
-    exam = await exam_service.get_exam(current_user.id, exam_id)
-    if not exam:
-        raise NotFoundException("Exam", str(exam_id))
-
-    # Check if can generate
-    if not exam.can_generate():
-        raise ValidationException(f"Cannot generate exam with status: {exam.status}")
-
-    # Mark as generating
-    exam.start_generation()
-    await exam_service.exam_repo.update(exam)
-
-    # Start Celery task
-    task = generate_exam_content.delay(
-        exam_id=str(exam_id), user_id=str(current_user.id)
-    )
+    try:
+        updated_exam, task_id = await exam_service.start_generation(
+            user_id=current_user.id, exam_id=exam_id
+        )
+    except ValueError as e:
+         # Mapping ValueError to ValidationException or NotFoundException depending on message
+         # Ideally use custom exceptions in service
+         if "not found" in str(e).lower():
+             raise NotFoundException("Exam", str(exam_id))
+         raise ValidationException(str(e))
 
     return {
-        "task_id": task.id,
+        "task_id": task_id,
         "status": "Task started",
         "message": "Exam generation in progress. Poll /tasks/{task_id} for status.",
     }

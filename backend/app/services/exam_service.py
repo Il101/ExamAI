@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from uuid import UUID
 
 from app.domain.exam import Exam, ExamStatus
@@ -6,6 +6,8 @@ from app.domain.user import User
 from app.integrations.llm.base import LLMProvider
 from app.repositories.exam_repository import ExamRepository
 from app.services.cost_guard_service import CostGuardService
+# Import task to trigger generation
+from app.tasks.exam_tasks import generate_exam_content
 
 
 class ExamService:
@@ -144,7 +146,6 @@ class ExamService:
         Returns:
             Updated exam if found and owned by user, None otherwise
         """
-        # Check ownership
         exam = await self.exam_repo.get_by_user_and_id(user_id, exam_id)
         if not exam:
             return None
@@ -181,24 +182,28 @@ class ExamService:
 
         return await self.exam_repo.delete(exam_id)
 
-    async def start_generation(self, user_id: UUID, exam_id: UUID) -> Exam:
+    async def start_generation(self, user_id: UUID, exam_id: UUID) -> Tuple[Exam, str]:
         """
         Start exam generation process.
         This marks exam as "generating" and triggers background task.
 
         Returns:
-            Updated exam
+            Tuple of (Updated exam, Task ID)
         """
         exam = await self.exam_repo.get_by_user_and_id(user_id, exam_id)
         if not exam:
             raise ValueError("Exam not found")
 
-        if exam.status == "generating":
-            return exam
+        # Check if can generate
+        if not exam.can_generate():
+             raise ValueError(f"Cannot generate exam with status: {exam.status}")
 
-        exam.status = "generating"
+        exam.start_generation()
         updated = await self.exam_repo.update(exam)
 
-        # TODO: Trigger background task (Celery/Arq)
+        # Trigger background task
+        task = generate_exam_content.delay(
+            exam_id=str(exam_id), user_id=str(user_id)
+        )
 
-        return updated
+        return updated, task.id
