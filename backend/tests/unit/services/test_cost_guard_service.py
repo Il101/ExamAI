@@ -15,6 +15,8 @@ def mock_session():
     # Ensure the result of execute is a standard Mock (synchronous), not AsyncMock
     result_mock = Mock()
     session.execute.return_value = result_mock
+    # session.add is synchronous in SQLAlchemy
+    session.add = Mock()
     return session
 
 
