@@ -35,8 +35,12 @@ async def lifespan(app: FastAPI):
         print("✅ Sentry monitoring initialized")
 
     # Initialize database
-    await init_db()
-    print("✅ Database initialized")
+    try:
+        await init_db()
+        print("✅ Database initialized")
+    except Exception as e:
+        print(f"⚠️  Database initialization failed: {e}")
+        print("⚠️  App will start but database operations will fail")
 
     yield
 
@@ -69,7 +73,7 @@ limiter = Limiter(
     storage_uri=settings.REDIS_URL,
     default_limits=["200/hour"],  # Conservative default
     headers_enabled=True,
-    swallow_errors=False,  # Raise errors in development
+    swallow_errors=settings.ENVIRONMENT == "production",  # Don't fail if Redis is unavailable in production
 )
 
 
