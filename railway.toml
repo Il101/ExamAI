@@ -3,6 +3,7 @@
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "backend/Dockerfile"
+# Note: Build context is the repository root
 
 [deploy]
 restartPolicyType = "ON_FAILURE"
