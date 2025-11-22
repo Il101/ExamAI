@@ -14,11 +14,27 @@ ALLOWED_ORIGINS=["<your-frontend-url>"]
 ```
 
 ### Database (Supabase)
+
+**IMPORTANT:** Use Supabase's **Connection Pooler** URL for Railway (more reliable for containerized environments):
+
 ```
-DATABASE_URL=postgresql+asyncpg://postgres:<password>@db.pjgtzblqhtpdtojgbzpe.supabase.co:5432/postgres
+# Get this from Supabase Dashboard → Project Settings → Database → Connection Pooling
+# Format: postgresql+asyncpg://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres
+DATABASE_URL=postgresql+asyncpg://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres
+
+# Or if pooler doesn't work, try the direct connection with IPv4 preference:
+# DATABASE_URL=postgresql+asyncpg://postgres:<password>@db.pjgtzblqhtpdtojgbzpe.supabase.co:5432/postgres
+
 SUPABASE_URL=https://pjgtzblqhtpdtojgbzpe.supabase.co
 SUPABASE_KEY=<your-supabase-service-role-key>
 ```
+
+To get the Connection Pooler URL:
+1. Go to Supabase Dashboard → Your Project
+2. Settings → Database
+3. Scroll to "Connection Pooling"
+4. Copy the "Connection string" (Session mode)
+5. Replace `postgresql://` with `postgresql+asyncpg://`
 
 ### AI Provider
 ```
@@ -81,9 +97,33 @@ SENDGRID_FROM_EMAIL=noreply@examai.pro
 - Verify Supabase allows connections from Railway IPs
 - Check deployment logs for specific errors
 
-### Database connection errors
-- Supabase might need to whitelist Railway's IP ranges
-- Or use Supabase's connection pooler URL
+### Database connection errors: "[Errno 101] Network is unreachable"
+
+This error means Railway container cannot reach Supabase. Try these solutions **in order**:
+
+**Solution 1: Use Supabase Connection Pooler (RECOMMENDED)**
+1. Go to Supabase Dashboard → Your Project → Settings → Database
+2. Scroll to "Connection Pooling" section
+3. Copy the "Connection string" under "Session mode"
+4. Replace `postgresql://` with `postgresql+asyncpg://`
+5. Update `DATABASE_URL` in Railway with this pooler URL
+6. Example: `postgresql+asyncpg://postgres.abc123:[PASSWORD]@aws-0-us-east-1.pooler.supabase.com:6543/postgres`
+
+**Solution 2: Check Supabase Network Restrictions**
+1. Go to Supabase Dashboard → Settings → Database → Connection Pooling
+2. Make sure "Restrict connections to IPv4" is **disabled** (or enable if Railway uses IPv6)
+3. Check if there are any IP restrictions that might block Railway
+
+**Solution 3: Use Supabase Direct Connection with SSL**
+Try adding SSL parameters to the connection string:
+```
+DATABASE_URL=postgresql+asyncpg://postgres:[PASSWORD]@db.pjgtzblqhtpdtojgbzpe.supabase.co:5432/postgres?ssl=require
+```
+
+**Solution 4: Verify Railway can reach external services**
+Railway should allow outbound connections by default, but verify:
+- Check Railway service logs for DNS resolution errors
+- Try deploying a simple test that pings Supabase host
 
 ### Redis connection errors
 - If Redis is not critical, the app will still work
