@@ -25,16 +25,21 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY backend/ .
 
+# Ensure start script is executable (if not already handled by git/host)
+RUN chmod +x start.sh
+
 # Create non-root user
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 USER appuser
 
-# Expose port
+# Expose port (documentary only, but good practice)
 EXPOSE 8000
 
 # Health check
+# Note: This checks the container internally. If PORT is different, it needs to know.
+# We use shell expansion to default to 8000 if PORT is not set.
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+    CMD curl -f "http://localhost:${PORT:-8000}/health" || exit 1
 
-# Run application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run application using the start script
+CMD ["./start.sh"]
