@@ -17,10 +17,17 @@ export function useExams() {
       toast.success('Exam created successfully');
     },
     onError: (error: unknown) => {
-      const message = error instanceof Error && 'response' in error
-        ? (error as { response?: { data?: { detail?: string } } }).response?.data?.detail
-        : 'Failed to create exam';
-      toast.error(message || 'Failed to create exam');
+      let message = 'Failed to create exam';
+
+      if (error instanceof Error && 'response' in error) {
+        const responseError = error as { response?: { data?: { error?: { message?: string }, detail?: string } } };
+        // Check for custom AppException format first, then fallback to standard FastAPI detail
+        message = responseError.response?.data?.error?.message ||
+          responseError.response?.data?.detail ||
+          'Failed to create exam';
+      }
+
+      toast.error(message);
     },
   });
 
@@ -30,8 +37,17 @@ export function useExams() {
       queryClient.invalidateQueries({ queryKey: ['exams'] });
       toast.success('Exam deleted');
     },
-    onError: () => {
-      toast.error('Failed to delete exam');
+    onError: (error: unknown) => {
+      let message = 'Failed to delete exam';
+
+      if (error instanceof Error && 'response' in error) {
+        const responseError = error as { response?: { data?: { error?: { message?: string }, detail?: string } } };
+        message = responseError.response?.data?.error?.message ||
+          responseError.response?.data?.detail ||
+          'Failed to delete exam';
+      }
+
+      toast.error(message);
     },
   });
 

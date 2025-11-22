@@ -164,8 +164,9 @@ async def get_current_user(
 ) -> User:
     """
     Get current authenticated user from Supabase token.
-    Does NOT require user to exist in local DB - gets data from token via Supabase API.
+    Ensures user exists in local DB (syncs from Supabase if missing).
     """
+    # 1. Validate token with Supabase
     user = auth_service.get_user_by_token(token)
 
     if not user:
@@ -175,7 +176,23 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    return user
+    # 2. Check if user exists in local DB
+    local_user = await auth_service.user_repo.get_by_id(user.id)
+
+    if not local_user:
+        # 3. Create in local DB if missing (Sync)
+        try:
+            # We use the user object returned from Supabase which has the correct ID and email
+            local_user = await auth_service.user_repo.create(user)
+        except Exception as e:
+            # Log error and re-raise
+            print(f"Failed to sync user to local DB: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to synchronize user profile",
+            )
+
+    return local_user
 
 
 async def get_current_active_user(

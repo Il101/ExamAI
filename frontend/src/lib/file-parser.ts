@@ -6,7 +6,7 @@ import mammoth from 'mammoth';
 // In Next.js, we might need to copy the worker to public or use a CDN.
 // For simplicity, we'll try using a CDN for the worker to avoid build config complexity in this MVP.
 // If that fails, we might need to configure webpack.
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
 export async function parseFile(file: File): Promise<string> {
     const fileType = file.type;
