@@ -15,26 +15,32 @@ ALLOWED_ORIGINS=["<your-frontend-url>"]
 
 ### Database (Supabase)
 
-**IMPORTANT:** Use Supabase's **Connection Pooler** URL for Railway (more reliable for containerized environments):
+**🚨 CRITICAL:** The host `db.pjgtzblqhtpdtojgbzpe.supabase.co` is **NOT resolvable via DNS**!
+
+This is why you're getting `[Errno 101] Network is unreachable`. The DNS cannot resolve this hostname.
+
+**✅ SOLUTION:** You **MUST** use Supabase's **Connection Pooler** URL:
 
 ```
 # Get this from Supabase Dashboard → Project Settings → Database → Connection Pooling
+# Select "Session" mode and copy the connection string
 # Format: postgresql+asyncpg://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres
-DATABASE_URL=postgresql+asyncpg://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres
 
-# Or if pooler doesn't work, try the direct connection with IPv4 preference:
-# DATABASE_URL=postgresql+asyncpg://postgres:<password>@db.pjgtzblqhtpdtojgbzpe.supabase.co:5432/postgres
+DATABASE_URL=postgresql+asyncpg://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres
 
 SUPABASE_URL=https://pjgtzblqhtpdtojgbzpe.supabase.co
 SUPABASE_KEY=<your-supabase-service-role-key>
 ```
 
-To get the Connection Pooler URL:
-1. Go to Supabase Dashboard → Your Project
-2. Settings → Database
-3. Scroll to "Connection Pooling"
-4. Copy the "Connection string" (Session mode)
-5. Replace `postgresql://` with `postgresql+asyncpg://`
+**How to get the Connection Pooler URL:**
+1. Go to [Supabase Dashboard](https://supabase.com/dashboard)
+2. Select your project: `pjgtzblqhtpdtojgbzpe`
+3. Navigate to **Settings** → **Database**
+4. Scroll down to **"Connection Pooling"** section
+5. Select **"Session"** mode (not Transaction mode)
+6. Copy the **"Connection string"**
+7. Replace `postgresql://` with `postgresql+asyncpg://`
+8. Update this in Railway: `railway variables --set DATABASE_URL='<your-pooler-url>' --service ExamAI`
 
 ### AI Provider
 ```
@@ -99,31 +105,31 @@ SENDGRID_FROM_EMAIL=noreply@examai.pro
 
 ### Database connection errors: "[Errno 101] Network is unreachable"
 
-This error means Railway container cannot reach Supabase. Try these solutions **in order**:
+**Root Cause (Verified via Railway CLI):**
+The hostname `db.pjgtzblqhtpdtojgbzpe.supabase.co` **cannot be resolved by DNS**. 
 
-**Solution 1: Use Supabase Connection Pooler (RECOMMENDED)**
-1. Go to Supabase Dashboard → Your Project → Settings → Database
-2. Scroll to "Connection Pooling" section
-3. Copy the "Connection string" under "Session mode"
-4. Replace `postgresql://` with `postgresql+asyncpg://`
-5. Update `DATABASE_URL` in Railway with this pooler URL
-6. Example: `postgresql+asyncpg://postgres.abc123:[PASSWORD]@aws-0-us-east-1.pooler.supabase.com:6543/postgres`
-
-**Solution 2: Check Supabase Network Restrictions**
-1. Go to Supabase Dashboard → Settings → Database → Connection Pooling
-2. Make sure "Restrict connections to IPv4" is **disabled** (or enable if Railway uses IPv6)
-3. Check if there are any IP restrictions that might block Railway
-
-**Solution 3: Use Supabase Direct Connection with SSL**
-Try adding SSL parameters to the connection string:
+When we tested with `railway run --service ExamAI -- nslookup db.pjgtzblqhtpdtojgbzpe.supabase.co`, it returned:
 ```
-DATABASE_URL=postgresql+asyncpg://postgres:[PASSWORD]@db.pjgtzblqhtpdtojgbzpe.supabase.co:5432/postgres?ssl=require
+*** Can't find db.pjgtzblqhtpdtojgbzpe.supabase.co: No answer
 ```
 
-**Solution 4: Verify Railway can reach external services**
-Railway should allow outbound connections by default, but verify:
-- Check Railway service logs for DNS resolution errors
-- Try deploying a simple test that pings Supabase host
+This is NOT a Railway networking issue - the hostname simply doesn't exist in DNS!
+
+**✅ SOLUTION:**
+
+Use Supabase's Connection Pooler URL instead:
+
+1. Go to [Supabase Dashboard](https://supabase.com/dashboard) → Your Project
+2. Settings → Database → Connection Pooling
+3. Select **"Session"** mode
+4. Copy the connection string (format: `postgresql://postgres.PROJECT_REF:PASSWORD@aws-0-REGION.pooler.supabase.com:6543/postgres`)
+5. Replace `postgresql://` with `postgresql+asyncpg://`
+6. Update in Railway:
+   ```bash
+   railway variables --set DATABASE_URL='postgresql+asyncpg://postgres.PROJECT_REF:PASSWORD@aws-0-REGION.pooler.supabase.com:6543/postgres' --service ExamAI
+   ```
+
+The pooler hostname (e.g., `aws-0-eu-central-1.pooler.supabase.com`) **IS resolvable** and will work correctly.
 
 ### Redis connection errors
 - If Redis is not critical, the app will still work
