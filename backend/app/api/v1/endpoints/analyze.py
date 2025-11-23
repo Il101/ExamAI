@@ -4,7 +4,6 @@ from fastapi import APIRouter, Depends, File, Form, UploadFile, status
 from fastapi.responses import JSONResponse
 
 from app.agent.planner import CoursePlanner
-from app.core.rate_limit import rate_limit
 from app.dependencies import get_llm_provider
 from app.integrations.llm.base import LLMProvider
 
@@ -12,7 +11,6 @@ router = APIRouter()
 
 
 @router.post("/content", status_code=status.HTTP_200_OK)
-@rate_limit(max_requests=5, window_seconds=3600)  # 5 requests per hour for anonymous users
 async def analyze_content(
     file: UploadFile = File(...),
     subject: Optional[str] = Form(None),
@@ -22,7 +20,7 @@ async def analyze_content(
     Analyze uploaded content and extract topic outline.
     
     Public endpoint for landing page demo - no authentication required.
-    Rate limited to 5 requests per IP per hour.
+    Note: Rate limiting should be implemented at infrastructure level (nginx/cloudflare).
     
     Args:
         file: Uploaded file (PDF, DOCX, TXT, MP3, MP4)
