@@ -357,7 +357,7 @@ nav svg polygon {
 
   /* Gradient background utilities */
   .bg-gradient-brand {
-    background: var(--gradient-brand);
+    background-image: var(--gradient-brand);
   }
 
   .bg-gradient-subtle {
