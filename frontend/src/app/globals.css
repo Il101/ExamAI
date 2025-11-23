@@ -72,13 +72,15 @@
 
 /* Dark mode overrides using .dark class */
 .dark {
-  --background: 222.2 84% 4.9%;
+  --background: 222.2 47% 11%;
+  /* Slightly lighter dark background (Slate 900) */
   --foreground: 210 40% 98%;
 
   --primary: 238 56% 58%;
   --primary-foreground: 0 0% 100%;
 
-  --card: 222.2 84% 6%;
+  --card: 222.2 47% 13%;
+  /* Slightly lighter card */
   --card-foreground: 210 40% 98%;
 
   --border: 217.2 32.6% 17.5%;
