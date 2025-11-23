@@ -37,6 +37,10 @@ class Settings(BaseSettings):
                 return [origin.strip() for origin in v.split(",") if origin.strip()]
         return v
 
+    # CORS Regex for Vercel Preview Deployments
+    # Matches: https://exam-ai-*-ilias-projects-774295b7.vercel.app
+    CORS_ORIGIN_REGEX: str = r"https://exam-ai-.*-ilias-projects-774295b7\.vercel\.app"
+
     # AI Configuration
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-2.5-flash-lite"
@@ -76,6 +80,13 @@ class Settings(BaseSettings):
     SMTP_TLS: bool = True
     SMTP_USER: Optional[str] = None
     SMTP_PASSWORD: Optional[str] = None
+
+    # SendGrid
+    SENDGRID_API_KEY: str = ""
+    SENDGRID_FROM_EMAIL: str = "noreply@examai.pro"
+    
+    # Notification Settings
+    NOTIFICATION_PROVIDER: Literal["sendgrid", "smtp", "mock"] = "sendgrid"
 
     # Stripe
     STRIPE_SECRET_KEY: str = ""
