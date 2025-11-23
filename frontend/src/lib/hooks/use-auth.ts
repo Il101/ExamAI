@@ -75,6 +75,7 @@ export function useAuth() {
             
             if (error instanceof Error) {
                 // Check for network error
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 if ((error as any).isNetworkError) {
                     message = error.message || 'Не удалось подключиться к серверу. Убедитесь, что бэкенд запущен.';
                 } else if ('response' in error) {
