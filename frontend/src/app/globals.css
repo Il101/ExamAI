@@ -1,24 +1,32 @@
 @import "tailwindcss";
 
 :root {
-  /* ExamAI Pro Design System - Light Mode */
-  --background: 210 40% 98%;
-  --foreground: 222.2 84% 11%;
+  /* ExamAI Pro Design System - Light & Bright Mode */
+  --background: 0 0% 100%;
+  /* Pure white background */
+  --foreground: 222.2 47% 11%;
+  /* Dark text for contrast */
 
-  /* Brand Colors - Indigo/Purple Gradient */
-  --primary: 238 56% 58%;
+  /* Brand Colors - Vibrant Indigo/Purple */
+  --primary: 238 70% 60%;
+  /* Brighter primary */
   --primary-foreground: 0 0% 100%;
   --primary-glow: 243 75% 70%;
 
-  --secondary: 271 81% 56%;
+  --secondary: 271 81% 60%;
+  /* Brighter secondary */
   --secondary-foreground: 0 0% 100%;
 
-  /* Neutrals - Slate Palette */
-  --muted: 210 40% 96%;
-  --muted-foreground: 215 16% 47%;
+  /* Neutrals - Very Light Palette */
+  --muted: 210 40% 98%;
+  /* Almost white */
+  --muted-foreground: 215 16% 40%;
+  /* Lighter text */
 
-  --accent: 238 56% 95%;
-  --accent-foreground: 238 56% 40%;
+  --accent: 238 70% 97%;
+  /* Very light accent bg */
+  --accent-foreground: 238 70% 50%;
+  /* Vibrant accent text */
 
   /* Success/Action */
   --success: 142 71% 45%;
@@ -26,24 +34,26 @@
 
   /* UI Elements */
   --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 11%;
+  /* White cards */
+  --card-foreground: 222.2 47% 11%;
 
-  --border: 214 32% 91%;
+  --border: 214 32% 88%;
+  /* Lighter borders */
   --input: 214 32% 91%;
-  --ring: 238 56% 58%;
+  --ring: 238 70% 60%;
 
   --radius: 0.75rem;
 
-  /* Gradients */
-  --gradient-brand: linear-gradient(135deg, hsl(238 56% 58%), hsl(271 81% 56%));
-  --gradient-subtle: linear-gradient(180deg, hsl(210 40% 98%), hsl(210 40% 96%));
-  --gradient-glow: radial-gradient(circle at 50% 0%, hsl(238 56% 58% / 0.15), transparent 70%);
+  /* Gradients - Lighter and Softer */
+  --gradient-brand: linear-gradient(135deg, hsl(238 70% 65%), hsl(271 81% 65%));
+  --gradient-subtle: linear-gradient(180deg, hsl(0 0% 100%), hsl(210 40% 99%));
+  --gradient-glow: radial-gradient(circle at 50% 0%, hsl(238 70% 60% / 0.08), transparent 70%);
 
-  /* Shadows */
-  --shadow-soft: 0 1px 3px 0 hsl(222.2 84% 11% / 0.1), 0 1px 2px -1px hsl(222.2 84% 11% / 0.1);
-  --shadow-medium: 0 4px 6px -1px hsl(222.2 84% 11% / 0.1), 0 2px 4px -2px hsl(222.2 84% 11% / 0.1);
-  --shadow-large: 0 10px 15px -3px hsl(222.2 84% 11% / 0.1), 0 4px 6px -4px hsl(222.2 84% 11% / 0.1);
-  --shadow-glow: 0 0 40px hsl(238 56% 58% / 0.3);
+  /* Shadows - Softer */
+  --shadow-soft: 0 1px 3px 0 hsl(222.2 47% 11% / 0.05), 0 1px 2px -1px hsl(222.2 47% 11% / 0.05);
+  --shadow-medium: 0 4px 6px -1px hsl(222.2 47% 11% / 0.07), 0 2px 4px -2px hsl(222.2 47% 11% / 0.07);
+  --shadow-large: 0 10px 15px -3px hsl(222.2 47% 11% / 0.08), 0 4px 6px -4px hsl(222.2 47% 11% / 0.08);
+  --shadow-glow: 0 0 40px hsl(238 70% 60% / 0.2);
 
   /* Animations */
   --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
