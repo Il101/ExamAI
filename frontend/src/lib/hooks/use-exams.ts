@@ -31,6 +31,29 @@ export function useExams() {
     },
   });
 
+  const generateMutation = useMutation({
+    mutationFn: (examId: string) => examsApi.startGeneration(examId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['exams'] });
+      toast.success('Exam generation started');
+    },
+    onError: (error: unknown) => {
+      let message = 'Failed to start generation';
+
+      if (error instanceof Error && 'response' in error) {
+        const responseError = error as {
+          response?: { data?: { error?: { message?: string }; detail?: string } };
+        };
+        message =
+          responseError.response?.data?.error?.message ||
+          responseError.response?.data?.detail ||
+          'Failed to start generation';
+      }
+
+      toast.error(message);
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: (examId: string) => examsApi.delete(examId),
     onSuccess: () => {
@@ -56,6 +79,8 @@ export function useExams() {
     isLoading,
     createExam: createMutation.mutate,
     deleteExam: deleteMutation.mutate,
+    startGeneration: generateMutation.mutate,
     isCreating: createMutation.isPending,
+    isGenerating: generateMutation.isPending,
   };
 }
