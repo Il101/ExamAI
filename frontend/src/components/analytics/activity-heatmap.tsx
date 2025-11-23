@@ -29,10 +29,14 @@ export function ActivityHeatmap({ data }: ActivityHeatmapProps) {
     const week = [];
     for (let j = 0; j < 7; j++) {
       const dateStr = currentDate.toISOString().split('T')[0];
-      const point = dataMap.get(dateStr) || { date: dateStr, count: 0, level: 0 };
+      // Get data for this date, or use defaults
+      // Note: We destruct 'date' from point to avoid conflict with our 'date' property
+      const pointData = dataMap.get(dateStr);
+      const { date: _, ...rest } = pointData || { date: '', count: 0, level: 0 };
+
       week.push({
         date: currentDate,
-        ...point
+        ...rest
       });
       currentDate = addDays(currentDate, 1);
     }
