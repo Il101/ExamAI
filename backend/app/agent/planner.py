@@ -238,7 +238,7 @@ Return ONLY valid JSON, no markdown code blocks, no explanations."""
                         f"Topic {step.id} has invalid dependency: {dep_id}"
                     )
 
-    async def extract_topic_outline(self, content: str, subject: str = "General") -\u003e dict:
+    async def extract_topic_outline(self, content: str, subject: str = "General") -> dict:
         """
         Extract lightweight topic outline from content for landing page demo.
         Returns simple topic/subtopic structure without full plan details.
