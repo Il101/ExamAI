@@ -237,3 +237,77 @@ Return ONLY valid JSON, no markdown code blocks, no explanations."""
                     raise ValueError(
                         f"Topic {step.id} has invalid dependency: {dep_id}"
                     )
+
+    async def extract_topic_outline(self, content: str, subject: str = "General") -\u003e dict:
+        """
+        Extract lightweight topic outline from content for landing page demo.
+        Returns simple topic/subtopic structure without full plan details.
+        
+        Args:
+            content: Study material content
+            subject: Optional subject name
+            
+        Returns:
+            Dict with topics and subtopics structure
+        """
+        
+        prompt = f"""You are an expert educator analyzing study materials. Extract a clear, hierarchical outline of topics and subtopics.
+
+**Study Material:**
+```
+{content[:5000]}  # Limit to first 5000 chars for demo
+```
+
+**Subject:** {subject}
+
+**Your Task:**
+Create a structured outline showing:
+1. Main topics (3-8 topics)
+2. Subtopics under each main topic (2-5 subtopics each)
+
+**Output Format:** JSON object with this structure:
+{{
+  "subject": "detected subject name",
+  "total_topics": 5,
+  "outline": [
+    {{
+      "topic": "Main Topic Name",
+      "subtopics": [
+        "Subtopic 1",
+        "Subtopic 2",
+        "Subtopic 3"
+      ]
+    }}
+  ]
+}}
+
+**Requirements:**
+- Base outline ONLY on content provided
+- Keep topic names concise (max 6 words)
+- Keep subtopic names concise (max 8 words)
+- Logical progression from basic to advanced
+- Return ONLY valid JSON, no markdown blocks
+
+Return the JSON now:"""
+
+        print(f"[Planner] Extracting topic outline for {subject}...")
+        response = await self.llm.generate(
+            prompt=prompt,
+            temperature=0.2,
+            system_prompt="You are an expert educator. Always respond with valid JSON only.",
+        )
+        
+        # Parse JSON response
+        json_text = response.content.strip()
+        if json_text.startswith("```json"):
+            json_text = json_text[7:-3].strip()
+        elif json_text.startswith("```"):
+            json_text = json_text[3:-3].strip()
+            
+        try:
+            outline = json.loads(json_text)
+            print(f"[Planner] Outline extracted: {outline.get('total_topics', 0)} topics")
+            return outline
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Failed to parse outline JSON: {str(e)}")
+
