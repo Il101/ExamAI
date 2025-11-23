@@ -262,12 +262,20 @@ async def debug_db():
                 "SELECT column_name FROM information_schema.columns WHERE table_name = 'users'"
             ))
             columns = [row[0] for row in result_cols.fetchall()]
+            
+            # Check for NULLs
+            result_nulls = await session.execute(text(
+                "SELECT COUNT(*) FROM users WHERE notification_exam_ready IS NULL"
+            ))
+            null_count = result_nulls.scalar()
         except Exception as e:
             columns = str(e)
+            null_count = -1
             
         return {
             "alembic_version": version,
             "columns": columns,
-            "has_notification_exam_ready": "notification_exam_ready" in columns if isinstance(columns, list) else False
+            "has_notification_exam_ready": "notification_exam_ready" in columns if isinstance(columns, list) else False,
+            "null_count": null_count
         }
 

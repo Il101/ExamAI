@@ -23,9 +23,9 @@ class UserMapper:
             preferred_language=model.preferred_language,
             timezone=model.timezone,
             daily_study_goal_minutes=model.daily_study_goal_minutes,
-            notification_exam_ready=model.notification_exam_ready,
-            notification_study_reminders=model.notification_study_reminders,
-            notification_product_updates=model.notification_product_updates,
+            notification_exam_ready=model.notification_exam_ready if model.notification_exam_ready is not None else True,
+            notification_study_reminders=model.notification_study_reminders if model.notification_study_reminders is not None else True,
+            notification_product_updates=model.notification_product_updates if model.notification_product_updates is not None else True,
         )
 
     @staticmethod
