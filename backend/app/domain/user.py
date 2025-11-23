@@ -33,6 +33,11 @@ class User:
     timezone: str = "UTC"
     daily_study_goal_minutes: int = 60
 
+    # Notification Settings
+    notification_exam_ready: bool = True
+    notification_study_reminders: bool = True
+    notification_product_updates: bool = True
+
     def __post_init__(self):
         """Validate user data on creation"""
         self._validate_email()

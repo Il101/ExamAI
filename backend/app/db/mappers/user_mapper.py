@@ -23,6 +23,9 @@ class UserMapper:
             preferred_language=model.preferred_language,
             timezone=model.timezone,
             daily_study_goal_minutes=model.daily_study_goal_minutes,
+            notification_exam_ready=model.notification_exam_ready,
+            notification_study_reminders=model.notification_study_reminders,
+            notification_product_updates=model.notification_product_updates,
         )
 
     @staticmethod
@@ -41,6 +44,9 @@ class UserMapper:
             preferred_language=domain.preferred_language,
             timezone=domain.timezone,
             daily_study_goal_minutes=domain.daily_study_goal_minutes,
+            notification_exam_ready=domain.notification_exam_ready,
+            notification_study_reminders=domain.notification_study_reminders,
+            notification_product_updates=domain.notification_product_updates,
         )
 
     @staticmethod
@@ -56,5 +62,8 @@ class UserMapper:
         model.preferred_language = domain.preferred_language
         model.timezone = domain.timezone
         model.daily_study_goal_minutes = domain.daily_study_goal_minutes
+        model.notification_exam_ready = domain.notification_exam_ready
+        model.notification_study_reminders = domain.notification_study_reminders
+        model.notification_product_updates = domain.notification_product_updates
 
         return model
