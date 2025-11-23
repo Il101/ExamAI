@@ -8,19 +8,35 @@ import mammoth from 'mammoth';
 // If that fails, we might need to configure webpack.
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
-export async function parseFile(file: File): Promise<string> {
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+const MAX_PAGES = 500;
+
+export async function parseFile(
+    file: File,
+    onProgress?: (progress: number) => void
+): Promise<string> {
+    if (file.size > MAX_FILE_SIZE) {
+        throw new Error(`File size exceeds limit of 50MB`);
+    }
+
     const fileType = file.type;
     const fileName = file.name.toLowerCase();
 
     if (fileType === 'application/pdf' || fileName.endsWith('.pdf')) {
-        return parsePDF(file);
+        return parsePDF(file, onProgress);
     } else if (
         fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
         fileName.endsWith('.docx')
     ) {
-        return parseDOCX(file);
+        onProgress?.(50);
+        const text = await parseDOCX(file);
+        onProgress?.(100);
+        return text;
     } else if (fileType === 'text/plain' || fileName.endsWith('.txt')) {
-        return parseText(file);
+        onProgress?.(50);
+        const text = await parseText(file);
+        onProgress?.(100);
+        return text;
     } else {
         throw new Error(`Unsupported file type: ${fileType}`);
     }
@@ -35,10 +51,15 @@ async function parseText(file: File): Promise<string> {
     });
 }
 
-async function parsePDF(file: File): Promise<string> {
+async function parsePDF(file: File, onProgress?: (progress: number) => void): Promise<string> {
     try {
         const arrayBuffer = await file.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+        if (pdf.numPages > MAX_PAGES) {
+            throw new Error(`PDF exceeds page limit of ${MAX_PAGES} pages`);
+        }
+
         let fullText = '';
 
         for (let i = 1; i <= pdf.numPages; i++) {
@@ -49,11 +70,16 @@ async function parsePDF(file: File): Promise<string> {
                 .map((item: any) => item.str)
                 .join(' ');
             fullText += pageText + '\n\n';
+
+            if (onProgress) {
+                onProgress(Math.round((i / pdf.numPages) * 100));
+            }
         }
 
         return fullText;
     } catch (error) {
         console.error('Error parsing PDF:', error);
+        if (error instanceof Error) throw error;
         throw new Error('Failed to parse PDF file');
     }
 }

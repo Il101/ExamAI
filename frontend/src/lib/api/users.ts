@@ -6,6 +6,9 @@ export interface UserUpdateRequest {
     preferred_language?: string;
     timezone?: string;
     daily_study_goal_minutes?: number;
+    notification_exam_ready?: boolean;
+    notification_study_reminders?: boolean;
+    notification_product_updates?: boolean;
 }
 
 export interface ChangePasswordRequest {

@@ -10,6 +10,8 @@ import { User, Lock, Bell, Trash2 } from 'lucide-react';
 import { ProfileForm } from '@/components/settings/profile-form';
 import { PasswordForm } from '@/components/settings/password-form';
 
+import { NotificationSettings } from '@/components/settings/notification-settings';
+
 export default function SettingsPage() {
     const { user } = useAuth();
 
@@ -84,56 +86,7 @@ export default function SettingsPage() {
 
                 {/* Notifications Tab */}
                 <TabsContent value="notifications">
-                    <Card className="p-6">
-                        <div>
-                            <h3 className="text-lg font-semibold mb-4">Notification Preferences</h3>
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between p-4 border rounded-lg">
-                                    <div>
-                                        <h4 className="font-medium">Email Notifications</h4>
-                                        <p className="text-sm text-gray-600">
-                                            Receive email updates about your study progress
-                                        </p>
-                                    </div>
-                                    <input type="checkbox" defaultChecked className="h-4 w-4" />
-                                </div>
-
-                                <div className="flex items-center justify-between p-4 border rounded-lg">
-                                    <div>
-                                        <h4 className="font-medium">Review Reminders</h4>
-                                        <p className="text-sm text-gray-600">
-                                            Get reminded when reviews are due
-                                        </p>
-                                    </div>
-                                    <input type="checkbox" defaultChecked className="h-4 w-4" />
-                                </div>
-
-                                <div className="flex items-center justify-between p-4 border rounded-lg">
-                                    <div>
-                                        <h4 className="font-medium">Weekly Summary</h4>
-                                        <p className="text-sm text-gray-600">
-                                            Receive a weekly summary of your progress
-                                        </p>
-                                    </div>
-                                    <input type="checkbox" defaultChecked className="h-4 w-4" />
-                                </div>
-
-                                <div className="flex items-center justify-between p-4 border rounded-lg">
-                                    <div>
-                                        <h4 className="font-medium">Exam Generation Complete</h4>
-                                        <p className="text-sm text-gray-600">
-                                            Get notified when exam generation is complete
-                                        </p>
-                                    </div>
-                                    <input type="checkbox" defaultChecked className="h-4 w-4" />
-                                </div>
-                            </div>
-
-                            <Button className="mt-6" onClick={() => toast.success('Preferences saved')}>
-                                Save Preferences
-                            </Button>
-                        </div>
-                    </Card>
+                    <NotificationSettings />
                 </TabsContent>
             </Tabs>
         </div>

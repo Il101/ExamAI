@@ -25,6 +25,9 @@ export interface User {
   role: string;
   is_active: boolean;
   is_superuser: boolean;
+  notification_exam_ready?: boolean;
+  notification_study_reminders?: boolean;
+  notification_product_updates?: boolean;
 }
 
 export const authApi = {

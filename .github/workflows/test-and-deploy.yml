@@ -29,8 +29,7 @@ jobs:
       # Test environment variables
       ENVIRONMENT: test
       DEBUG: True
-      POSTGRES_DB: examai_test
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/examai_test
+      # Use Supabase for testing - set DATABASE_URL in GitHub Secrets
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/0
@@ -46,6 +45,8 @@ jobs:
         uses: docker/setup-buildx-action@v3
       
       - name: Build and Start Services
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
         run: |
           # Start services using both base and test compose files
           docker compose -f docker-compose.yml -f docker-compose.test.yml up -d --build

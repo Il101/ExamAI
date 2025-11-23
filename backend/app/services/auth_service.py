@@ -190,6 +190,9 @@ class AuthService:
         daily_study_goal_minutes: Optional[int] = None,
         preferred_language: Optional[str] = None,
         timezone: Optional[str] = None,
+        notification_exam_ready: Optional[bool] = None,
+        notification_study_reminders: Optional[bool] = None,
+        notification_product_updates: Optional[bool] = None,
     ) -> User:
         """
         Update user profile in DB and Supabase.
@@ -218,6 +221,15 @@ class AuthService:
 
         if timezone:
             user.timezone = timezone
+            
+        if notification_exam_ready is not None:
+            user.notification_exam_ready = notification_exam_ready
+            
+        if notification_study_reminders is not None:
+            user.notification_study_reminders = notification_study_reminders
+            
+        if notification_product_updates is not None:
+            user.notification_product_updates = notification_product_updates
 
         updated_user = await self.user_repo.update(user)
         return updated_user

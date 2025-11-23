@@ -5,3 +5,4 @@ from .study_session import StudySessionModel  # noqa: F401
 from .subscription import SubscriptionModel  # noqa: F401
 from .topic import TopicModel  # noqa: F401
 from .user import UserModel  # noqa: F401
+from .notification import NotificationModel  # noqa: F401

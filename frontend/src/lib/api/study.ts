@@ -43,9 +43,9 @@ export const studyApi = {
         return response.data;
     },
 
-    getDueReviews: async (limit: number = 20) => {
+    getDueReviews: async (limit: number = 20, interleave: boolean = true) => {
         const response = await api.get<ReviewItem[]>('/reviews/due', {
-            params: { limit },
+            params: { limit, interleave },
         });
         return response.data;
     },

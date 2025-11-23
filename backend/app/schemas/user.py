@@ -21,6 +21,11 @@ class UserResponse(BaseModel):
     preferred_language: str
     timezone: str
     daily_study_goal_minutes: int
+    
+    # Notification Settings
+    notification_exam_ready: bool
+    notification_study_reminders: bool
+    notification_product_updates: bool
 
     class Config:
         from_attributes = True
@@ -33,6 +38,11 @@ class UserUpdateRequest(BaseModel):
     preferred_language: Optional[str] = None
     timezone: Optional[str] = None
     daily_study_goal_minutes: Optional[int] = Field(None, ge=0, le=480)
+    
+    # Notification Settings
+    notification_exam_ready: Optional[bool] = None
+    notification_study_reminders: Optional[bool] = None
+    notification_product_updates: Optional[bool] = None
 
 
 class ChangePasswordRequest(BaseModel):

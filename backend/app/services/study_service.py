@@ -29,18 +29,59 @@ class StudyService:
 
     # Review Items
 
-    async def get_due_reviews(self, user_id: UUID, limit: int = 20) -> List[ReviewItem]:
+    async def get_due_reviews(
+        self, 
+        user_id: UUID, 
+        limit: int = 20,
+        interleave: bool = True,
+        topic_mix_count: int = 3
+    ) -> List[ReviewItem]:
         """
         Get review items due for study.
-
+        
         Args:
             user_id: User ID
             limit: Max items to return
-
+            interleave: Whether to mix topics (Interleaved Practice)
+            topic_mix_count: Number of topics to mix if interleaving
+            
         Returns:
-            List of due review items, ordered by priority
+            List of due review items
         """
-        return await self.review_repo.list_due_by_user(user_id, limit)
+        # Fetch more items to allow for good mixing
+        fetch_limit = limit * 2 if interleave else limit
+        items = await self.review_repo.list_due_by_user(user_id, fetch_limit)
+        
+        if not interleave or not items:
+            return items[:limit]
+            
+        # Group by topic
+        by_topic: Dict[UUID, List[ReviewItem]] = {}
+        for item in items:
+            if item.topic_id not in by_topic:
+                by_topic[item.topic_id] = []
+            by_topic[item.topic_id].append(item)
+            
+        # Select top N topics with most due items
+        sorted_topics = sorted(by_topic.keys(), key=lambda t: len(by_topic[t]), reverse=True)
+        selected_topics = sorted_topics[:topic_mix_count]
+        
+        # Interleave items
+        interleaved: List[ReviewItem] = []
+        topic_queues = {t: by_topic[t] for t in selected_topics}
+        
+        # Shuffle within topics first
+        for t in topic_queues:
+            random.shuffle(topic_queues[t])
+            
+        while len(interleaved) < limit and any(topic_queues.values()):
+            for topic_id in selected_topics:
+                if topic_queues.get(topic_id):
+                    interleaved.append(topic_queues[topic_id].pop(0))
+                    if len(interleaved) >= limit:
+                        break
+                        
+        return interleaved
 
     async def submit_review(
         self, user_id: UUID, review_item_id: UUID, quality: Rating

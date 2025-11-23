@@ -11,14 +11,17 @@ interface FlashcardProps {
     item: ReviewItem;
     onResult: (quality: number) => void;
     className?: string;
+    disabled?: boolean;
 }
 
-export function Flashcard({ item, onResult, className }: FlashcardProps) {
+export function Flashcard({ item, onResult, className, disabled = false }: FlashcardProps) {
     const [isFlipped, setIsFlipped] = useState(false);
 
 
     const handleKeyDown = useCallback(
         (event: KeyboardEvent) => {
+            if (disabled) return;
+
             if (!isFlipped) {
                 if (event.code === 'Space' || event.code === 'Enter') {
                     event.preventDefault();
@@ -41,7 +44,7 @@ export function Flashcard({ item, onResult, className }: FlashcardProps) {
                 }
             }
         },
-        [isFlipped, onResult]
+        [isFlipped, onResult, disabled]
     );
 
     useEffect(() => {
@@ -74,6 +77,7 @@ export function Flashcard({ item, onResult, className }: FlashcardProps) {
                                     className="w-full max-w-xs mx-auto group"
                                     size="lg"
                                     onClick={() => setIsFlipped(true)}
+                                    disabled={disabled}
                                 >
                                     <Eye className="mr-2 h-4 w-4 group-hover:scale-110 transition-transform" />
                                     Show Answer
@@ -102,6 +106,7 @@ export function Flashcard({ item, onResult, className }: FlashcardProps) {
                                     variant="outline"
                                     className="border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-red-900/50 dark:hover:bg-red-900/20"
                                     onClick={() => onResult(1)}
+                                    disabled={disabled}
                                 >
                                     <div className="flex flex-col items-center py-1">
                                         <RotateCcw className="h-4 w-4 mb-1" />
@@ -113,6 +118,7 @@ export function Flashcard({ item, onResult, className }: FlashcardProps) {
                                     variant="outline"
                                     className="border-orange-200 hover:bg-orange-50 hover:text-orange-600 dark:border-orange-900/50 dark:hover:bg-orange-900/20"
                                     onClick={() => onResult(2)}
+                                    disabled={disabled}
                                 >
                                     <div className="flex flex-col items-center py-1">
                                         <AlertCircle className="h-4 w-4 mb-1" />
@@ -124,6 +130,7 @@ export function Flashcard({ item, onResult, className }: FlashcardProps) {
                                     variant="outline"
                                     className="border-blue-200 hover:bg-blue-50 hover:text-blue-600 dark:border-blue-900/50 dark:hover:bg-blue-900/20"
                                     onClick={() => onResult(3)}
+                                    disabled={disabled}
                                 >
                                     <div className="flex flex-col items-center py-1">
                                         <ThumbsUp className="h-4 w-4 mb-1" />
@@ -135,6 +142,7 @@ export function Flashcard({ item, onResult, className }: FlashcardProps) {
                                     variant="outline"
                                     className="border-green-200 hover:bg-green-50 hover:text-green-600 dark:border-green-900/50 dark:hover:bg-green-900/20"
                                     onClick={() => onResult(4)}
+                                    disabled={disabled}
                                 >
                                     <div className="flex flex-col items-center py-1">
                                         <Trophy className="h-4 w-4 mb-1" />

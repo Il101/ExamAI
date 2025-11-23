@@ -8,7 +8,8 @@ services:
     environment:
       - ENVIRONMENT=test
       - DEBUG=True
-      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/examai_test
+      # Use Supabase DATABASE_URL from GitHub Secrets
+      - DATABASE_URL=${DATABASE_URL}
     # Override command to not use --reload in CI
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
 
@@ -19,10 +20,8 @@ services:
     environment:
       - ENVIRONMENT=test
       - DEBUG=True
-      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@db:5432/examai_test
+      - DATABASE_URL=${DATABASE_URL}
 
-  db:
-    environment:
-      - POSTGRES_DB=examai_test
-    # Don't use persistent volumes in CI - always start fresh
-    volumes: []
+  celery_beat:
+    # Don't run celery beat in CI - not needed for tests
+    scale: 0

@@ -11,8 +11,10 @@ from app.integrations.llm.gemini import GeminiProvider
 from app.repositories.exam_repository import ExamRepository
 from app.repositories.topic_repository import TopicRepository
 from app.repositories.user_repository import UserRepository
+from app.repositories.notification_repository import NotificationRepository
 from app.services.agent_service import AgentService
 from app.services.cost_guard_service import CostGuardService
+from app.services.notification_service import NotificationService, SendGridProvider, MockProvider
 from app.tasks.celery_app import celery_app
 
 
@@ -191,6 +193,31 @@ async def _generate_exam_content_async(
         )
 
         await session.commit()
+
+        # Send notification
+        try:
+            # Initialize notification service
+            notif_repo = NotificationRepository(session)
+            
+            if settings.NOTIFICATION_PROVIDER == "sendgrid" and settings.SENDGRID_API_KEY:
+                provider = SendGridProvider(settings.SENDGRID_API_KEY, settings.SENDGRID_FROM_EMAIL)
+            else:
+                provider = MockProvider()
+                
+            notif_service = NotificationService(provider, notif_repo)
+            
+            await notif_service.send_exam_ready_notification(
+                user_id=user.id,
+                user_email=user.email,
+                exam_title=updated_exam.title,
+                exam_id=str(exam_id)
+            )
+            # Commit notification log
+            await session.commit()
+            
+        except Exception as e:
+            print(f"Failed to send notification: {e}")
+            # Don't fail the task if notification fails
 
         return {
             "status": "success",

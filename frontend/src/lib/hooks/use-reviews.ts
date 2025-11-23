@@ -7,12 +7,12 @@ interface SubmitReviewData {
     quality: number;
 }
 
-export function useReviews(limit: number = 20) {
+export function useReviews(limit: number = 20, interleave: boolean = true) {
     const queryClient = useQueryClient();
 
     const { data: dueReviews, isLoading } = useQuery({
-        queryKey: ['reviews', 'due', limit],
-        queryFn: () => studyApi.getDueReviews(limit),
+        queryKey: ['reviews', 'due', limit, interleave],
+        queryFn: () => studyApi.getDueReviews(limit, interleave),
     });
 
     const submitMutation = useMutation({

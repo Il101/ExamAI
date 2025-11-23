@@ -29,6 +29,12 @@ from app.services.prompt_service import PromptService
 from app.services.study_service import StudyService
 from app.services.stripe_service import StripeService
 from app.services.subscription_service import SubscriptionService
+from app.services.notification_service import (
+    NotificationService, 
+    SendGridProvider, 
+    MockProvider
+)
+from app.repositories.notification_repository import NotificationRepository
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_PREFIX}/auth/login")
 
@@ -153,6 +159,36 @@ async def get_subscription_service(
 ) -> SubscriptionService:
     """Get subscription service"""
     return SubscriptionService(subscription_repo, stripe_service)
+
+
+# --- Notification Service ---
+
+
+async def get_notification_repo(
+    session: AsyncSession = Depends(get_db),
+) -> NotificationRepository:
+    return NotificationRepository(session)
+
+
+def get_notification_service(
+    repo: NotificationRepository = Depends(get_notification_repo),
+    user_repo: UserRepository = Depends(get_user_repo),
+) -> NotificationService:
+    """
+    Get notification service with configured provider.
+    """
+    if settings.NOTIFICATION_PROVIDER == "sendgrid" and settings.SENDGRID_API_KEY:
+        provider = SendGridProvider(
+            api_key=settings.SENDGRID_API_KEY,
+            from_email=settings.SENDGRID_FROM_EMAIL
+        )
+    elif settings.NOTIFICATION_PROVIDER == "mock":
+        provider = MockProvider()
+    else:
+        # Fallback or SMTP (if implemented later)
+        provider = MockProvider()
+        
+    return NotificationService(provider, repo, user_repo)
 
 
 # --- Auth Dependencies ---

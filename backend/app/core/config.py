@@ -22,10 +22,7 @@ class Settings(BaseSettings):
     ENVIRONMENT: Literal["development", "staging", "production", "test"] = "development"
     DEBUG: bool = False
     API_V1_PREFIX: str = "/api/v1"
-    ALLOWED_ORIGINS: List[str] = [
-        "http://localhost:3000",
-        "https://exam-ai-hzzw-oy52erqht-ilias-projects-774295b7.vercel.app"
-    ]
+    ALLOWED_ORIGINS: List[str] = ["http://localhost:3000"]
 
     @field_validator("ALLOWED_ORIGINS", mode="before")
     @classmethod

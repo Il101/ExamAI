@@ -11,12 +11,19 @@ import { Flashcard } from '@/components/study/flashcard';
 import { Brain, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 
+import { useEffect } from 'react';
+import { usePomodoroStore } from '@/lib/hooks/use-pomodoro';
+import { PomodoroTimer } from '@/components/study/pomodoro-timer';
+
 export default function StudyPage() {
     const searchParams = useSearchParams();
     const examId = searchParams.get('exam');
 
     const { dueReviews, submitReview } = useReviews(20);
     const { startSession, endSession, isStarting, isEnding } = useStudySession();
+
+    // Pomodoro Store
+    const { start, pause, reset, isBreak, isRunning } = usePomodoroStore();
 
     const [currentIndex, setCurrentIndex] = useState(0);
     const [sessionActive, setSessionActive] = useState(false);
@@ -27,16 +34,31 @@ export default function StudyPage() {
     const totalReviews = dueReviews?.length || 0;
     const progress = totalReviews > 0 ? ((currentIndex + 1) / totalReviews) * 100 : 0;
 
+    // Start timer when session starts
+    useEffect(() => {
+        if (sessionActive && !isRunning && !isBreak) {
+            start();
+        }
+        return () => {
+            // Optional: pause on unmount or session end?
+            // pause(); 
+        };
+    }, [sessionActive, start, isRunning, isBreak]);
+
     const handleStartSession = () => {
         if (examId) {
             startSession({ examId, duration: 25 }, {
                 onSuccess: (session) => {
                     setSessionActive(true);
                     setSessionId(session.id);
+                    reset(); // Reset timer for new session
+                    start();
                 },
             });
         } else {
             setSessionActive(true);
+            reset();
+            start();
         }
     };
 
@@ -45,6 +67,7 @@ export default function StudyPage() {
             endSession(sessionId);
         }
         setSessionActive(false);
+        pause();
     };
 
     const handleReview = (quality: number) => {
@@ -137,7 +160,26 @@ export default function StudyPage() {
     }
 
     return (
-        <div className="max-w-4xl mx-auto space-y-6">
+        <div className="max-w-4xl mx-auto space-y-6 relative">
+            {/* Pomodoro Timer Widget */}
+            <PomodoroTimer />
+
+            {/* Break Overlay */}
+            {isBreak && (
+                <div className="absolute inset-0 z-40 bg-background/80 backdrop-blur-sm flex items-center justify-center rounded-xl border-2 border-green-100 dark:border-green-900">
+                    <div className="text-center p-8 bg-card rounded-xl shadow-2xl border animate-in fade-in zoom-in duration-300">
+                        <div className="text-6xl mb-4">☕</div>
+                        <h2 className="text-2xl font-bold mb-2">Time for a Break!</h2>
+                        <p className="text-muted-foreground mb-6">
+                            Take a breather. Stretch, hydrate, or just relax.
+                        </p>
+                        <p className="text-sm font-medium text-green-600 dark:text-green-400">
+                            Cards are paused until the break ends.
+                        </p>
+                    </div>
+                </div>
+            )}
+
             {/* Progress Header */}
             <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm text-gray-600">
@@ -153,6 +195,8 @@ export default function StudyPage() {
                     key={currentReview.id}
                     item={currentReview}
                     onResult={handleReview}
+                    disabled={isBreak}
+                    className={isBreak ? "opacity-50 blur-sm transition-all duration-500" : "transition-all duration-500"}
                 />
             )}
 
