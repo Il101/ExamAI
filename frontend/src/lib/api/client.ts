@@ -38,6 +38,7 @@ api.interceptors.response.use(
       const networkError = new Error(
         'Не удалось подключиться к серверу. Убедитесь, что бэкенд запущен на порту 8000.'
       );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (networkError as any).isNetworkError = true;
       return Promise.reject(networkError);
     }
