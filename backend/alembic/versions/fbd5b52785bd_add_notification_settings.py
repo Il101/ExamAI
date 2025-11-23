@@ -1,8 +1,8 @@
-"""ensure_notification_columns
+"""add_notification_settings
 
-Revision ID: 052b52f03b00
-Revises: fbd5b52785bd
-Create Date: 2025-11-23 13:05:23.653395
+Revision ID: fbd5b52785bd
+Revises: a1b2c3d4e5f6
+Create Date: 2025-11-22 22:12:56.141322
 
 """
 from typing import Sequence, Union
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '052b52f03b00'
-down_revision: Union[str, None] = 'fbd5b52785bd'
+revision: str = 'fbd5b52785bd'
+down_revision: Union[str, None] = 'a1b2c3d4e5f6'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
