@@ -45,6 +45,11 @@ class UserModel(Base):
     daily_study_goal_minutes: Mapped[int] = mapped_column(
         Integer, default=60, nullable=False
     )
+    
+    # Notification Settings
+    notification_exam_ready: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    notification_study_reminders: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    notification_product_updates: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     # Timestamps (inherited from Base + additional)
     last_login: Mapped[Optional[datetime]] = mapped_column(
