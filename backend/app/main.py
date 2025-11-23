@@ -228,3 +228,15 @@ async def root():
         "version": settings.VERSION,
         "docs": "/api/docs",
     }
+
+
+# Debug endpoint for CORS configuration
+@app.get("/debug/cors")
+async def debug_cors():
+    """Debug endpoint to check CORS configuration"""
+    return {
+        "allowed_origins": settings.ALLOWED_ORIGINS,
+        "frontend_url": settings.FRONTEND_URL,
+        "environment": settings.ENVIRONMENT,
+    }
+
