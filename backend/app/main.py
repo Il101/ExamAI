@@ -237,6 +237,7 @@ async def debug_cors():
     """Debug endpoint to check CORS configuration"""
     return {
         "allowed_origins": settings.ALLOWED_ORIGINS,
+        "allow_origin_regex": settings.CORS_ORIGIN_REGEX,
         "frontend_url": settings.FRONTEND_URL,
         "environment": settings.ENVIRONMENT,
     }

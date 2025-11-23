@@ -1,6 +1,15 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+// Force HTTPS for Railway URLs to prevent 302 redirects
+const getBaseUrl = () => {
+  let url = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+  if (url.includes('railway.app') && url.startsWith('http://')) {
+    url = url.replace('http://', 'https://');
+  }
+  return url;
+};
+
+const API_BASE_URL = getBaseUrl();
 
 // Create axios instance
 export const api = axios.create({
