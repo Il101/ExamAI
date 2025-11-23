@@ -11,7 +11,7 @@ import { useState } from 'react';
 import type { Exam } from '@/lib/api/exams';
 
 export default function ExamsPage() {
-    const { exams, isLoading } = useExams();
+    const { exams, isLoading, startGeneration } = useExams();
     const [searchQuery, setSearchQuery] = useState('');
 
     const filteredExams = exams?.filter((exam: Exam) =>
@@ -62,7 +62,11 @@ export default function ExamsPage() {
             ) : filteredExams.length > 0 ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {filteredExams.map((exam: Exam) => (
-                        <ExamCard key={exam.id} exam={exam} />
+                        <ExamCard
+                            key={exam.id}
+                            exam={exam}
+                            onGenerate={() => startGeneration(exam.id)}
+                        />
                     ))}
                 </div>
             ) : exams && exams.length > 0 ? (

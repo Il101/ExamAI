@@ -13,7 +13,7 @@ import type { Exam } from '@/lib/api/exams';
 export default function DashboardPage() {
   const { user } = useAuth();
   const { stats, isLoading: isLoadingStats } = useAnalytics();
-  const { exams, isLoading: isLoadingExams } = useExams();
+  const { exams, isLoading: isLoadingExams, startGeneration } = useExams();
 
   const recentExams = exams?.slice(0, 3) || [];
 
@@ -195,7 +195,11 @@ export default function DashboardPage() {
         ) : recentExams.length > 0 ? (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {recentExams.map((exam: Exam) => (
-              <ExamCard key={exam.id} exam={exam} />
+              <ExamCard
+                key={exam.id}
+                exam={exam}
+                onGenerate={() => startGeneration(exam.id)}
+              />
             ))}
           </div>
         ) : (
