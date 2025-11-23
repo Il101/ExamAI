@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Upload, Brain, Zap, Target, BookOpen, Briefcase, Sparkles, CheckCircle2, ArrowRight, Clock, TrendingUp, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,12 +8,17 @@ import { useScrollAnimation } from "@/lib/hooks/useScrollAnimation";
 import ParticleBackground from "@/components/ParticleBackground";
 import AnimatedCounter from "@/components/AnimatedCounter";
 import LearningProcessAnimation from "@/components/LearningProcessAnimation";
+import TopicOutline from "@/components/TopicOutline";
+import { analyzeApi, TopicOutline as TopicOutlineType } from "@/lib/api/analyze";
+import { toast } from "sonner";
 import Link from "next/link";
 
 export default function Index() {
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
+  const [outline, setOutline] = useState<TopicOutlineType | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const problemSolution = useScrollAnimation();
   const scienceEngine = useScrollAnimation();
@@ -30,37 +35,84 @@ export default function Index() {
     setIsDragging(false);
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    simulateProcessing();
+
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      await processFile(files[0]);
+    }
   };
 
-  const handleFileUpload = () => {
-    simulateProcessing();
+  const handleFileSelect = () => {
+    fileInputRef.current?.click();
   };
 
-  const simulateProcessing = () => {
+  const handleFileInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      await processFile(files[0]);
+    }
+  };
+
+  const processFile = async (file: File) => {
+    // Validate file size (10MB)
+    const MAX_SIZE = 10 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+      toast.error("File too large. Maximum size is 10MB.");
+      return;
+    }
+
+    // Validate file type
+    const allowedTypes = [
+      "application/pdf",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "text/plain",
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Unsupported file type. Please upload PDF, DOCX, or TXT files.");
+      return;
+    }
+
     setIsProcessing(true);
     setLogs([]);
+    setOutline(null);
 
     const logMessages = [
       "🔍 Analyzing document structure...",
-      "🧠 Building knowledge graph...",
-      "📊 Extracting key concepts...",
-      "🎯 Generating adaptive questions...",
-      "✨ Creating personalized learning path...",
-      "✅ Course ready!"
+      "🧠 Extracting topics and concepts...",
+      "📊 Building knowledge hierarchy...",
+      "✨ Creating learning outline...",
     ];
 
+    // Show logs progressively
     logMessages.forEach((msg, index) => {
       setTimeout(() => {
         setLogs(prev => [...prev, msg]);
-        if (index === logMessages.length - 1) {
-          setTimeout(() => setIsProcessing(false), 500);
-        }
-      }, index * 800);
+      }, index * 600);
     });
+
+    try {
+      const result = await analyzeApi.analyzeContent(file);
+
+      setTimeout(() => {
+        setLogs(prev => [...prev, "✅ Analysis complete!"]);
+        setTimeout(() => {
+          setOutline(result);
+          setIsProcessing(false);
+
+          // Store in localStorage for potential use after registration
+          localStorage.setItem('lastAnalyzedOutline', JSON.stringify(result));
+        }, 500);
+      }, logMessages.length * 600);
+
+    } catch (error) {
+      console.error("Analysis error:", error);
+      setIsProcessing(false);
+      toast.error("Failed to analyze file. Please try again.");
+    }
   };
 
   return (
@@ -84,7 +136,7 @@ export default function Index() {
 
             <h1 className="text-5xl md:text-7xl font-bold mb-6 text-foreground animate-fade-in-up">
               Turn any file into a{" "}
-              <span className="bg-gradient-brand bg-clip-text text-transparent animate-gradient bg-[length:200%_200%]">
+              <span className="bg-gradient-brand bg-clip-text text-transparent">
                 personalized course
               </span>
               {" "}in 30 seconds
@@ -110,7 +162,7 @@ export default function Index() {
                 onDrop={handleDrop}
               >
                 <CardContent className="p-12">
-                  {!isProcessing ? (
+                  {!outline && !isProcessing && (
                     <div className="text-center space-y-4">
                       <div className="inline-flex p-4 rounded-full bg-gradient-brand mb-4 floating">
                         <Upload className="w-8 h-8 text-primary-foreground" />
@@ -120,20 +172,27 @@ export default function Index() {
                           Drag file here
                         </p>
                         <p className="text-sm text-muted-foreground mb-4">
-                          PDF, DOCX, MP3, MP4 — up to 100 MB
+                          PDF, DOCX, TXT — up to 10 MB
                         </p>
                       </div>
-                      <Link href="/register">
-                        <Button
-                          size="lg"
-                          className="bg-gradient-brand hover:opacity-90 transition-all hover:scale-105 hover:shadow-glow"
-                          onClick={handleFileUpload}
-                        >
-                          Or select file
-                        </Button>
-                      </Link>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".pdf,.docx,.txt"
+                        onChange={handleFileInputChange}
+                        className="hidden"
+                      />
+                      <Button
+                        size="lg"
+                        className="bg-gradient-brand hover:opacity-90 transition-all hover:scale-105 hover:shadow-glow"
+                        onClick={handleFileSelect}
+                      >
+                        Or select file
+                      </Button>
                     </div>
-                  ) : (
+                  )}
+
+                  {isProcessing && (
                     <div className="space-y-3 font-mono text-sm">
                       {logs.map((log, i) => (
                         <div
@@ -144,13 +203,29 @@ export default function Index() {
                           <span className="text-foreground">{log}</span>
                         </div>
                       ))}
-                      {isProcessing && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-success">→</span>
-                          <span className="text-foreground">Processing</span>
-                          <span className="animate-blink">_</span>
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2">
+                        <span className="text-success">→</span>
+                        <span className="text-foreground">Processing</span>
+                        <span className="animate-blink">_</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {outline && !isProcessing && (
+                    <div className="space-y-6">
+                      <TopicOutline outline={outline} />
+
+                      <div className="flex justify-center pt-4">
+                        <Link href="/register">
+                          <Button
+                            size="lg"
+                            className="bg-gradient-brand hover:opacity-90 transition-all hover:scale-105 hover:shadow-glow"
+                          >
+                            Start Learning
+                            <ArrowRight className="ml-2 w-5 h-5" />
+                          </Button>
+                        </Link>
+                      </div>
                     </div>
                   )}
                 </CardContent>
