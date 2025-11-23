@@ -11,7 +11,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FileUploadZone } from './file-upload-zone';
 import { useExams } from '@/lib/hooks/use-exams';
-import type { CreateExamRequest } from '@/lib/api/exams';
+import type { CreateExamRequest, Exam } from '@/lib/api/exams';
+import { toast } from 'sonner';
 
 const createExamSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters'),
@@ -24,7 +25,7 @@ const createExamSchema = z.object({
 type CreateExamFormData = z.infer<typeof createExamSchema>;
 
 export function CreateExamForm({ onSuccess }: { onSuccess?: () => void }) {
-  const { createExam, isCreating } = useExams();
+  const { createExam, isCreating, startGeneration } = useExams();
   const [uploadedFile, setUploadedFile] = useState<string>('');
   const [examType, setExamType] = useState<'oral' | 'written' | 'test'>('written');
   const [level, setLevel] = useState<'school' | 'bachelor' | 'master' | 'phd'>('bachelor');
@@ -48,9 +49,20 @@ export function CreateExamForm({ onSuccess }: { onSuccess?: () => void }) {
       level,
       original_content,
     } as CreateExamRequest, {
-      onSuccess: () => {
+      onSuccess: (data) => {
         form.reset();
         setUploadedFile('');
+
+        // Automatically start generation
+        // Cast data to any because the hook's return type might not be fully inferred
+        const newExam = data as unknown as Exam;
+        if (newExam && newExam.id) {
+          toast.message('Starting AI generation...', {
+            description: 'This may take a few minutes.'
+          });
+          startGeneration(newExam.id);
+        }
+
         onSuccess?.();
       },
     });
