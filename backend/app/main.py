@@ -240,3 +240,34 @@ async def debug_cors():
         "environment": settings.ENVIRONMENT,
     }
 
+
+# Debug endpoint for DB inspection
+@app.get("/debug/db")
+async def debug_db():
+    """Debug endpoint to check DB schema"""
+    from sqlalchemy import text
+    from app.db.session import AsyncSessionLocal
+    
+    async with AsyncSessionLocal() as session:
+        # Check alembic version
+        try:
+            result = await session.execute(text("SELECT * FROM alembic_version"))
+            version = result.scalar_one_or_none()
+        except Exception as e:
+            version = str(e)
+        
+        # Check columns
+        try:
+            result_cols = await session.execute(text(
+                "SELECT column_name FROM information_schema.columns WHERE table_name = 'users'"
+            ))
+            columns = [row[0] for row in result_cols.fetchall()]
+        except Exception as e:
+            columns = str(e)
+            
+        return {
+            "alembic_version": version,
+            "columns": columns,
+            "has_notification_exam_ready": "notification_exam_ready" in columns if isinstance(columns, list) else False
+        }
+
