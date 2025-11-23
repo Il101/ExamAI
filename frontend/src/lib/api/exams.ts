@@ -48,7 +48,7 @@ export const examsApi = {
   },
 
   list: async (params?: { skip?: number; limit?: number }): Promise<ExamListResponse> => {
-    const response = await api.get('/exams', { params });
+    const response = await api.get('/exams/', { params });
     return response.data;
   },
 
