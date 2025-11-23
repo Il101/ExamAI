@@ -2,6 +2,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile, status
 from fastapi.responses import JSONResponse
+import google.generativeai as genai
 
 from app.agent.planner import CoursePlanner
 from app.dependencies import get_llm_provider
@@ -60,79 +61,91 @@ async def analyze_content(
             }
         )
     
-    # Parse file content based on type
+    # Upload file to Gemini File API
     try:
-        if file.content_type == "text/plain":
-            content = content_bytes.decode("utf-8")
-        elif file.content_type == "application/pdf":
-            # For PDF, we'll need to use a PDF parser
-            # For now, return a placeholder - will implement PDF parsing
-            import PyPDF2
-            import io
+        # Save file temporarily for upload
+        import tempfile
+        import os
+        
+        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1]) as tmp:
+            tmp.write(content_bytes)
+            tmp_path = tmp.name
+        
+        try:
+            # Upload to Gemini
+            uploaded_file = genai.upload_file(tmp_path, mime_type=file.content_type)
             
-            pdf_reader = PyPDF2.PdfReader(io.BytesIO(content_bytes))
-            content = ""
-            for page in pdf_reader.pages:
-                content += page.extract_text() + "\n"
+            # Extract topic outline using AI with uploaded file
+            planner = CoursePlanner(llm_provider)
+            
+            # Create prompt that references the uploaded file
+            prompt = f"""You are an expert educator analyzing study materials. Extract a clear, hierarchical outline of topics and subtopics from the uploaded file.
+
+**Subject:** {subject or "General"}
+
+**Your Task:**
+Create a structured outline showing:
+1. Main topics (3-8 topics)
+2. Subtopics under each main topic (2-5 subtopics each)
+
+**Output Format:** JSON object with this structure:
+{{
+  "subject": "detected subject name",
+  "total_topics": 5,
+  "outline": [
+    {{
+      "topic": "Main Topic Name",
+      "subtopics": [
+        "Subtopic 1",
+        "Subtopic 2",
+        "Subtopic 3"
+      ]
+    }}
+  ]
+}}
+
+**Requirements:**
+- Base outline ONLY on content in the file
+- Keep topic names concise (max 6 words)
+- Keep subtopic names concise (max 8 words)
+- Logical progression from basic to advanced
+- Return ONLY valid JSON, no markdown blocks
+
+Return the JSON now:"""
+
+            # Generate with file context
+            response = await llm_provider.model.generate_content_async(
+                [uploaded_file, prompt],
+                generation_config=genai.GenerationConfig(
+                    temperature=0.2,
+                )
+            )
+            
+            # Parse JSON response
+            import json
+            json_text = response.text.strip()
+            if json_text.startswith("```json"):
+                json_text = json_text[7:-3].strip()
+            elif json_text.startswith("```"):
+                json_text = json_text[3:-3].strip()
                 
-        elif file.content_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-            # For DOCX, use python-docx
-            import docx
-            import io
+            outline = json.loads(json_text)
             
-            doc = docx.Document(io.BytesIO(content_bytes))
-            content = "\n".join([para.text for para in doc.paragraphs])
+            # Delete uploaded file from Gemini
+            genai.delete_file(uploaded_file.name)
             
-        elif file.content_type in ["audio/mpeg", "video/mp4"]:
-            # For audio/video, return a message that transcription is needed
             return JSONResponse(
                 status_code=status.HTTP_200_OK,
-                content={
-                    "subject": subject or "Media File",
-                    "total_topics": 1,
-                    "outline": [
-                        {
-                            "topic": "Media Content Analysis",
-                            "subtopics": [
-                                "Audio/Video transcription required",
-                                "Upload text-based materials for instant analysis"
-                            ]
-                        }
-                    ],
-                    "message": "Audio and video files require transcription. Please upload text-based materials (PDF, DOCX, TXT) for instant analysis."
-                }
+                content=outline
             )
-        else:
-            content = content_bytes.decode("utf-8", errors="ignore")
             
-    except Exception as e:
-        return JSONResponse(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            content={"error": f"Failed to parse file: {str(e)}"}
-        )
-    
-    # Check if content is empty
-    if not content.strip():
-        return JSONResponse(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            content={"error": "No text content found in file"}
-        )
-    
-    # Extract topic outline using AI
-    try:
-        planner = CoursePlanner(llm_provider)
-        outline = await planner.extract_topic_outline(
-            content=content,
-            subject=subject or "General"
-        )
-        
-        return JSONResponse(
-            status_code=status.HTTP_200_OK,
-            content=outline
-        )
-        
+        finally:
+            # Clean up temp file
+            os.unlink(tmp_path)
+            
     except Exception as e:
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"error": f"Failed to analyze content: {str(e)}"}
         )
+
