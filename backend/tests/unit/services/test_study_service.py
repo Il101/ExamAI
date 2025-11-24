@@ -16,10 +16,14 @@ def mock_review_repo():
 def mock_session_repo():
     return AsyncMock()
 
+@pytest.fixture
+def mock_review_log_repo():
+    return AsyncMock()
+
 
 @pytest.fixture
-def study_service(mock_review_repo, mock_session_repo):
-    return StudyService(mock_review_repo, mock_session_repo)
+def study_service(mock_review_repo, mock_session_repo, mock_review_log_repo):
+    return StudyService(mock_review_repo, mock_session_repo, mock_review_log_repo)
 
 
 @pytest.mark.asyncio
@@ -39,7 +43,7 @@ class TestStudyService:
         assert result[0].question == "Question 1"
         mock_review_repo.list_due_by_user.assert_called_once_with(user_id, 10)
 
-    async def test_submit_review_success(self, study_service, mock_review_repo):
+    async def test_submit_review_success(self, study_service, mock_review_repo, mock_review_log_repo):
         # Arrange
         user_id = uuid4()
         item_id = uuid4()
@@ -58,6 +62,7 @@ class TestStudyService:
             result.state == "learning"
         )  # First review with 3 (Good) -> learning step 1
         mock_review_repo.update.assert_called_once()
+        mock_review_log_repo.add_log.assert_called_once()
 
     async def test_submit_review_not_found(self, study_service, mock_review_repo):
         # Arrange
