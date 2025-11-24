@@ -11,6 +11,7 @@ from app.integrations.llm.gemini import GeminiProvider
 from app.repositories.exam_repository import ExamRepository
 from app.repositories.topic_repository import TopicRepository
 from app.repositories.user_repository import UserRepository
+from app.repositories.review_repository import ReviewItemRepository
 from app.services.agent_service import AgentService
 from app.services.cost_guard_service import CostGuardService
 from app.tasks.celery_app import celery_app
@@ -156,6 +157,7 @@ async def _generate_exam_content_async(
         exam_repo = ExamRepository(session)
         topic_repo = TopicRepository(session)
         user_repo = UserRepository(session)
+        review_repo = ReviewItemRepository(session)
 
         # Get user and exam
         user = await user_repo.get_by_id(user_id)
@@ -175,6 +177,7 @@ async def _generate_exam_content_async(
             agent=agent,
             exam_repo=exam_repo,
             topic_repo=topic_repo,
+            review_repo=review_repo,
             cost_guard=cost_guard,
         )
 
