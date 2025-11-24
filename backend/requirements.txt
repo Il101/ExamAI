@@ -38,6 +38,9 @@ google-auth==2.43.0
 google-auth-httplib2==0.2.1
 googleapis-common-protos==1.72.0
 
+# OpenAI
+openai==2.8.1
+
 # Payment processing
 stripe==14.0.0
 
@@ -62,6 +65,7 @@ hyperframe==6.1.0
 
 # Utilities
 python-dotenv==1.2.1
+python-json-logger==4.0.0
 anyio==4.11.0
 sniffio==1.3.1
 typing_extensions==4.15.0
