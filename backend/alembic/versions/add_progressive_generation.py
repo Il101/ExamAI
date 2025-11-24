@@ -11,7 +11,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = 'add_progressive_gen'
-down_revision = None  # Will be updated after checking latest revision
+down_revision = '06f9376bd0b9'  # add_chat_messages_table
 branch_labels = None
 depends_on = None
 
