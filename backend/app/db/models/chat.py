@@ -2,7 +2,7 @@ from sqlalchemy import Column, String, Text, DateTime, ForeignKey, JSON
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 
-from app.db.base_class import Base
+from app.db.base import Base
 
 
 class ChatMessageModel(Base):
@@ -21,3 +21,4 @@ class ChatMessageModel(Base):
     tool_calls = Column(JSON, nullable=True)
     
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
