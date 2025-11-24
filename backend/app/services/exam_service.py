@@ -210,3 +210,33 @@ class ExamService:
         )
 
         return updated, task.id
+
+    async def create_plan(
+        self, user_id: UUID, exam_id: UUID
+    ) -> Tuple[Exam, str]:
+        """
+        Create topic plan without generating content (progressive generation step 1).
+        
+        Returns:
+            Tuple of (Updated exam, Task ID)
+        """
+        from app.tasks.exam_tasks import create_exam_plan
+        
+        exam = await self.exam_repo.get_by_user_and_id(user_id, exam_id)
+        if not exam:
+            raise ValueError("Exam not found")
+        
+        # Check if can create plan
+        if not exam.can_create_plan():
+            raise ValueError(f"Cannot create plan: status={exam.status}")
+        
+        # Mark as generating (will become 'planned' after task completes)
+        exam.start_generation()
+        updated = await self.exam_repo.update(exam)
+        
+        # Trigger background task to create plan
+        task = create_exam_plan.delay(
+            exam_id=str(exam_id), user_id=str(user_id)
+        )
+        
+        return updated, task.id
