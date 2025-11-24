@@ -1,3 +1,4 @@
+import os
 from typing import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -11,7 +12,7 @@ engine = create_async_engine(
     echo=settings.DEBUG,  # Log SQL in debug mode
     future=True,
     pool_pre_ping=True,  # Check connection before using
-    poolclass=NullPool if settings.ENVIRONMENT == "test" else None,
+    poolclass=NullPool if settings.ENVIRONMENT == "test" or os.getenv("DB_POOL_DISABLE") else None,
 )
 
 # Session factory
