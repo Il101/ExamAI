@@ -15,11 +15,15 @@ class TestStudyServiceAnalytics:
         return AsyncMock()
 
     @pytest.fixture
-    def service(self, mock_review_repo, mock_session_repo):
-        return StudyService(mock_review_repo, mock_session_repo)
+    def mock_review_log_repo(self):
+        return AsyncMock()
+
+    @pytest.fixture
+    def service(self, mock_review_repo, mock_session_repo, mock_review_log_repo):
+        return StudyService(mock_review_repo, mock_session_repo, mock_review_log_repo)
 
     @pytest.mark.asyncio
-    async def test_get_analytics_uses_real_data(self, service, mock_review_repo, mock_session_repo):
+    async def test_get_analytics_uses_real_data(self, service, mock_review_repo, mock_session_repo, mock_review_log_repo):
         # Arrange
         user_id = uuid4()
         today = date.today()
@@ -33,6 +37,10 @@ class TestStudyServiceAnalytics:
         ]
         mock_review_repo.count_total_learned.return_value = 100
         mock_session_repo.get_total_study_minutes.return_value = 500
+        
+        # Mock new analytics calls
+        mock_review_log_repo.get_retention_stats.return_value = []
+        mock_session_repo.get_streak_stats.return_value = (5, 10)
 
         # Act
         analytics = await service.get_analytics(user_id)

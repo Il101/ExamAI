@@ -1,14 +1,26 @@
-from typing import Optional
+from typing import Optional, List
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile, status
 from fastapi.responses import JSONResponse
 import google.generativeai as genai
+from pydantic import BaseModel, Field
 
 from app.agent.planner import CoursePlanner
 from app.dependencies import get_llm_provider
 from app.integrations.llm.base import LLMProvider
 
 router = APIRouter()
+
+
+# Define schemas for structured output
+class SubtopicSchema(BaseModel):
+    topic: str = Field(..., description="Main topic name")
+    subtopics: List[str] = Field(..., description="List of subtopics")
+
+class OutlineSchema(BaseModel):
+    subject: str = Field(..., description="Detected subject name")
+    total_topics: int = Field(..., description="Total number of topics")
+    outline: List[SubtopicSchema] = Field(..., description="List of topics and subtopics")
 
 
 @router.post("/content", status_code=status.HTTP_200_OK)
@@ -75,9 +87,6 @@ async def analyze_content(
             # Upload to Gemini
             uploaded_file = genai.upload_file(tmp_path, mime_type=file.content_type)
             
-            # Extract topic outline using AI with uploaded file
-            planner = CoursePlanner(llm_provider)
-            
             # Create prompt that references the uploaded file
             prompt = f"""You are an expert educator analyzing study materials. Extract a clear, hierarchical outline of topics and subtopics from the uploaded file.
 
@@ -88,42 +97,27 @@ Create a structured outline showing:
 1. Main topics (3-8 topics)
 2. Subtopics under each main topic (2-5 subtopics each)
 
-**Output Format:** JSON object with this structure:
-{{
-  "subject": "detected subject name",
-  "total_topics": 5,
-  "outline": [
-    {{
-      "topic": "Main Topic Name",
-      "subtopics": [
-        "Subtopic 1",
-        "Subtopic 2",
-        "Subtopic 3"
-      ]
-    }}
-  ]
-}}
-
 **Requirements:**
 - Base outline ONLY on content in the file
 - Keep topic names concise (max 6 words)
 - Keep subtopic names concise (max 8 words)
 - Logical progression from basic to advanced
-- Return ONLY valid JSON, no markdown blocks
+"""
 
-Return the JSON now:"""
-
-            # Generate with file context
+            # Generate with file context and structured output
             response = await llm_provider.model.generate_content_async(
                 [uploaded_file, prompt],
                 generation_config=genai.GenerationConfig(
                     temperature=0.2,
+                    response_mime_type="application/json",
+                    response_schema=OutlineSchema
                 )
             )
             
             # Parse JSON response
             import json
             json_text = response.text.strip()
+            # Gemini with response_schema returns raw JSON, no markdown blocks usually, but we play safe
             if json_text.startswith("```json"):
                 json_text = json_text[7:-3].strip()
             elif json_text.startswith("```"):

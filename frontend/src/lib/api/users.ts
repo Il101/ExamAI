@@ -22,4 +22,8 @@ export const usersApi = {
     changePassword: async (data: ChangePasswordRequest): Promise<void> => {
         await api.post('/users/change-password', data);
     },
+
+    deleteAccount: async (): Promise<void> => {
+        await api.delete('/users/me');
+    },
 };

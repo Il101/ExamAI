@@ -15,6 +15,9 @@ from app.schemas.analytics import (
 )
 
 
+from app.domain.review_log import ReviewLog
+from app.repositories.review_log_repository import ReviewLogRepository
+
 class StudyService:
     """
     Service for spaced repetition and study sessions.
@@ -22,10 +25,14 @@ class StudyService:
     """
 
     def __init__(
-        self, review_repo: ReviewItemRepository, session_repo: StudySessionRepository
+        self, 
+        review_repo: ReviewItemRepository, 
+        session_repo: StudySessionRepository,
+        review_log_repo: ReviewLogRepository
     ):
         self.review_repo = review_repo
         self.session_repo = session_repo
+        self.review_log_repo = review_log_repo
 
     # Review Items
 
@@ -70,6 +77,19 @@ class StudyService:
 
         # Save updated item
         updated = await self.review_repo.update(item)
+        
+        # Create Review Log
+        log = ReviewLog(
+            user_id=user_id,
+            review_item_id=review_item_id,
+            rating=quality,
+            review_time=datetime.utcnow(),
+            interval_days=item.elapsed_days,
+            scheduled_days=item.scheduled_days,
+            stability=item.stability,
+            difficulty=item.difficulty
+        )
+        await self.review_log_repo.add_log(log)
 
         return updated
 
@@ -86,14 +106,13 @@ class StudyService:
             }
         """
         reviews_due = await self.review_repo.count_due_by_user(user_id)
-        # Note: We would need more complex queries for "success_rate" and "streak_days"
-        # derived from a log table. For now we return placeholders or partial data.
+        current_streak, _ = await self.session_repo.get_streak_stats(user_id)
 
         return {
-            "total_reviews": 0,  # Placeholder until ReviewLog is implemented
+            "total_reviews": 0,  # Placeholder until we add total count to log repo if needed
             "reviews_due": reviews_due,
             "success_rate": 0.0,
-            "streak_days": 0,
+            "streak_days": current_streak,
         }
 
     async def get_analytics(self, user_id: UUID) -> AnalyticsResponse:
@@ -126,16 +145,19 @@ class StudyService:
                 )
             )
 
-        # 2. Retention Curve (Simplified/Mock for now as we lack full history)
-        # A real implementation requires calculating retention over time buckets from ReviewLogs.
-        # We will keep a placeholder structure but ideally this should be calculated.
-        retention_curve = [
-            RetentionPoint(days_since_review=1, retention_rate=1.0),
-            RetentionPoint(days_since_review=3, retention_rate=0.9),
-            RetentionPoint(days_since_review=7, retention_rate=0.75),
-            RetentionPoint(days_since_review=14, retention_rate=0.6),
-            RetentionPoint(days_since_review=30, retention_rate=0.45),
-        ]
+        # 2. Retention Curve
+        retention_curve = await self.review_log_repo.get_retention_stats(user_id)
+        
+        # If no data, provide empty or default? 
+        # The repo returns defaults if empty buckets, but let's ensure we have the structure
+        if not retention_curve:
+             retention_curve = [
+                RetentionPoint(days_since_review=1, retention_rate=1.0),
+                RetentionPoint(days_since_review=3, retention_rate=0.9),
+                RetentionPoint(days_since_review=7, retention_rate=0.75),
+                RetentionPoint(days_since_review=14, retention_rate=0.6),
+                RetentionPoint(days_since_review=30, retention_rate=0.45),
+            ]
 
         # 3. Activity Heatmap (Last 30 days)
         heatmap_data = await self.review_repo.get_daily_activity(user_id, days=30)
@@ -157,6 +179,9 @@ class StudyService:
         # 4. Aggregates
         total_learned = await self.review_repo.count_total_learned(user_id)
         total_minutes = await self.session_repo.get_total_study_minutes(user_id)
+        
+        # Streaks
+        current_streak, longest_streak = await self.session_repo.get_streak_stats(user_id)
 
         return AnalyticsResponse(
             daily_progress=daily_progress,
@@ -164,8 +189,8 @@ class StudyService:
             activity_heatmap=activity_heatmap,
             total_cards_learned=total_learned,
             total_minutes_studied=total_minutes,
-            current_streak=0, # Streaks require consecutive day logic, skipping for brevity
-            longest_streak=0,
+            current_streak=current_streak,
+            longest_streak=longest_streak,
         )
 
     # Study Sessions

@@ -62,11 +62,14 @@ class CoursePlanner:
         prompt = self._build_planning_prompt(state)
 
         print(f"[Planner] Calling LLM to generate plan for {state.subject}...")
-        # Call LLM - use JSON mode without strict schema to avoid API errors
+        
+        # Call LLM with structured output schema
+        # We pass the Pydantic model directly
         response = await self.llm.generate(
             prompt=prompt,
             temperature=0.3,
-            system_prompt="You are an expert educator creating study plans. Always respond with valid JSON only.",
+            system_prompt="You are an expert educator creating study plans.",
+            response_schema=StudyPlanSchema,
         )
         print(
             f"[Planner] LLM response received. Tokens: {response.tokens_input}/{response.tokens_output}"
@@ -104,7 +107,7 @@ class CoursePlanner:
 - If materials are incomplete, acknowledge this in topic descriptions
 """
 
-        # Build prompt with escaped braces for JSON example
+        # Build prompt - simplified for Structured Output
         prompt = f"""You are an experienced educator. Your task is to create a structured study plan for exam preparation based on PROVIDED MATERIALS ONLY.
 
 **Input Parameters:**
@@ -132,39 +135,14 @@ class CoursePlanner:
 - If materials are organizational/introductory, reflect that in your plan
 - Progress logically based on actual content structure
 - Each topic must be verifiable from the provided text
-
-**Output Format:** JSON object with a "steps" key containing the array of topics.
-
-**Example Structure:**
-{{
-  "steps": [
-    {{
-      "id": 1,
-      "title": "Derivative of a Function",
-      "description": "Definition of derivative, geometric interpretation, differentiation rules for basic functions.",
-      "priority": 1,
-      "estimated_paragraphs": 5,
-      "dependencies": []
-    }},
-    {{
-      "id": 2,
-      "title": "Chain Rule",
-      "description": "Chain rule for composite functions, examples and applications.",
-      "priority": 1,
-      "estimated_paragraphs": 4,
-      "dependencies": [1]
-    }}
-  ]
-}}
-
-Return ONLY valid JSON, no markdown code blocks, no explanations."""
+"""
 
         return prompt
 
     def _parse_plan_response(self, response_text: str) -> List[PlanStep]:
         """Parse JSON response into PlanStep objects with Pydantic validation"""
 
-        # Clean response (remove markdown code blocks if present)
+        # Clean response (remove markdown code blocks if present - just in case)
         json_text = response_text.strip()
 
         if json_text.startswith("```json"):
@@ -180,10 +158,12 @@ Return ONLY valid JSON, no markdown code blocks, no explanations."""
             )
 
         # Handle wrapped response (from structured output)
+        # Gemini usually returns the object directly matching the schema
         if isinstance(plan_data, dict) and "steps" in plan_data:
             plan_data = plan_data["steps"]
 
         if not isinstance(plan_data, list):
+            # If schema was respected, this shouldn't happen unless schema is wrong
             raise ValueError("Plan must be a JSON array or object with 'steps' array")
 
         # Validate with Pydantic and convert to PlanStep objects
@@ -251,6 +231,21 @@ Return ONLY valid JSON, no markdown code blocks, no explanations."""
             Dict with topics and subtopics structure
         """
         
+        # Define schema for outline
+        # We define it inline or use a Pydantic model. 
+        # For simplicity in this method, let's use a Pydantic model if we want structured output,
+        # but since this method returns a dict, we can just define the structure.
+        
+        # Let's define a local schema for this specific task
+        class SubtopicSchema(BaseModel):
+            topic: str = Field(..., description="Main topic name")
+            subtopics: List[str] = Field(..., description="List of subtopics")
+
+        class OutlineSchema(BaseModel):
+            subject: str = Field(..., description="Detected subject name")
+            total_topics: int = Field(..., description="Total number of topics")
+            outline: List[SubtopicSchema] = Field(..., description="List of topics and subtopics")
+
         prompt = f"""You are an expert educator analyzing study materials. Extract a clear, hierarchical outline of topics and subtopics.
 
 **Study Material:**
@@ -265,36 +260,21 @@ Create a structured outline showing:
 1. Main topics (3-8 topics)
 2. Subtopics under each main topic (2-5 subtopics each)
 
-**Output Format:** JSON object with this structure:
-{{
-  "subject": "detected subject name",
-  "total_topics": 5,
-  "outline": [
-    {{
-      "topic": "Main Topic Name",
-      "subtopics": [
-        "Subtopic 1",
-        "Subtopic 2",
-        "Subtopic 3"
-      ]
-    }}
-  ]
-}}
-
 **Requirements:**
 - Base outline ONLY on content provided
 - Keep topic names concise (max 6 words)
 - Keep subtopic names concise (max 8 words)
 - Logical progression from basic to advanced
-- Return ONLY valid JSON, no markdown blocks
-
-Return the JSON now:"""
+"""
 
         print(f"[Planner] Extracting topic outline for {subject}...")
+        
+        # Use structured output
         response = await self.llm.generate(
             prompt=prompt,
             temperature=0.2,
-            system_prompt="You are an expert educator. Always respond with valid JSON only.",
+            system_prompt="You are an expert educator.",
+            response_schema=OutlineSchema,
         )
         
         # Parse JSON response
@@ -310,4 +290,5 @@ Return the JSON now:"""
             return outline
         except json.JSONDecodeError as e:
             raise ValueError(f"Failed to parse outline JSON: {str(e)}")
+
 

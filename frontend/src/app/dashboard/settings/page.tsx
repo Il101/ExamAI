@@ -9,13 +9,37 @@ import { toast } from 'sonner';
 import { User, Lock, Bell, Trash2 } from 'lucide-react';
 import { ProfileForm } from '@/components/settings/profile-form';
 import { PasswordForm } from '@/components/settings/password-form';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { useState } from 'react';
+import { usersApi } from '@/lib/api/users';
+import { useRouter } from 'next/navigation';
 
 export default function SettingsPage() {
-    const { user } = useAuth();
+    const { user, logout } = useAuth();
+    const router = useRouter();
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
 
-    const handleDeleteAccount = () => {
-        if (confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
-            toast.error('Account deletion is not yet implemented');
+    const handleDeleteAccount = async () => {
+        try {
+            setIsDeleting(true);
+            await usersApi.deleteAccount();
+            toast.success('Account deleted successfully');
+            await logout();
+            router.push('/');
+        } catch (error) {
+            console.error('Failed to delete account:', error);
+            toast.error('Failed to delete account. Please try again.');
+        } finally {
+            setIsDeleting(false);
+            setIsDeleteDialogOpen(false);
         }
     };
 
@@ -71,7 +95,7 @@ export default function SettingsPage() {
                                 </div>
                                 <Button
                                     variant="destructive"
-                                    onClick={handleDeleteAccount}
+                                    onClick={() => setIsDeleteDialogOpen(true)}
                                     className="ml-4"
                                 >
                                     <Trash2 className="h-4 w-4 mr-2" />
@@ -136,6 +160,34 @@ export default function SettingsPage() {
                     </Card>
                 </TabsContent>
             </Tabs>
+
+            <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Are you absolutely sure?</DialogTitle>
+                        <DialogDescription>
+                            This action cannot be undone. This will permanently delete your account
+                            and remove all your learning materials, exams, and progress from our servers.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setIsDeleteDialogOpen(false)}
+                            disabled={isDeleting}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={handleDeleteAccount}
+                            disabled={isDeleting}
+                        >
+                            {isDeleting ? 'Deleting...' : 'Delete Account'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

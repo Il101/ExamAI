@@ -12,6 +12,7 @@ from app.integrations.llm.base import LLMProvider
 from app.integrations.llm.gemini import GeminiProvider
 from app.integrations.llm.openai import OpenAIProvider
 from app.repositories.exam_repository import ExamRepository
+from app.repositories.chat_repository import ChatMessageRepository
 from app.repositories.review_repository import ReviewItemRepository
 from app.repositories.study_session_repository import StudySessionRepository
 from app.repositories.subscription_repository import SubscriptionRepository
@@ -29,6 +30,7 @@ from app.services.prompt_service import PromptService
 from app.services.study_service import StudyService
 from app.services.stripe_service import StripeService
 from app.services.subscription_service import SubscriptionService
+from app.services.tutor_service import TutorService
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_PREFIX}/auth/login")
 
@@ -63,6 +65,12 @@ async def get_subscription_repo(
     session: AsyncSession = Depends(get_db),
 ) -> SubscriptionRepository:
     return SubscriptionRepository(session)
+
+
+async def get_chat_repo(
+    session: AsyncSession = Depends(get_db),
+) -> ChatMessageRepository:
+    return ChatMessageRepository(session)
 
 
 # --- Core Services ---
@@ -135,16 +143,26 @@ async def get_agent_service(
     agent: PlanAndExecuteAgent = Depends(get_agent),
     exam_repo: ExamRepository = Depends(get_exam_repo),
     topic_repo: TopicRepository = Depends(get_topic_repo),
+    review_repo: ReviewItemRepository = Depends(get_review_repo),
     cost_guard: CostGuardService = Depends(get_cost_guard_service),
 ) -> AgentService:
-    return AgentService(agent, exam_repo, topic_repo, cost_guard)
+    return AgentService(agent, exam_repo, topic_repo, review_repo, cost_guard)
+
+
+from app.repositories.review_log_repository import ReviewLogRepository
+
+async def get_review_log_repo(
+    session: AsyncSession = Depends(get_db),
+) -> ReviewLogRepository:
+    return ReviewLogRepository(session)
 
 
 async def get_study_service(
     review_repo: ReviewItemRepository = Depends(get_review_repo),
     session_repo: StudySessionRepository = Depends(get_study_session_repo),
+    review_log_repo: ReviewLogRepository = Depends(get_review_log_repo),
 ) -> StudyService:
-    return StudyService(review_repo, session_repo)
+    return StudyService(review_repo, session_repo, review_log_repo)
 
 
 async def get_subscription_service(
@@ -153,6 +171,16 @@ async def get_subscription_service(
 ) -> SubscriptionService:
     """Get subscription service"""
     return SubscriptionService(subscription_repo, stripe_service)
+
+
+async def get_tutor_service(
+    llm_provider: GeminiProvider = Depends(get_llm_provider),
+    chat_repo: ChatMessageRepository = Depends(get_chat_repo),
+    topic_repo: TopicRepository = Depends(get_topic_repo),
+    review_repo: ReviewItemRepository = Depends(get_review_repo),
+) -> TutorService:
+    """Get AI tutor service"""
+    return TutorService(llm_provider, chat_repo, topic_repo, review_repo)
 
 
 # --- Auth Dependencies ---

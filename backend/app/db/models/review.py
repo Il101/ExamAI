@@ -11,6 +11,7 @@ from app.db.base import Base
 if TYPE_CHECKING:
     from .topic import TopicModel
     from .user import UserModel
+    from .review_log import ReviewLogModel
 
 
 class ReviewItemModel(Base):
@@ -63,6 +64,10 @@ class ReviewItemModel(Base):
         "TopicModel", back_populates="review_items"
     )
     user: Mapped["UserModel"] = relationship("UserModel", back_populates="review_items")
+
+    logs: Mapped[list["ReviewLogModel"]] = relationship(
+        "ReviewLogModel", back_populates="review_item", cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         return f"<ReviewItemModel(id={self.id}, next_review={self.next_review_date})>"
