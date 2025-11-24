@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     API_V1_PREFIX: str = "/api/v1"
     ALLOWED_ORIGINS: List[str] = [
         "http://localhost:3000",
+        "https://exam-ai-hzzw-5wcpiuwsd-ilias-projects-774295b7.vercel.app",
         "https://exam-ai-hzzw-oy52erqht-ilias-projects-774295b7.vercel.app"
     ]
 
