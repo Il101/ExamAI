@@ -4,8 +4,8 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.dependencies import get_current_active_user, get_db
-from app.dependencies import get_topic_repo
+from app.db.session import get_db
+from app.dependencies import get_current_active_user, get_topic_repo
 from app.domain.user import User
 from app.repositories.topic_repository import TopicRepository
 from app.schemas.topic import TopicResponse
