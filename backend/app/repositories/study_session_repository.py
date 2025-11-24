@@ -108,3 +108,57 @@ class StudySessionRepository(BaseRepository[StudySession, StudySessionModel]):
 
         result = await self.session.execute(stmt)
         return result.scalar() or 0
+
+    async def get_streak_stats(self, user_id: UUID) -> tuple[int, int]:
+        """
+        Calculate current and longest streak of study sessions.
+        Returns (current_streak, longest_streak)
+        """
+        # Get all distinct dates where user had a study session
+        stmt = (
+            select(func.date(StudySessionModel.started_at).label("study_date"))
+            .where(StudySessionModel.user_id == user_id)
+            .group_by("study_date")
+            .order_by("study_date")
+        )
+        
+        result = await self.session.execute(stmt)
+        dates = [row.study_date for row in result]
+        
+        if not dates:
+            return 0, 0
+            
+        # Calculate streaks
+        current_streak = 0
+        longest_streak = 0
+        temp_streak = 0
+        
+        # Check if user studied today or yesterday to keep current streak alive
+        today = datetime.utcnow().date()
+        yesterday = today - timedelta(days=1)
+        
+        last_date = None
+        
+        for d in dates:
+            if last_date:
+                diff = (d - last_date).days
+                if diff == 1:
+                    temp_streak += 1
+                elif diff > 1:
+                    longest_streak = max(longest_streak, temp_streak)
+                    temp_streak = 1
+            else:
+                temp_streak = 1
+            last_date = d
+            
+        longest_streak = max(longest_streak, temp_streak)
+        
+        # Determine current streak
+        # If last study date was today or yesterday, current streak is the temp_streak at the end
+        # Otherwise it's 0
+        if last_date == today or last_date == yesterday:
+            current_streak = temp_streak
+        else:
+            current_streak = 0
+            
+        return current_streak, longest_streak

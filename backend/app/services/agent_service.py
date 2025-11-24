@@ -2,10 +2,13 @@ from typing import Awaitable, Callable, Optional
 from uuid import UUID
 
 from app.agent.orchestrator import PlanAndExecuteAgent
+from app.agent.quiz_generator import QuizGenerator
 from app.domain.exam import Exam
+from app.domain.review import ReviewItem
 from app.domain.topic import Topic
 from app.domain.user import User
 from app.repositories.exam_repository import ExamRepository
+from app.repositories.review_repository import ReviewItemRepository
 from app.repositories.topic_repository import TopicRepository
 from app.services.cost_guard_service import CostGuardService
 
@@ -21,12 +24,15 @@ class AgentService:
         agent: PlanAndExecuteAgent,
         exam_repo: ExamRepository,
         topic_repo: TopicRepository,
+        review_repo: ReviewItemRepository,
         cost_guard: CostGuardService,
     ):
         self.agent = agent
         self.exam_repo = exam_repo
         self.topic_repo = topic_repo
+        self.review_repo = review_repo
         self.cost_guard = cost_guard
+        self.quiz_generator = QuizGenerator(agent.llm)
 
     async def generate_exam_content(
         self,
@@ -99,7 +105,7 @@ class AgentService:
                 cost=state.total_cost_usd,
             )
 
-            # Save topics
+            # Save topics and generate quizzes
             for i, plan_step in enumerate(state.plan):
                 result = state.results.get(plan_step.id)
                 content = result.content if result and result.success else ""
@@ -113,7 +119,28 @@ class AgentService:
                     difficulty_level=plan_step.priority.value,
                 )
                 topic.estimate_study_time()
-                await self.topic_repo.create(topic)
+                created_topic = await self.topic_repo.create(topic)
+                
+                # Generate Flashcards for this topic
+                if content and len(content) > 100:
+                    try:
+                        if progress_callback:
+                            await progress_callback(f"Generating flashcards for {plan_step.title}...", 0.9)
+                            
+                        flashcards = await self.quiz_generator.generate_flashcards(content, num_cards=3)
+                        
+                        for card in flashcards:
+                            review_item = ReviewItem(
+                                topic_id=created_topic.id,
+                                user_id=user.id,
+                                question=card.front,
+                                answer=card.back
+                            )
+                            await self.review_repo.create(review_item)
+                            
+                    except Exception as e:
+                        print(f"Failed to generate flashcards for topic {plan_step.title}: {e}")
+                        # Don't fail the whole exam generation if quiz fails
 
             exam.update_topic_count(len(state.plan))
 

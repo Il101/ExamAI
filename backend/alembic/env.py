@@ -20,6 +20,7 @@ from app.db.models.topic import TopicModel
 from app.db.models.review import ReviewItemModel
 from app.db.models.study_session import StudySessionModel
 from app.db.models.subscription import SubscriptionModel
+from app.db.models.review_log import ReviewLogModel
 
 
 config = context.config

@@ -5,6 +5,7 @@ from app.api.v1.endpoints import (
     analytics,
     analyze,
     auth,
+    chat,
     exams,
     health,
     reviews,
@@ -36,4 +37,6 @@ api_router.include_router(
 api_router.include_router(webhooks.router, prefix="/webhooks", tags=["Webhooks"])
 api_router.include_router(tasks.router, prefix="/tasks", tags=["Tasks"])
 api_router.include_router(analyze.router, prefix="/analyze", tags=["Content Analysis"])
+api_router.include_router(chat.router, prefix="/chat", tags=["AI Tutor Chat"])
+
 

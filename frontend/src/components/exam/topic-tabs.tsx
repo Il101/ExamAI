@@ -40,9 +40,10 @@ export function TopicTabs({ topics }: TopicTabsProps) {
 
             {topics.map((topic) => (
                 <TabsContent key={topic.id} value={topic.id}>
-                    <TopicContent title={topic.title} notes={topic.notes} />
+                    <TopicContent topicId={topic.id} title={topic.title} notes={topic.notes} />
                 </TabsContent>
             ))}
         </Tabs>
     );
 }
+

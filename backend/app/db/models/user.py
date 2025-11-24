@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from .study_session import StudySessionModel
     from .subscription import SubscriptionModel
     from .topic import TopicModel
+    from .review_log import ReviewLogModel
 
 
 class UserModel(Base):
@@ -75,6 +76,10 @@ class UserModel(Base):
 
     subscriptions: Mapped[list["SubscriptionModel"]] = relationship(
         "SubscriptionModel", back_populates="user", cascade="all, delete-orphan"
+    )
+
+    review_logs: Mapped[list["ReviewLogModel"]] = relationship(
+        "ReviewLogModel", back_populates="user", cascade="all, delete-orphan"
     )
 
     def __repr__(self) -> str:

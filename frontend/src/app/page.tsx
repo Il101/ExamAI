@@ -560,10 +560,9 @@ export default function Index() {
             </div>
 
             <div className="flex gap-8 text-sm text-muted-foreground">
-              <a href="#" className="hover:text-foreground transition-colors hover:scale-110 inline-block">About</a>
-              <a href="#" className="hover:text-foreground transition-colors hover:scale-110 inline-block">Blog</a>
-              <a href="#" className="hover:text-foreground transition-colors hover:scale-110 inline-block">Support</a>
-              <a href="#" className="hover:text-foreground transition-colors hover:scale-110 inline-block">Privacy</a>
+              <Link href="/impressum" className="hover:text-foreground transition-colors hover:scale-110 inline-block">Impressum</Link>
+              <Link href="/privacy" className="hover:text-foreground transition-colors hover:scale-110 inline-block">Privacy Policy</Link>
+              <Link href="/terms" className="hover:text-foreground transition-colors hover:scale-110 inline-block">Terms</Link>
             </div>
           </div>
 

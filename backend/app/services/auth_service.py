@@ -289,3 +289,28 @@ class AuthService:
             self.supabase.auth.update_user({"password": new_password})
         except Exception as e:
             raise ValueError(f"Failed to reset password: {str(e)}")
+
+    async def delete_user(self, user_id: UUID) -> None:
+        """
+        Delete user from Supabase Auth and local DB.
+        
+        Args:
+            user_id: The UUID of the user to delete
+            
+        Raises:
+            ValueError: If deletion fails
+        """
+        try:
+            # 1. Delete from Supabase Auth
+            # We need to use the admin API which requires the service_role key
+            # The client initialized in __init__ should have this key if configured correctly
+            self.supabase.auth.admin.delete_user(str(user_id))
+            
+            # 2. Delete from local DB
+            # We can use the repository to delete the user
+            # Note: This assumes cascading deletes are set up in the DB for related records
+            # If not, we might need to delete related records first
+            await self.user_repo.delete(user_id)
+            
+        except Exception as e:
+            raise ValueError(f"Failed to delete user: {str(e)}")
