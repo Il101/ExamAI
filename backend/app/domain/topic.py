@@ -1,7 +1,7 @@
 # backend/app/domain/topic.py
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Literal
+from typing import Literal, Optional
 from uuid import UUID, uuid4
 
 DifficultyLevel = Literal[1, 2, 3, 4, 5]
