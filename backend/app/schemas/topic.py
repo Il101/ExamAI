@@ -10,6 +10,7 @@ class TopicResponse(BaseModel):
     exam_id: UUID
     topic_name: str
     content: Optional[str]
+    status: str = "pending"  # pending, generating, ready, failed
     order_index: int
     difficulty_level: Optional[int] = None
     estimated_study_minutes: Optional[int] = None
