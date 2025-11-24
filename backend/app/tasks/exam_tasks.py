@@ -9,7 +9,6 @@ from app.core.config import settings
 from app.db.session import AsyncSessionLocal
 from app.integrations.llm.gemini import GeminiProvider
 from app.repositories.exam_repository import ExamRepository
-from app.repositories.llm_usage_log_repository import LLMUsageLogRepository
 from app.repositories.topic_repository import TopicRepository
 from app.repositories.user_repository import UserRepository
 from app.repositories.review_repository import ReviewItemRepository
@@ -283,7 +282,7 @@ async def _create_exam_plan_async(exam_id: UUID, user_id: UUID) -> int:
             raise ValueError(f"User {user_id} not found")
         
         llm_provider = get_llm_provider()
-        cost_guard = CostGuardService(UserRepository(session), LLMUsageLogRepository(session))
+        cost_guard = CostGuardService(session)
         
         estimated_cost = llm_provider.calculate_cost(5000, 5000)
         budget_check = await cost_guard.check_budget(user, estimated_cost)
@@ -325,11 +324,13 @@ async def _create_exam_plan_async(exam_id: UUID, user_id: UUID) -> int:
         await exam_repo.update(exam)
         
         await cost_guard.log_usage(
-            user=user,
-            tokens_input=state.total_tokens_used // 2,
-            tokens_output=state.total_tokens_used // 2,
-            cost_usd=state.total_cost_usd,
+            user_id=user.id,
+            model_name=settings.GEMINI_MODEL,
+            provider="gemini",
             operation_type="plan_creation",
+            input_tokens=state.total_tokens_used // 2,
+            output_tokens=state.total_tokens_used // 2,
+            cost_usd=state.total_cost_usd,
         )
         
         await session.commit()
@@ -377,7 +378,7 @@ async def _generate_topic_content_async(topic_id: UUID, user_id: UUID):
         user = await user_repo.get_by_id(user_id)
         
         llm_provider = get_llm_provider()
-        cost_guard = CostGuardService(UserRepository(session), LLMUsageLogRepository(session))
+        cost_guard = CostGuardService(session)
         
         from app.agent.executor import TopicExecutor
         from app.agent.state import AgentState, PlanStep
@@ -410,11 +411,13 @@ async def _generate_topic_content_async(topic_id: UUID, user_id: UUID):
         await topic_repo.update(topic)
         
         await cost_guard.log_usage(
-            user=user,
-            tokens_input=state.total_tokens_used // 2,
-            tokens_output=state.total_tokens_used // 2,
-            cost_usd=state.total_cost_usd,
+            user_id=user.id,
+            model_name=settings.GEMINI_MODEL,
+            provider="gemini",
             operation_type="topic_generation",
+            input_tokens=state.total_tokens_used // 2,
+            output_tokens=state.total_tokens_used // 2,
+            cost_usd=state.total_cost_usd,
         )
         
         await session.commit()

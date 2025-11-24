@@ -29,15 +29,20 @@ class TestAgentService:
         return AsyncMock()
 
     @pytest.fixture
+    def mock_review_repo(self):
+        return AsyncMock()
+
+    @pytest.fixture
     def mock_cost_guard(self):
         return AsyncMock()
 
     @pytest.fixture
-    def service(self, mock_agent, mock_exam_repo, mock_topic_repo, mock_cost_guard):
+    def service(self, mock_agent, mock_exam_repo, mock_topic_repo, mock_review_repo, mock_cost_guard):
         return AgentService(
             agent=mock_agent,
             exam_repo=mock_exam_repo,
             topic_repo=mock_topic_repo,
+            review_repo=mock_review_repo,
             cost_guard=mock_cost_guard,
         )
 
