@@ -68,6 +68,21 @@ if url:
 # Run the migration function
 run_migrations
 
+# Start Celery worker in the background
+echo "Starting Celery worker..."
+celery -A app.tasks.celery_app worker --loglevel=info --concurrency=2 &
+CELERY_PID=$!
+echo "Celery worker started with PID: $CELERY_PID"
+
+# Function to handle shutdown gracefully
+shutdown() {
+    echo "Shutting down..."
+    kill $CELERY_PID 2>/dev/null
+    exit 0
+}
+
+trap shutdown SIGTERM SIGINT
+
 # Start the application
 # Use the PORT environment variable if available, otherwise default to 8000
 PORT=${PORT:-8000}
