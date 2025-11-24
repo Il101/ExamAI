@@ -1,5 +1,7 @@
+from typing import cast
+
 from app.db.models.topic import TopicModel
-from app.domain.topic import Topic
+from app.domain.topic import Topic, TopicStatus
 
 
 class TopicMapper:
@@ -14,9 +16,13 @@ class TopicMapper:
             user_id=model.user_id,
             topic_name=model.topic_name,
             content=model.content,
+            file_context=model.file_context,
+            status=cast(TopicStatus, model.status),
             order_index=model.order_index,
+            generation_priority=model.generation_priority,
             difficulty_level=model.difficulty_level,
             created_at=model.created_at,
+            updated_at=model.updated_at,
             estimated_study_minutes=model.estimated_study_minutes,
         )
 
@@ -29,8 +35,12 @@ class TopicMapper:
             user_id=entity.user_id,
             topic_name=entity.topic_name,
             content=entity.content,
+            file_context=entity.file_context,
+            status=entity.status,
             order_index=entity.order_index,
+            generation_priority=entity.generation_priority,
             difficulty_level=entity.difficulty_level,
             created_at=entity.created_at,
+            updated_at=entity.updated_at,
             estimated_study_minutes=entity.estimated_study_minutes,
         )

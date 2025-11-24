@@ -5,6 +5,7 @@ from typing import Literal
 from uuid import UUID, uuid4
 
 DifficultyLevel = Literal[1, 2, 3, 4, 5]
+TopicStatus = Literal["pending", "generating", "ready", "failed"]
 
 
 @dataclass
@@ -21,9 +22,12 @@ class Topic:
     # Content
     topic_name: str = ""
     content: str = ""  # Generated AI content
+    file_context: Optional[str] = None  # Relevant file chunk for this topic
 
     # Metadata
+    status: TopicStatus = "pending"  # Generation status
     order_index: int = 0  # Position in exam structure
+    generation_priority: int = 0  # Lower = higher priority
     difficulty_level: DifficultyLevel = 3  # 1=easy, 5=hard
 
     created_at: datetime = field(default_factory=datetime.utcnow)
@@ -40,13 +44,43 @@ class Topic:
         if not self.topic_name or len(self.topic_name.strip()) < 2:
             raise ValueError("Topic name must be at least 2 characters")
 
-        if not self.content or len(self.content.strip()) < 50:
-            raise ValueError("Topic content must be at least 50 characters")
+        # Content validation only for ready topics
+        if self.status == "ready" and (not self.content or len(self.content.strip()) < 50):
+            raise ValueError("Ready topic must have content (at least 50 characters)")
 
         if not 1 <= self.difficulty_level <= 5:
             raise ValueError("Difficulty must be between 1 and 5")
 
     # Business logic
+    
+    def can_generate(self) -> bool:
+        """Check if topic can start generation"""
+        return self.status in ["pending", "failed"]
+    
+    def start_generation(self):
+        """Mark topic as generating"""
+        if not self.can_generate():
+            raise ValueError(f"Cannot start generation: status={self.status}")
+        
+        self.status = "generating"
+        self.updated_at = datetime.utcnow()
+    
+    def mark_as_ready(self, content: str):
+        """Mark topic as ready with generated content"""
+        if self.status != "generating":
+            raise ValueError("Can only mark generating topics as ready")
+        
+        self.content = content
+        self.status = "ready"
+        self.updated_at = datetime.utcnow()
+    
+    def mark_as_failed(self, error_message: Optional[str] = None):
+        """Mark topic generation as failed"""
+        if self.status != "generating":
+            raise ValueError("Can only mark generating topics as failed")
+        
+        self.status = "failed"
+        self.updated_at = datetime.utcnow()
 
     def estimate_study_time(self) -> int:
         """

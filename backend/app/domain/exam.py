@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Literal, Optional
 from uuid import UUID, uuid4
 
-ExamStatus = Literal["draft", "generating", "ready", "failed", "archived"]
+ExamStatus = Literal["draft", "planned", "generating", "ready", "failed", "archived"]
 ExamType = Literal["oral", "written", "test"]
 ExamLevel = Literal["school", "bachelor", "master", "phd"]
 
@@ -31,6 +31,7 @@ class Exam:
 
     # Metadata
     status: ExamStatus = "draft"
+    plan_ready_at: Optional[datetime] = None  # When plan was created
     created_at: datetime = field(default_factory=datetime.utcnow)
     updated_at: datetime = field(default_factory=datetime.utcnow)
 
@@ -61,7 +62,20 @@ class Exam:
     def can_generate(self) -> bool:
         """Check if exam can start generation"""
         return self.status in ["draft", "failed"] and len(self.original_content) >= 100
+    
+    def can_create_plan(self) -> bool:
+        """Check if exam can create plan"""
+        return self.status == "draft" and len(self.original_content) >= 100
 
+    def mark_as_planned(self):
+        """Mark exam as planned (topics created, ready for generation)"""
+        if not self.can_create_plan():
+            raise ValueError(f"Cannot create plan: status={self.status}")
+        
+        self.status = "planned"
+        self.plan_ready_at = datetime.utcnow()
+        self.updated_at = datetime.utcnow()
+    
     def start_generation(self):
         """Mark exam as generating"""
         if not self.can_generate():

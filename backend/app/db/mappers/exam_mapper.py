@@ -20,6 +20,7 @@ class ExamMapper:
             original_content=model.original_content,
             ai_summary=model.ai_summary,
             status=cast(ExamStatus, model.status),
+            plan_ready_at=model.plan_ready_at,
             created_at=model.created_at,
             updated_at=model.updated_at,
             token_count_input=model.token_count_input,
@@ -41,6 +42,7 @@ class ExamMapper:
             original_content=domain.original_content,
             ai_summary=domain.ai_summary,
             status=domain.status,
+            plan_ready_at=domain.plan_ready_at,
             created_at=domain.created_at,
             updated_at=domain.updated_at,
             token_count_input=domain.token_count_input,
@@ -59,6 +61,7 @@ class ExamMapper:
         model.original_content = domain.original_content
         model.ai_summary = domain.ai_summary
         model.status = domain.status
+        model.plan_ready_at = domain.plan_ready_at
         model.token_count_input = domain.token_count_input
         model.token_count_output = domain.token_count_output
         model.generation_cost_usd = domain.generation_cost_usd
