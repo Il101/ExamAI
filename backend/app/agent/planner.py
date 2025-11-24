@@ -61,33 +61,54 @@ class CoursePlanner:
 
         prompt = self._build_planning_prompt(state)
 
-        print(f"[Planner] Calling LLM to generate plan for {state.subject}...")
+        max_retries = 3
+        last_error = None
+
+        for attempt in range(max_retries):
+            try:
+                print(f"[Planner] Calling LLM to generate plan for {state.subject} (Attempt {attempt + 1}/{max_retries})...")
+                
+                # Call LLM with structured output schema
+                # Increased max_tokens to prevent truncation
+                response = await self.llm.generate(
+                    prompt=prompt,
+                    temperature=0.3,
+                    max_tokens=16384,  # Doubled to prevent truncation
+                    system_prompt="You are an expert educator creating study plans.",
+                    response_schema=StudyPlanSchema,
+                )
+                print(
+                    f"[Planner] LLM response received. Tokens: {response.tokens_input}/{response.tokens_output}, Finish: {response.finish_reason}"
+                )
+                
+                # Check if response was truncated
+                if response.finish_reason == 'length':
+                    print(f"[Planner] WARNING: Response truncated (finish_reason=length). Retrying with shorter prompt...")
+                    raise ValueError("Response truncated due to max_tokens limit. Retry needed.")
+
+                # Track token usage
+                state.add_token_usage(
+                    response.tokens_input, response.tokens_output, response.cost_usd
+                )
+
+                # Parse and validate JSON response with Pydantic
+                plan_steps = self._parse_plan_response(response.content)
+
+                # Validate plan structure
+                self._validate_plan(plan_steps)
+                print(f"[Planner] Plan validated: {len(plan_steps)} topics generated")
+
+                return plan_steps
+
+            except Exception as e:
+                last_error = e
+                print(f"[Planner] Plan generation failed (Attempt {attempt + 1}): {str(e)}")
+                # If it was the last attempt, raise the error
+                if attempt == max_retries - 1:
+                    raise ValueError(f"Failed to generate plan after {max_retries} attempts: {str(e)}")
         
-        # Call LLM with structured output schema
-        # We pass the Pydantic model directly
-        response = await self.llm.generate(
-            prompt=prompt,
-            temperature=0.3,
-            system_prompt="You are an expert educator creating study plans.",
-            response_schema=StudyPlanSchema,
-        )
-        print(
-            f"[Planner] LLM response received. Tokens: {response.tokens_input}/{response.tokens_output}"
-        )
-
-        # Track token usage
-        state.add_token_usage(
-            response.tokens_input, response.tokens_output, response.cost_usd
-        )
-
-        # Parse and validate JSON response with Pydantic
-        plan_steps = self._parse_plan_response(response.content)
-
-        # Validate plan structure
-        self._validate_plan(plan_steps)
-        print(f"[Planner] Plan validated: {len(plan_steps)} topics generated")
-
-        return plan_steps
+        # Should not be reached due to raise in loop
+        raise ValueError(f"Plan generation failed: {str(last_error)}")
 
     def _build_planning_prompt(self, state: AgentState) -> str:
         """Build prompt for plan generation"""
@@ -135,6 +156,7 @@ class CoursePlanner:
 - If materials are organizational/introductory, reflect that in your plan
 - Progress logically based on actual content structure
 - Each topic must be verifiable from the provided text
+- **KEEP TITLES AND DESCRIPTIONS EXTREMELY CONCISE** to avoid cutting off the response.
 """
 
         return prompt
@@ -153,8 +175,15 @@ class CoursePlanner:
         try:
             plan_data = json.loads(json_text)
         except json.JSONDecodeError as e:
+            # Provide more helpful error message for truncation
+            error_msg = str(e)
+            if "Unterminated string" in error_msg or "Expecting" in error_msg:
+                raise ValueError(
+                    f"Failed to parse plan JSON (likely truncated): {error_msg}. "
+                    f"Response preview: {response_text[:300]}..."
+                )
             raise ValueError(
-                f"Failed to parse plan JSON: {str(e)}. Response: {response_text[:200]}"
+                f"Failed to parse plan JSON: {error_msg}. Response: {response_text[:200]}"
             )
 
         # Handle wrapped response (from structured output)
