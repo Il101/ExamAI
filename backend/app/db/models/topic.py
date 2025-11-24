@@ -1,5 +1,5 @@
 import uuid
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
@@ -35,11 +35,16 @@ class TopicModel(Base):
 
     # Content
     topic_name: Mapped[str] = mapped_column(String(500), nullable=False)
-    content: Mapped[str] = mapped_column(Text, nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    file_context: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     # Metadata
-    order_index: Mapped[int] = mapped_column(Integer, nullable=False)
-    difficulty_level: Mapped[int] = mapped_column(Integer, nullable=False)
+    status: Mapped[str] = mapped_column(
+        String(50), default="pending", nullable=False, index=True
+    )
+    order_index: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    generation_priority: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    difficulty_level: Mapped[int] = mapped_column(Integer, default=3, nullable=False)
     estimated_study_minutes: Mapped[int] = mapped_column(
         Integer, default=0, nullable=False
     )
