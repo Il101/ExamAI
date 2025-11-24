@@ -7,7 +7,7 @@ from app.integrations.llm.base import LLMProvider
 from app.repositories.exam_repository import ExamRepository
 from app.services.cost_guard_service import CostGuardService
 # Import task to trigger generation
-from app.tasks.exam_tasks import generate_exam_content
+# Removed: from app.tasks.exam_tasks import generate_exam_content - moved to function level to avoid circular import
 
 
 class ExamService:
@@ -190,6 +190,9 @@ class ExamService:
         Returns:
             Tuple of (Updated exam, Task ID)
         """
+        # Import here to avoid circular import
+        from app.tasks.exam_tasks import generate_exam_content
+        
         exam = await self.exam_repo.get_by_user_and_id(user_id, exam_id)
         if not exam:
             raise ValueError("Exam not found")
