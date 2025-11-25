@@ -61,7 +61,7 @@ class Exam:
 
     def can_generate(self) -> bool:
         """Check if exam can start generation"""
-        return self.status in ["draft", "failed"] and len(self.original_content) >= 100
+        return self.status in ["draft", "planned", "failed"] and len(self.original_content) >= 100
     
     def can_create_plan(self) -> bool:
         """Check if exam can create plan"""

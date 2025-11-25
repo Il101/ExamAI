@@ -81,6 +81,25 @@ class AgentService:
             await self.exam_repo.update(exam)
 
         try:
+        # Check for existing topics (Progressive Generation)
+        existing_topics = await self.topic_repo.get_by_exam_id(exam.id)
+        existing_plan = None
+        
+        if existing_topics:
+            from app.agent.state import PlanStep, Priority
+            existing_plan = []
+            for topic in existing_topics:
+                existing_plan.append(
+                    PlanStep(
+                        id=topic.order_index + 1, # PlanStep IDs are usually 1-based
+                        title=topic.topic_name,
+                        description=f"Generate content for {topic.topic_name}", # Description might be lost, reconstruct generic one
+                        priority=Priority(topic.difficulty_level) if topic.difficulty_level in [1,2,3] else Priority.MEDIUM,
+                        estimated_paragraphs=5
+                    )
+                )
+
+        try:
             # Run agent
             state = await self.agent.run(
                 user_request=f"Create study notes for {exam.title}",
@@ -88,6 +107,7 @@ class AgentService:
                 exam_type=exam.exam_type,
                 level=exam.level,
                 original_content=exam.original_content,
+                existing_plan=existing_plan,
                 progress_callback=progress_callback,
             )
 
@@ -106,24 +126,46 @@ class AgentService:
             )
 
             # Save topics and generate quizzes
+            # If we used an existing plan, we should UPDATE existing topics, not create new ones.
+            # Or if the agent re-created the plan (if existing_plan was None), we create new ones.
+            
             for i, plan_step in enumerate(state.plan):
                 result = state.results.get(plan_step.id)
                 content = result.content if result and result.success else ""
-
-                topic = Topic(
-                    exam_id=exam.id,
-                    user_id=user.id,
-                    topic_name=plan_step.title,
-                    content=content,
-                    order_index=i,
-                    difficulty_level=plan_step.priority.value,
-                )
-                topic.estimate_study_time()
-                created_topic = await self.topic_repo.create(topic)
+                
+                if existing_plan:
+                    # Update existing topic
+                    # We assume order is preserved
+                    if i < len(existing_topics):
+                        topic = existing_topics[i]
+                        topic.content = content
+                        topic.status = "ready" if result and result.success else "failed"
+                        await self.topic_repo.update(topic)
+                        created_topic = topic
+                    else:
+                        # Fallback if plan somehow grew (shouldn't happen with existing_plan)
+                        continue
+                else:
+                    # Create new topic (Old flow or if no plan existed)
+                    topic = Topic(
+                        exam_id=exam.id,
+                        user_id=user.id,
+                        topic_name=plan_step.title,
+                        content=content,
+                        order_index=i,
+                        difficulty_level=plan_step.priority.value,
+                    )
+                    topic.estimate_study_time()
+                    created_topic = await self.topic_repo.create(topic)
                 
                 # Generate Flashcards for this topic
+                # Only if content is new or we want to regenerate
                 if content and len(content) > 100:
                     try:
+                        # Check if flashcards already exist for this topic
+                        existing_reviews = await self.review_repo.get_due_reviews(user.id, limit=1) # Not efficient check but ok for now
+                        # Better: add get_by_topic_id to review_repo. For now, just generate if content is fresh.
+                        
                         if progress_callback:
                             await progress_callback(f"Generating flashcards for {plan_step.title}...", 0.9)
                             

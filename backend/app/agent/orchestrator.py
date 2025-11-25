@@ -1,10 +1,10 @@
 from datetime import datetime
-from typing import Awaitable, Callable, Optional
+from typing import Awaitable, Callable, Optional, List
 
 from app.agent.executor import TopicExecutor
 from app.agent.finalizer import NoteFinalizer
 from app.agent.planner import CoursePlanner
-from app.agent.state import AgentState, ExecutionStatus, StepResult
+from app.agent.state import AgentState, ExecutionStatus, StepResult, PlanStep
 from app.integrations.llm.base import LLMProvider
 
 ProgressCallback = Callable[[str, float], Awaitable[None]]
@@ -29,6 +29,7 @@ class PlanAndExecuteAgent:
         exam_type: str,
         level: str,
         original_content: str = "",
+        existing_plan: Optional[List["PlanStep"]] = None,
         progress_callback: Optional[ProgressCallback] = None,
     ) -> AgentState:
         """
@@ -40,6 +41,7 @@ class PlanAndExecuteAgent:
             exam_type: Type of exam (oral, written, test)
             level: Academic level (school, bachelor, master, phd)
             original_content: Optional user-provided study materials
+            existing_plan: Optional pre-generated plan to execute
             progress_callback: Optional callback for progress updates
 
         Returns:
@@ -56,14 +58,21 @@ class PlanAndExecuteAgent:
         )
 
         try:
-            # Stage 1: Planning
+            # Stage 1: Planning (or Loading Plan)
             state.status = ExecutionStatus.PLANNING
-            await self._notify_progress(progress_callback, "Planning structure...", 0.1)
-            state.plan = await self.planner.make_plan(state)
-
-            await self._notify_progress(
-                progress_callback, f"Plan created: {len(state.plan)} topics", 0.2
-            )
+            
+            if existing_plan:
+                 await self._notify_progress(progress_callback, "Loading existing plan...", 0.1)
+                 state.plan = existing_plan
+                 await self._notify_progress(
+                    progress_callback, f"Plan loaded: {len(state.plan)} topics", 0.2
+                )
+            else:
+                await self._notify_progress(progress_callback, "Planning structure...", 0.1)
+                state.plan = await self.planner.make_plan(state)
+                await self._notify_progress(
+                    progress_callback, f"Plan created: {len(state.plan)} topics", 0.2
+                )
 
             # Stage 2: Execution
             state.status = ExecutionStatus.EXECUTING
