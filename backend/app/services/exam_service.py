@@ -8,7 +8,7 @@ from app.repositories.exam_repository import ExamRepository
 from celery import chain
 
 from app.services.cost_guard_service import CostGuardService
-from app.tasks.exam_tasks import create_exam_plan, generate_exam_content
+# Task imports moved to function level to avoid circular import
 
 
 class ExamService:
@@ -193,6 +193,9 @@ class ExamService:
         Returns:
             Tuple of (Updated exam, Task ID of the first task in the chain)
         """
+        # Import tasks here to avoid circular import
+        from app.tasks.exam_tasks import create_exam_plan, generate_exam_content
+        
         exam = await self.exam_repo.get_by_user_and_id(user_id, exam_id)
         if not exam:
             raise ValueError("Exam not found")
@@ -230,6 +233,9 @@ class ExamService:
         Returns:
             Tuple of (Updated exam, Task ID)
         """
+        # Import tasks here to avoid circular import
+        from app.tasks.exam_tasks import create_exam_plan
+        
         exam = await self.exam_repo.get_by_user_and_id(user_id, exam_id)
         if not exam:
             raise ValueError("Exam not found")
