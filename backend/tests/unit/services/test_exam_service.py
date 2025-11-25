@@ -50,7 +50,7 @@ class TestExamService:
             subject="Physics",
             exam_type="written",
             level="bachelor",
-            original_content="Content...",
+            original_content="This is a long content string that is definitely over 100 characters to pass the validation check in the service.",
         )
 
         # Verify
@@ -73,8 +73,47 @@ class TestExamService:
                 subject="Physics",
                 exam_type="written",
                 level="bachelor",
-                original_content="Content...",
+                original_content="This is a long content string that is definitely over 100 characters to pass the validation check in the service.",
             )
+
+    @pytest.mark.asyncio
+    async def test_start_generation_creates_chain(self, service, mock_repo, user, mocker):
+        # Mocks
+        exam_id = uuid4()
+        user_id = user.id
+        mock_exam = Mock()
+        mock_exam.can_generate.return_value = True
+        mock_repo.get_by_user_and_id.return_value = mock_exam
+
+        # Mock Celery chain and tasks
+        mock_chain = mocker.patch("app.services.exam_service.chain")
+        mock_create_plan = mocker.patch("app.services.exam_service.create_exam_plan")
+        mock_generate_content = mocker.patch(
+            "app.services.exam_service.generate_exam_content"
+        )
+        mock_task = Mock()
+        mock_chain.return_value.apply_async.return_value = mock_task
+
+        # Execute
+        _, task_id = await service.start_generation(user_id, exam_id)
+
+        # Verify
+        mock_repo.get_by_user_and_id.assert_called_with(user_id, exam_id)
+        mock_exam.start_generation.assert_called_once()
+        mock_repo.update.assert_called_with(mock_exam)
+
+        # Verify chain was called with correct tasks
+        mock_create_plan.s.assert_called_with(exam_id=str(exam_id), user_id=str(user_id))
+        mock_generate_content.si.assert_called_with(
+            exam_id=str(exam_id), user_id=str(user_id)
+        )
+        mock_chain.assert_called_once_with(
+            mock_create_plan.s.return_value, mock_generate_content.si.return_value
+        )
+
+        # Verify that the chain was executed
+        mock_chain.return_value.apply_async.assert_called_once()
+        assert task_id == mock_task.id
 
     @pytest.mark.asyncio
     async def test_create_exam_insufficient_budget(
@@ -93,5 +132,5 @@ class TestExamService:
                 subject="Physics",
                 exam_type="written",
                 level="bachelor",
-                original_content="Content...",
+                original_content="This is a long content string that is definitely over 100 characters to pass the validation check in the service.",
             )

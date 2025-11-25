@@ -5,9 +5,10 @@ from app.domain.exam import Exam, ExamStatus
 from app.domain.user import User
 from app.integrations.llm.base import LLMProvider
 from app.repositories.exam_repository import ExamRepository
+from celery import chain
+
 from app.services.cost_guard_service import CostGuardService
-# Import task to trigger generation
-# Removed: from app.tasks.exam_tasks import generate_exam_content - moved to function level to avoid circular import
+from app.tasks.exam_tasks import create_exam_plan, generate_exam_content
 
 
 class ExamService:
@@ -185,30 +186,38 @@ class ExamService:
     async def start_generation(self, user_id: UUID, exam_id: UUID) -> Tuple[Exam, str]:
         """
         Start exam generation process.
-        This marks exam as "generating" and triggers background task.
+        This marks exam as "generating" and triggers a chain of background tasks:
+        1. Create exam plan (topics)
+        2. Generate content for each topic
 
         Returns:
-            Tuple of (Updated exam, Task ID)
+            Tuple of (Updated exam, Task ID of the first task in the chain)
         """
-        # Import here to avoid circular import
-        from app.tasks.exam_tasks import generate_exam_content
-        
         exam = await self.exam_repo.get_by_user_and_id(user_id, exam_id)
         if not exam:
             raise ValueError("Exam not found")
 
         # Check if can generate
+        # This should be checked for the initial state (e.g., 'draft' or 'planned')
         if not exam.can_generate():
-             raise ValueError(f"Cannot generate exam with status: {exam.status}")
+            raise ValueError(f"Cannot generate exam with status: {exam.status}")
 
         exam.start_generation()
         updated = await self.exam_repo.update(exam)
 
-        # Trigger background task
-        # In progressive flow, this triggers the execution of the plan
-        task = generate_exam_content.delay(
-            exam_id=str(exam_id), user_id=str(user_id)
+        # Create a Celery chain: plan -> generate
+        # The `generate_exam_content` task will be triggered after `create_exam_plan` succeeds.
+        # Note: We need to ensure the signature of the tasks is compatible with chaining,
+        # or that the second task can get its required arguments.
+        # `generate_exam_content` takes exam_id and user_id, which we have.
+        # We can create a chain where the result of the first task is ignored,
+        # and the second task is called with its own arguments by using an immutable signature (.si).
+        generation_chain = chain(
+            create_exam_plan.s(exam_id=str(exam_id), user_id=str(user_id)),
+            generate_exam_content.si(exam_id=str(exam_id), user_id=str(user_id)),
         )
+
+        task = generation_chain.apply_async()
 
         return updated, task.id
 
@@ -221,8 +230,6 @@ class ExamService:
         Returns:
             Tuple of (Updated exam, Task ID)
         """
-        from app.tasks.exam_tasks import create_exam_plan
-        
         exam = await self.exam_repo.get_by_user_and_id(user_id, exam_id)
         if not exam:
             raise ValueError("Exam not found")
