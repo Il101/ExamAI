@@ -80,7 +80,6 @@ class AgentService:
             exam.start_generation()
             await self.exam_repo.update(exam)
 
-        try:
         # Check for existing topics (Progressive Generation)
         existing_topics = await self.topic_repo.get_by_exam_id(exam.id)
         existing_plan = None
