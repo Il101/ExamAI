@@ -296,7 +296,7 @@ async def _create_exam_plan_async(exam_id: UUID, user_id: UUID) -> int:
         from app.agent.state import AgentState
         
         state = AgentState(
-            exam_id=exam_id,
+            user_request=f"Generate exam content for {exam.subject}",
             subject=exam.subject,
             level=exam.level,
             exam_type=exam.exam_type,
@@ -388,7 +388,7 @@ async def _generate_topic_content_async(topic_id: UUID, user_id: UUID):
         from app.domain.priority import Priority
         
         state = AgentState(
-            exam_id=exam.id,
+            user_request=f"Generate content for topic: {topic.topic_name}",
             subject=exam.subject,
             level=exam.level,
             exam_type=exam.exam_type,
