@@ -205,6 +205,7 @@ class ExamService:
         updated = await self.exam_repo.update(exam)
 
         # Trigger background task
+        # In progressive flow, this triggers the execution of the plan
         task = generate_exam_content.delay(
             exam_id=str(exam_id), user_id=str(user_id)
         )

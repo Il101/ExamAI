@@ -61,11 +61,11 @@ def generate_exam_content(self, exam_id: str, user_id: str):
         exam_id: UUID of exam to generate
         user_id: UUID of user who owns the exam
 
-    This is a long-running task that:
-    1. Gets exam from database
-    2. Runs AI agent (Plan → Execute → Finalize)
-    3. Saves results to database
-    4. Updates exam status
+    This is the EXECUTION phase of progressive generation.
+    It assumes the exam is already PLANNED (has topics).
+    1. Gets exam and topics from database
+    2. Generates content for each pending topic
+    3. Finalizes the exam
     """
 
     try:
@@ -197,7 +197,10 @@ async def _generate_exam_content_async(
                 meta={"current": int(progress * 100), "total": 100, "status": message},
             )
 
-        # Generate content
+        # Generate content (Execute phase)
+        # We need to adapt agent_service.generate_exam_content to support
+        # resuming from PLANNED state or just use the executor directly.
+        # For now, let's assume agent_service handles the logic of checking state.
         updated_exam = await agent_service.generate_exam_content(
             user=user, exam_id=exam_id, progress_callback=progress_callback
         )

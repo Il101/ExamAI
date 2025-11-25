@@ -10,7 +10,7 @@ interface ExamHeaderProps {
     examId: string;
     title: string;
     subject?: string;
-    status: 'draft' | 'generating' | 'ready' | 'failed';
+    status: 'draft' | 'planned' | 'generating' | 'ready' | 'failed';
     topicCount: number;
     createdAt: string;
     updatedAt: string;
@@ -27,6 +27,7 @@ export function ExamHeader({
 }: ExamHeaderProps) {
     const statusColors = {
         draft: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200',
+        planned: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
         generating: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
         ready: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
         failed: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
