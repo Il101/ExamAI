@@ -22,7 +22,7 @@ def get_llm_provider():
     """Helper to create LLM provider instance"""
     return GeminiProvider(
         api_key=settings.GEMINI_API_KEY,
-        model_name=settings.GEMINI_MODEL,
+        model=settings.GEMINI_MODEL,
     )
 
 
