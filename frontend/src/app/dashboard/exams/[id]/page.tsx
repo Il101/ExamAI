@@ -83,16 +83,29 @@ export default function ExamDetailPage() {
         }
 
         if (exam.status === 'generating') {
+            const progress = exam.progress || 0;
+            const currentStep = exam.current_step || 'Initializing...';
+            const message = exam.message || 'AI is crafting your exam. This may take a few minutes.';
+            const progressPercent = Math.round(progress * 100);
+
             return (
                 <div className="text-center py-12">
                     <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
                     <h3 className="text-lg font-semibold mb-2">Generating Exam Content</h3>
-                    <p className="text-muted-foreground mb-4">
-                        AI is crafting your exam. This may take a few minutes.
+                    <p className="text-muted-foreground mb-2">
+                        {message}
                     </p>
-                    {/* TODO: Add real progress bar here */}
-                    <div className="max-w-xs mx-auto bg-muted rounded-full h-2 overflow-hidden">
-                        <div className="bg-primary h-full animate-pulse w-2/3"></div>
+                    <p className="text-sm text-muted-foreground mb-4">
+                        {currentStep}
+                    </p>
+                    <div className="max-w-xs mx-auto">
+                        <div className="bg-muted rounded-full h-2 overflow-hidden mb-2">
+                            <div
+                                className="bg-primary h-full transition-all duration-500 ease-out"
+                                style={{ width: `${progressPercent}%` }}
+                            ></div>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{progressPercent}%</p>
                     </div>
                 </div>
             );

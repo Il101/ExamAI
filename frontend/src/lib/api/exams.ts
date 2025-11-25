@@ -32,7 +32,12 @@ export interface ExamWithTopics extends Exam {
     difficulty_level: number;
     estimated_study_minutes: number;
   }>;
+  // Progress tracking (from status endpoint)
+  progress?: number;
+  message?: string;
+  current_step?: string;
 }
+
 
 export interface ExamListResponse {
   exams: Exam[];
