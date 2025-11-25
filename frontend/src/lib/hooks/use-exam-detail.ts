@@ -11,7 +11,7 @@ export function useExamDetail(examId: string) {
         refetchInterval: (data) => {
             if (!data) return false;
             // Poll if generating or if we just started planning (status might still be draft/generating)
-            const exam = data as ExamWithTopics;
+            const exam = data as unknown as ExamWithTopics;
             return ['generating', 'planned'].includes(exam.status) ? 2000 : false;
         },
     });
