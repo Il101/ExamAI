@@ -75,4 +75,18 @@ export const examsApi = {
     const response = await api.get(`/tasks/${taskId}`);
     return response.data;
   },
+
+  getGenerationStatus: async (examId: string) => {
+    const response = await api.get(`/exams/${examId}/status`);
+    return response.data;
+  },
 };
+
+export interface GenerationStatusResponse {
+  status: string;
+  progress: number;
+  message: string;
+  current_step: string;
+  steps_completed: number;
+  total_steps: number;
+}
