@@ -41,3 +41,16 @@ async def end_session(
     if not session:
         raise NotFoundException("Study session", str(session_id))
     return StudySessionResponse.from_orm(session)
+
+
+@router.post("/{session_id}/pomodoro", response_model=StudySessionResponse)
+async def complete_pomodoro(
+    session_id: UUID,
+    current_user: User = Depends(get_current_active_user),
+    study_service: StudyService = Depends(get_study_service),
+):
+    """Complete a pomodoro interval"""
+    session = await study_service.complete_pomodoro(
+        user_id=current_user.id, session_id=session_id
+    )
+    return StudySessionResponse.from_orm(session)

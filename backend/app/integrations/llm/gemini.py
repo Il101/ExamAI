@@ -12,19 +12,55 @@ logger = logging.getLogger(__name__)
 class GeminiProvider(LLMProvider):
     """Google Gemini LLM provider implementation"""
 
-    # Pricing (as of Nov 2024, verify on https://ai.google.dev/pricing)
+    # Pricing (as of January 2025, verify on https://ai.google.dev/pricing)
     PRICING = {
+        # Gemini 3.0 Series (Preview)
+        "gemini-3-pro-preview": {
+            "input": 2.00 / 1_000_000,   # $2.00 per 1M tokens (≤200K context)
+            "output": 12.00 / 1_000_000,  # $12.00 per 1M tokens (≤200K context)
+            # Note: For >200K context: input=$4.00, output=$18.00 per 1M tokens
+        },
+        
+        # Gemini 2.5 Series
+        "gemini-2.5-pro": {
+            "input": 1.25 / 1_000_000,   # $1.25 per 1M tokens (≤200K context)
+            "output": 10.00 / 1_000_000,  # $10.00 per 1M tokens (includes thinking tokens, ≤200K)
+            # Note: For >200K context: input=$2.50, output=$15.00 per 1M tokens
+        },
+        "gemini-2.5-flash": {
+            "input": 0.30 / 1_000_000,   # $0.30 per 1M tokens (with thinking mode)
+            "output": 2.50 / 1_000_000,  # $2.50 per 1M tokens (with thinking mode)
+        },
+        "gemini-2.5-flash-lite": {
+            "input": 0.10 / 1_000_000,   # $0.10 per 1M tokens (text/image/video)
+            "output": 0.40 / 1_000_000,  # $0.40 per 1M tokens
+            # Note: Audio input: $0.30 per 1M tokens
+        },
+        
+        # Gemini 2.0 Series
+        "gemini-2.0-flash": {
+            "input": 0.10 / 1_000_000,   # $0.10 per 1M tokens (text)
+            "output": 0.40 / 1_000_000,  # $0.40 per 1M tokens
+            # Note: Audio input: $0.70 per 1M tokens
+        },
         "gemini-2.0-flash-exp": {
-            "input": 0.00 / 1_000_000,  # Free tier
-            "output": 0.00 / 1_000_000,
+            "input": 0.00 / 1_000_000,   # FREE (experimental)
+            "output": 0.00 / 1_000_000,  # FREE (experimental)
+        },
+        "gemini-2.0-flash-lite": {
+            "input": 0.075 / 1_000_000,  # $0.075 per 1M tokens
+            "output": 0.30 / 1_000_000,  # $0.30 per 1M tokens
+        },
+        
+        # Gemini 1.5 Series (Legacy)
+        "gemini-1.5-pro": {
+            "input": 1.25 / 1_000_000,   # $1.25 per 1M tokens (≤128K context)
+            "output": 5.00 / 1_000_000,  # $5.00 per 1M tokens (≤128K context)
+            # Note: For >128K context: input=$2.50, output=$10.00 per 1M tokens
         },
         "gemini-1.5-flash": {
             "input": 0.075 / 1_000_000,  # $0.075 per 1M tokens
             "output": 0.30 / 1_000_000,  # $0.30 per 1M tokens
-        },
-        "gemini-1.5-pro": {
-            "input": 1.25 / 1_000_000,
-            "output": 5.00 / 1_000_000,
         },
     }
 
