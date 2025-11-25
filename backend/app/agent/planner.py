@@ -144,35 +144,11 @@ class CoursePlanner:
 2. Identify topics that are EXPLICITLY present in the materials
 3. Create appropriate number of topics based on what's actually covered (could be 2-15 topics)
 
-**CRITICAL: You MUST return JSON with ALL required fields for each topic:**
-
-Example format (you MUST include ALL these fields):
-{{
-  "steps": [
-    {{
-      "id": 1,
-      "title": "Short topic name",
-      "description": "Brief description of what's covered",
-      "priority": 1,
-      "estimated_paragraphs": 5,
-      "dependencies": []
-    }}
-  ]
-}}
-
-**Required fields (DO NOT OMIT ANY):**
-- id: integer (1, 2, 3, ...)
-- title: string (concise, max 10 words)
-- description: string (2-3 sentences about actual content)
-- priority: integer (1=essential, 2=important, 3=optional)
-- estimated_paragraphs: integer (3-8 paragraphs needed)
-- dependencies: array of integers (topic IDs that must be covered first, or empty [])
-
 **Requirements:**
 - ONLY create topics for content that exists in the provided materials
 - Do NOT invent topics based on subject name alone
 - Keep titles and descriptions CONCISE to avoid truncation
-- ALL fields are REQUIRED - do not skip any
+- Ensure logical progression
 """
 
         return prompt
