@@ -11,6 +11,8 @@ import { Flashcard } from '@/components/study/flashcard';
 import { Brain, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 
+import { TimerWidget } from '@/components/study/timer-widget';
+
 export default function StudyPage() {
     const searchParams = useSearchParams();
     const examId = searchParams.get('exam');
@@ -86,9 +88,6 @@ export default function StudyPage() {
                             >
                                 {isStarting ? 'Starting...' : 'Start Study Session'}
                             </Button>
-                            <p className="text-sm text-gray-500">
-                                Recommended session: 25 minutes (Pomodoro)
-                            </p>
                         </div>
                     ) : (
                         <Link href="/dashboard/exams">
@@ -137,7 +136,9 @@ export default function StudyPage() {
     }
 
     return (
-        <div className="max-w-4xl mx-auto space-y-6">
+        <div className="max-w-4xl mx-auto space-y-6 relative">
+            <TimerWidget sessionId={sessionId} />
+
             {/* Progress Header */}
             <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm text-gray-600">

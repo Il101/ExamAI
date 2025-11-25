@@ -43,6 +43,11 @@ export const studyApi = {
         return response.data;
     },
 
+    completePomodoro: async (sessionId: string) => {
+        const response = await api.post<StudySession>(`/sessions/${sessionId}/pomodoro`);
+        return response.data;
+    },
+
     getDueReviews: async (limit: number = 20) => {
         const response = await api.get<ReviewItem[]>('/reviews/due', {
             params: { limit },
