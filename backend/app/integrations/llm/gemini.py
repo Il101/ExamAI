@@ -103,7 +103,11 @@ class GeminiProvider(LLMProvider):
             # Add response schema if provided (Gemini 1.5 Pro/Flash feature)
             if response_schema:
                 generation_config.response_mime_type = "application/json"
-                generation_config.response_schema = response_schema
+                # Convert Pydantic model to JSON schema if needed
+                if hasattr(response_schema, 'model_json_schema'):
+                    generation_config.response_schema = response_schema.model_json_schema()
+                else:
+                    generation_config.response_schema = response_schema
 
             print(f"[GeminiProvider] Calling {self.model_name} API...")
             api_start = time.time()
