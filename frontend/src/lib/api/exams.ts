@@ -15,7 +15,7 @@ export interface Exam {
   subject?: string;
   exam_type?: 'oral' | 'written' | 'test';
   level?: 'school' | 'bachelor' | 'master' | 'phd';
-  status: 'draft' | 'generating' | 'ready' | 'failed';
+  status: 'draft' | 'planned' | 'generating' | 'ready' | 'failed';
   topic_count: number;
   created_at: string;
   updated_at: string;
@@ -63,6 +63,11 @@ export const examsApi = {
 
   startGeneration: async (examId: string) => {
     const response = await api.post(`/exams/${examId}/generate`);
+    return response.data;
+  },
+
+  createPlan: async (examId: string) => {
+    const response = await api.post(`/exams/${examId}/plan`);
     return response.data;
   },
 

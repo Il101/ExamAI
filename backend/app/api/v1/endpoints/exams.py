@@ -211,3 +211,29 @@ async def get_generation_status(
         raise NotFoundException("Exam", str(exam_id))
 
     return GenerationStatusResponse(**status_data)
+
+
+@router.post("/{exam_id}/plan", response_model=dict)
+async def create_exam_plan_endpoint(
+    exam_id: UUID,
+    current_user: User = Depends(get_current_active_user),
+    exam_service: ExamService = Depends(get_exam_service),
+):
+    """
+    Start AI planning phase (Step 1).
+    Creates topics but does not generate content.
+    """
+    try:
+        updated_exam, task_id = await exam_service.create_plan(
+            user_id=current_user.id, exam_id=exam_id
+        )
+    except ValueError as e:
+         if "not found" in str(e).lower():
+             raise NotFoundException("Exam", str(exam_id))
+         raise ValidationException(str(e))
+
+    return {
+        "task_id": task_id,
+        "status": "Planning started",
+        "message": "Exam planning in progress. Topics will appear shortly.",
+    }

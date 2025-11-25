@@ -24,7 +24,10 @@ const createExamSchema = z.object({
 
 type CreateExamFormData = z.infer<typeof createExamSchema>;
 
+import { useRouter } from 'next/navigation';
+
 export function CreateExamForm({ onSuccess }: { onSuccess?: () => void }) {
+  const router = useRouter();
   const { createExam, isCreating, startGeneration } = useExams();
   const [uploadedFile, setUploadedFile] = useState<string>('');
   const [examType, setExamType] = useState<'oral' | 'written' | 'test'>('written');
@@ -53,14 +56,12 @@ export function CreateExamForm({ onSuccess }: { onSuccess?: () => void }) {
         form.reset();
         setUploadedFile('');
 
-        // Automatically start generation
+        // Redirect to exam detail page
         // Cast data to any because the hook's return type might not be fully inferred
         const newExam = data as unknown as Exam;
         if (newExam && newExam.id) {
-          toast.message('Starting AI generation...', {
-            description: 'This may take a few minutes.'
-          });
-          startGeneration(newExam.id);
+          toast.success('Exam draft created!');
+          router.push(`/dashboard/exams/${newExam.id}`);
         }
 
         onSuccess?.();

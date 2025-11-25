@@ -8,6 +8,12 @@ export function useExamDetail(examId: string) {
         queryKey: ['exam', examId],
         queryFn: () => examsApi.getById(examId),
         enabled: !!examId,
+        refetchInterval: (data) => {
+            if (!data) return false;
+            // Poll if generating or if we just started planning (status might still be draft/generating)
+            const exam = data as ExamWithTopics;
+            return ['generating', 'planned'].includes(exam.status) ? 2000 : false;
+        },
     });
 
     return {

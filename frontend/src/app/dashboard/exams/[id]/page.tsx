@@ -9,6 +9,8 @@ import { TopicList } from '@/components/exam/topic-list';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { ExamWithTopics } from '@/lib/api/exams';
+import { useExams } from '@/lib/hooks/use-exams';
+import { Button } from '@/components/ui/button';
 
 export default function ExamDetailPage() {
     const params = useParams();
@@ -64,6 +66,8 @@ export default function ExamDetailPage() {
         );
     }
 
+    const { createPlan, startGeneration, isPlanning, isGenerating } = useExams();
+
     const renderContent = () => {
         if (exam.status === 'ready') {
             if (viewMode === 'summary') {
@@ -84,8 +88,9 @@ export default function ExamDetailPage() {
                     <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
                     <h3 className="text-lg font-semibold mb-2">Generating Exam Content</h3>
                     <p className="text-muted-foreground mb-4">
-                        Your exam is being generated. This may take a few minutes.
+                        AI is crafting your exam. This may take a few minutes.
                     </p>
+                    {/* TODO: Add real progress bar here */}
                     <div className="max-w-xs mx-auto bg-muted rounded-full h-2 overflow-hidden">
                         <div className="bg-primary h-full animate-pulse w-2/3"></div>
                     </div>
@@ -105,12 +110,66 @@ export default function ExamDetailPage() {
             );
         }
 
-        return (
-            <div className="text-center py-12 text-muted-foreground">
-                <p>This exam is in draft status.</p>
-                <p className="text-sm mt-2">Start generation to create topics and notes.</p>
-            </div>
-        );
+        if (exam.status === 'draft') {
+            return (
+                <div className="text-center py-12">
+                    <div className="mb-6">
+                        <h3 className="text-lg font-semibold mb-2">Exam Draft Created</h3>
+                        <p className="text-muted-foreground max-w-md mx-auto">
+                            Your exam setup is ready. Next, we'll generate a study plan with topics based on your materials.
+                        </p>
+                    </div>
+                    <Button
+                        onClick={() => createPlan(exam.id)}
+                        disabled={isPlanning}
+                        size="lg"
+                    >
+                        {isPlanning ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Planning...
+                            </>
+                        ) : (
+                            'Generate Study Plan'
+                        )}
+                    </Button>
+                </div>
+            );
+        }
+
+        if (exam.status === 'planned') {
+            return (
+                <div className="space-y-8">
+                    <div className="text-center py-8 border-b">
+                        <h3 className="text-lg font-semibold mb-2">Study Plan Ready</h3>
+                        <p className="text-muted-foreground mb-6">
+                            Review the topics below. When you're ready, start generating the full content.
+                        </p>
+                        <Button
+                            onClick={() => startGeneration(exam.id)}
+                            disabled={isGenerating}
+                            size="lg"
+                        >
+                            {isGenerating ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Starting...
+                                </>
+                            ) : (
+                                'Start Generation'
+                            )}
+                        </Button>
+                    </div>
+
+                    {/* Show topics preview if available */}
+                    <div className="opacity-70 pointer-events-none">
+                        <TopicList exam={exam as ExamWithTopics} />
+                    </div>
+                </div>
+            );
+        }
+
+        return null;
     };
 
     return (
