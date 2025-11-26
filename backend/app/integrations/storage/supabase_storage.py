@@ -1,6 +1,9 @@
 """Supabase Storage integration for file management"""
 from typing import Optional
 from supabase import create_client, Client, ClientOptions
+import logging
+
+logger = logging.getLogger(__name__)
 
 class SupabaseStorage:
     """Service for managing files in Supabase Storage"""
