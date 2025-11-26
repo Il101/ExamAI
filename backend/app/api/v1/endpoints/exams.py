@@ -86,7 +86,7 @@ async def create_exam_v3(
     """
     from app.services.exam_creation_v3 import create_exam_with_plan
     from app.agent.cached_planner import CachedCoursePlanner
-    from app.integrations.llm.gemini_provider import GeminiProvider
+    from app.integrations.llm.gemini import GeminiProvider
     from app.api.dependencies import (
         get_storage, get_cache_manager, get_generation_service
     )

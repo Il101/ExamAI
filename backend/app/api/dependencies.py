@@ -43,7 +43,7 @@ def get_generation_service() -> "GenerationService":
     """Get Generation Service instance"""
     from app.services.generation_service import GenerationService
     from app.agent.cached_executor import CachedTopicExecutor
-    from app.integrations.llm.gemini_provider import GeminiProvider
+    from app.integrations.llm.gemini import GeminiProvider
     from app.core.config import settings
     
     llm = GeminiProvider(api_key=settings.GEMINI_API_KEY, model=settings.GEMINI_MODEL)
