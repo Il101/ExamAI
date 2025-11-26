@@ -1,7 +1,8 @@
 import uuid
+from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -48,6 +49,11 @@ class TopicModel(Base):
     estimated_study_minutes: Mapped[int] = mapped_column(
         Integer, default=0, nullable=False
     )
+    
+    # Progress tracking
+    is_viewed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    quiz_completed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    last_viewed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     exam: Mapped["ExamModel"] = relationship("ExamModel", back_populates="topics")
@@ -59,3 +65,4 @@ class TopicModel(Base):
 
     def __repr__(self) -> str:
         return f"<TopicModel(id={self.id}, topic_name={self.topic_name})>"
+

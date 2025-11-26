@@ -16,6 +16,16 @@ class TopicResponse(BaseModel):
     estimated_study_minutes: Optional[int] = None
     created_at: datetime
     updated_at: datetime
+    
+    # Progress tracking fields
+    is_viewed: bool = False
+    quiz_completed: bool = False
+    last_viewed_at: Optional[datetime] = None
+    
+    # Navigation metadata (computed)
+    prev_topic_id: Optional[UUID] = None
+    next_topic_id: Optional[UUID] = None
+    exam_title: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -23,3 +33,4 @@ class TopicResponse(BaseModel):
 
 class TopicListResponse(BaseModel):
     topics: List[TopicResponse]
+

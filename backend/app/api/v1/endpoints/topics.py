@@ -92,39 +92,68 @@ async def get_topic(
 async def on_topic_viewed(
     topic_id: UUID,
     exam_id: UUID = Query(..., description="Exam ID"),
+    quiz_completed: bool = Query(False, description="Whether quiz was completed"),
     current_user: User = Depends(get_current_active_user),
     session: AsyncSession = Depends(get_db),
 ):
     """
-    Trigger next block generation when user views topic (v3.0).
+    Mark topic as viewed and optionally mark quiz as completed.
     
     This endpoint:
-    1. Checks if current topic is last in its block
-    2. If yes, triggers generation of next block
-    3. Returns status
+    1. Updates is_viewed and last_viewed_at
+    2. Optionally updates quiz_completed
+    3. Triggers next block generation (v3.0)
     
-    Used for progressive generation to avoid generating all topics upfront.
+    Used for progress tracking and progressive generation.
     """
+    from datetime import datetime, timezone
     from app.api.dependencies import get_generation_service
     from app.repositories.exam_repository import ExamRepository
     from app.agent.schemas import ExamPlan
     
-    # Get exam
+    topic_repo = TopicRepository(session)
+    topic = await topic_repo.get_by_id(topic_id)
+    
+    if not topic or topic.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Topic not found")
+    
+    # Update progress tracking
+    topic.is_viewed = True
+    topic.last_viewed_at = datetime.now(timezone.utc)
+    
+    if quiz_completed:
+        topic.quiz_completed = True
+    
+    await topic_repo.update(topic)
+    await session.commit()
+    
+    # Get exam for v3.0 progressive generation
     exam_repo = ExamRepository(session)
     exam = await exam_repo.get_by_id(exam_id)
     
     if not exam or exam.user_id != current_user.id:
-        raise HTTPException(status_code=404, detail="Exam not found")
+        return {
+            "message": "Topic marked as viewed",
+            "topic_id": str(topic_id),
+            "is_viewed": True,
+            "quiz_completed": topic.quiz_completed,
+            "triggered": False
+        }
     
-    # Check if exam has plan_data
+    # Check if exam has plan_data for v3.0
     if not exam.plan_data:
-        return {"message": "Exam does not have v3.0 plan", "triggered": False}
+        return {
+            "message": "Topic marked as viewed",
+            "topic_id": str(topic_id),
+            "is_viewed": True,
+            "quiz_completed": topic.quiz_completed,
+            "triggered": False
+        }
     
     try:
-        # Parse plan
+        # Parse plan and trigger next block
         plan = ExamPlan.model_validate(exam.plan_data)
         
-        # Trigger next block if needed
         generation_service = get_generation_service()
         await generation_service.trigger_next_block(
             exam_id=exam.id,
@@ -134,13 +163,87 @@ async def on_topic_viewed(
         )
         
         return {
-            "message": "Topic viewed",
+            "message": "Topic marked as viewed",
             "topic_id": str(topic_id),
+            "is_viewed": True,
+            "quiz_completed": topic.quiz_completed,
             "triggered": True
         }
     
     except Exception as e:
         return {
-            "message": f"Failed to trigger next block: {str(e)}",
-            "triggered": False
+            "message": "Topic marked as viewed",
+            "topic_id": str(topic_id),
+            "is_viewed": True,
+            "quiz_completed": topic.quiz_completed,
+            "triggered": False,
+            "error": str(e)
         }
+
+
+@router.get("/{topic_id}/quiz")
+async def get_topic_quiz(
+    topic_id: UUID,
+    num_questions: int = Query(5, ge=1, le=10, description="Number of questions"),
+    current_user: User = Depends(get_current_active_user),
+    session: AsyncSession = Depends(get_db),
+):
+    """
+    Generate a multiple-choice quiz for a topic.
+    
+    Returns 5 MCQ questions based on the topic content.
+    Used for "Check Yourself" interactive learning blocks.
+    """
+    from app.dependencies import get_llm_provider
+    from app.agent.quiz_generator import QuizGenerator
+    
+    topic_repo = TopicRepository(session)
+    topic = await topic_repo.get_by_id(topic_id)
+    
+    if not topic or topic.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Topic not found")
+    
+    if not topic.content:
+        raise HTTPException(
+            status_code=400,
+            detail="Topic has no content yet. Cannot generate quiz."
+        )
+    
+    try:
+        # Generate quiz using AI
+        llm_provider = get_llm_provider()
+        quiz_gen = QuizGenerator(llm_provider)
+        
+        questions = await quiz_gen.generate_mcq_quiz(
+            content=topic.content,
+            num_questions=num_questions
+        )
+        
+        # Convert to dict for JSON response
+        return {
+            "topic_id": str(topic_id),
+            "topic_name": topic.topic_name,
+            "questions": [
+                {
+                    "id": idx,
+                    "question": q.question,
+                    "options": [
+                        {
+                            "id": opt_idx,
+                            "text": opt.text,
+                            "is_correct": opt.is_correct
+                        }
+                        for opt_idx, opt in enumerate(q.options)
+                    ],
+                    "explanation": q.explanation
+                }
+                for idx, q in enumerate(questions)
+            ]
+        }
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to generate quiz: {str(e)}"
+        )
+

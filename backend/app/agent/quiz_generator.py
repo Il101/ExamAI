@@ -17,6 +17,24 @@ class FlashcardSetSchema(BaseModel):
     cards: List[FlashcardSchema] = Field(..., description="List of generated flashcards")
 
 
+class MCQOption(BaseModel):
+    """Single option for a multiple choice question"""
+    text: str = Field(..., description="Option text")
+    is_correct: bool = Field(..., description="Whether this is the correct answer")
+
+
+class MCQQuestion(BaseModel):
+    """Multiple choice question schema"""
+    question: str = Field(..., description="The question text")
+    options: List[MCQOption] = Field(..., description="List of 4 options")
+    explanation: str = Field(..., description="Explanation of the correct answer")
+
+
+class MCQQuizSchema(BaseModel):
+    """Schema for a set of MCQ questions"""
+    questions: List[MCQQuestion] = Field(..., description="List of MCQ questions")
+
+
 class QuizGenerator:
     """
     Generates study materials (flashcards/quizzes) from content using AI.
@@ -91,3 +109,76 @@ class QuizGenerator:
             print(f"[QuizGenerator] Error parsing flashcards: {e}")
             # Fallback or re-raise? For now re-raise to see errors
             raise ValueError(f"Failed to generate flashcards: {str(e)}")
+
+    async def generate_mcq_quiz(self, content: str, num_questions: int = 5) -> List[MCQQuestion]:
+        """
+        Generate multiple choice questions from the provided content.
+
+        Args:
+            content: Study material text
+            num_questions: Number of questions to generate
+
+        Returns:
+            List of MCQQuestion objects
+        """
+        
+        prompt = f"""You are an expert tutor. Create {num_questions} multiple choice questions based on the text below.
+
+**Content:**
+```
+{content[:10000]}
+```
+
+**Requirements:**
+- Create exactly {num_questions} questions
+- Each question must have exactly 4 options
+- Only ONE option should be correct (is_correct: true)
+- Questions should test understanding, not just memorization
+- Include an explanation for why the correct answer is right
+- Make distractors (wrong answers) plausible but clearly incorrect
+- Vary difficulty from easy to challenging
+"""
+
+        print(f"[QuizGenerator] Generating {num_questions} MCQ questions...")
+        
+        response = await self.llm.generate(
+            prompt=prompt,
+            temperature=0.4,
+            system_prompt="You are an expert tutor creating educational assessments.",
+            response_schema=MCQQuizSchema,
+        )
+
+        # Parse response
+        try:
+            json_text = response.content.strip()
+            if json_text.startswith("```json"):
+                json_text = json_text[7:-3].strip()
+            elif json_text.startswith("```"):
+                json_text = json_text[3:-3].strip()
+
+            data = json.loads(json_text)
+            
+            # Handle wrapped response
+            if isinstance(data, dict) and "questions" in data:
+                questions_data = data["questions"]
+            elif isinstance(data, list):
+                questions_data = data
+            else:
+                raise ValueError("Invalid response format")
+
+            # Validate and convert
+            questions = [MCQQuestion(**item) for item in questions_data]
+            
+            # Validate each question has exactly one correct answer
+            for q in questions:
+                correct_count = sum(1 for opt in q.options if opt.is_correct)
+                if correct_count != 1:
+                    raise ValueError(f"Question must have exactly 1 correct answer, got {correct_count}")
+            
+            print(f"[QuizGenerator] Generated {len(questions)} MCQ questions")
+            return questions
+
+        except Exception as e:
+            print(f"[QuizGenerator] Error parsing MCQ questions: {e}")
+            raise ValueError(f"Failed to generate MCQ quiz: {str(e)}")
+

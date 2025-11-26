@@ -19,4 +19,9 @@ export const topicsApi = {
         });
         return response.data;
     },
+
+    getById: async (topicId: string): Promise<Topic> => {
+        const response = await api.get(`/topics/${topicId}`);
+        return response.data;
+    },
 };

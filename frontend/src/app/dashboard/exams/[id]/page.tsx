@@ -7,6 +7,7 @@ import { ExamHeader } from '@/components/exam/exam-header';
 import { ExamSummary } from '@/components/exam/exam-summary';
 import { TopicList } from '@/components/exam/topic-list';
 import { Card, CardContent } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { ExamWithTopics } from '@/lib/api/exams';
 import { useExams } from '@/lib/hooks/use-exams';
@@ -15,7 +16,6 @@ import { Button } from '@/components/ui/button';
 export default function ExamDetailPage() {
     const params = useParams();
     const examId = params.id as string;
-    const [viewMode, setViewMode] = useState<'summary' | 'topics'>('summary');
 
     const { exam, isLoading, isError, error } = useExamDetail(examId);
 
@@ -68,18 +68,36 @@ export default function ExamDetailPage() {
 
     const { createPlan, startGeneration, isPlanning, isGenerating } = useExams();
 
+    const renderReadyContent = () => (
+        <Tabs defaultValue="summary" className="w-full">
+            <TabsList className="grid w-full max-w-md grid-cols-3">
+                <TabsTrigger value="summary">Summary</TabsTrigger>
+                <TabsTrigger value="topics">Topics</TabsTrigger>
+                <TabsTrigger value="progress">Progress</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="summary" className="mt-6">
+                <ExamSummary exam={exam} onGenerateTopics={() => { }} />
+            </TabsContent>
+
+            <TabsContent value="topics" className="mt-6">
+                <TopicList exam={exam as ExamWithTopics} />
+            </TabsContent>
+
+            <TabsContent value="progress" className="mt-6">
+                <Card className="p-8 text-center">
+                    <h3 className="text-lg font-semibold mb-2">Progress Tracking</h3>
+                    <p className="text-muted-foreground">
+                        Coming soon! Here you'll see your study timeline, completed topics, and review statistics.
+                    </p>
+                </Card>
+            </TabsContent>
+        </Tabs>
+    );
+
     const renderContent = () => {
         if (exam.status === 'ready') {
-            if (viewMode === 'summary') {
-                return (
-                    <ExamSummary
-                        exam={exam}
-                        onGenerateTopics={() => setViewMode('topics')}
-                    />
-                );
-            } else {
-                return <TopicList exam={exam as ExamWithTopics} />;
-            }
+            return renderReadyContent();
         }
 
         if (exam.status === 'generating') {

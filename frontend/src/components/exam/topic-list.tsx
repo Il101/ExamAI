@@ -4,8 +4,9 @@ import { ExamWithTopics } from '@/lib/api/exams';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Play, Clock, Brain, CheckCircle2 } from 'lucide-react';
+import { Play, Clock, Brain, CheckCircle2, BookOpen, ExternalLink } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 interface TopicListProps {
     exam: ExamWithTopics;
@@ -15,10 +16,7 @@ export function TopicList({ exam }: TopicListProps) {
     const router = useRouter();
 
     const handleStartReview = () => {
-        // Navigate to review session
-        // We might need to create a session first, but for now let's assume we go to the session page
-        // and the session page handles the setup or we pass the exam ID.
-        router.push(`/study/session?examId=${exam.id}`);
+        router.push(`/dashboard/study/session?examId=${exam.id}`);
     };
 
     return (
@@ -38,46 +36,52 @@ export function TopicList({ exam }: TopicListProps) {
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {exam.topics.map((topic, index) => (
-                    <Card key={topic.id} className="group hover:border-primary/50 transition-colors">
-                        <CardHeader className="pb-3">
-                            <div className="flex justify-between items-start mb-2">
-                                <Badge variant="secondary" className="font-mono text-xs">
-                                    Topic {index + 1}
-                                </Badge>
-                                {/* Difficulty Indicator Mockup */}
-                                <div className="flex gap-0.5">
-                                    {[1, 2, 3].map((i) => (
-                                        <div
-                                            key={i}
-                                            className={`h-2 w-2 rounded-full ${i <= (topic.difficulty_level || 2) // Default to medium if not set
-                                                ? 'bg-primary'
-                                                : 'bg-muted'
-                                                }`}
-                                        />
-                                    ))}
+                    <Link
+                        key={topic.id}
+                        href={`/dashboard/topics/${topic.id}`}
+                        className="group"
+                    >
+                        <Card className="group-hover:border-primary/50 transition-colors cursor-pointer h-full">
+                            <CardHeader className="pb-3">
+                                <div className="flex justify-between items-start mb-2">
+                                    <Badge variant="secondary" className="font-mono text-xs">
+                                        Topic {index + 1}
+                                    </Badge>
+                                    {/* Difficulty Indicator Mockup */}
+                                    <div className="flex gap-0.5">
+                                        {[1, 2, 3].map((i) => (
+                                            <div
+                                                key={i}
+                                                className={`h-2 w-2 rounded-full ${i <= (topic.difficulty_level || 2) // Default to medium if not set
+                                                    ? 'bg-primary'
+                                                    : 'bg-muted'
+                                                    }`}
+                                            />
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
-                            <CardTitle className="text-lg leading-tight group-hover:text-primary transition-colors">
-                                {topic.topic_name}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex flex-col gap-3 text-sm text-muted-foreground">
-                                <div className="flex items-center gap-2">
-                                    <Brain className="h-4 w-4" />
-                                    <span>{topic.content ? 'Content ready' : 'No content'}</span>
+                                <CardTitle className="text-lg leading-tight group-hover:text-primary transition-colors">
+                                    {topic.topic_name}
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex flex-col gap-3 text-sm text-muted-foreground">
+                                    <div className="flex items-center gap-2">
+                                        <Brain className="h-4 w-4" />
+                                        <span>{topic.content ? 'Content ready' : 'No content'}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Clock className="h-4 w-4" />
+                                        <span>~{topic.estimated_study_minutes || 5} min</span>
+                                    </div>
+                                    <div className="mt-2 pt-2 border-t flex items-center justify-between text-xs">
+                                        <span>Next review:</span>
+                                        <span className="font-medium text-foreground">Tomorrow</span>
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <Clock className="h-4 w-4" />
-                                    <span>~{topic.estimated_study_minutes || 5} min</span>
-                                </div>
-                                <div className="mt-2 pt-2 border-t flex items-center justify-between text-xs">
-                                    <span>Next review:</span>
-                                    <span className="font-medium text-foreground">Tomorrow</span>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+                            </CardContent>
+                        </Card>
+                    </Link>
                 ))}
             </div>
 
