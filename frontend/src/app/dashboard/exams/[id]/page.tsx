@@ -176,7 +176,21 @@ export default function ExamDetailPage() {
 
                     {/* Show topics preview if available */}
                     <div className="opacity-70 pointer-events-none">
-                        <TopicList exam={exam as ExamWithTopics} />
+                        <TopicList exam={{
+                            ...exam,
+                            topics: (exam as ExamWithTopics).topics?.length > 0
+                                ? (exam as ExamWithTopics).topics
+                                : (exam.plan_data?.blocks.flatMap((block, bIdx) =>
+                                    block.topics.map((topic, tIdx) => ({
+                                        id: topic.id,
+                                        topic_name: topic.title,
+                                        content: topic.description,
+                                        order_index: bIdx * 10 + tIdx,
+                                        difficulty_level: 1,
+                                        estimated_study_minutes: topic.estimated_paragraphs * 3
+                                    }))
+                                ) || [])
+                        } as ExamWithTopics} />
                     </div>
                 </div>
             );

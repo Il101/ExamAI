@@ -21,6 +21,19 @@ export interface Exam {
   updated_at: string;
   user_id: string;
   ai_summary?: string;
+  plan_data?: {
+    blocks: Array<{
+      block_title: string;
+      topics: Array<{
+        id: string;
+        title: string;
+        description: string;
+        estimated_paragraphs: number;
+      }>;
+    }>;
+    total_blocks: number;
+    total_topics: number;
+  };
 }
 
 export interface ExamWithTopics extends Exam {
@@ -28,6 +41,7 @@ export interface ExamWithTopics extends Exam {
     id: string;
     topic_name: string;
     content: string;
+    status: 'pending' | 'generating' | 'ready' | 'failed';
     order_index: number;
     difficulty_level: number;
     estimated_study_minutes: number;
