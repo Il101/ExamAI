@@ -45,19 +45,21 @@ class CoursePlanner:
         else:
             self.use_structured_output = False
 
-    async def make_plan(self, state: AgentState) -> List[PlanStep]:
+    async def make_plan(self, state: AgentState) -> "ExamPlan":
         """
-        Create execution plan based on user request.
+        Generate structured exam plan from user request and materials.
+        Returns block-based plan with topics grouped into logical chapters.
 
         Args:
-            state: AgentState with user request and parameters
+            state: AgentState with user request and optional original content
 
         Returns:
-            List of PlanStep objects
+            ExamPlan with blocks and topics
 
         Raises:
-            ValueError: If plan generation fails or returns invalid JSON
+            ValueError: If plan generation fails after retries
         """
+        from app.agent.schemas import ExamPlan
 
         prompt = self._build_planning_prompt(state)
 
@@ -92,13 +94,12 @@ class CoursePlanner:
                 )
 
                 # Parse and validate JSON response with Pydantic
-                plan_steps = self._parse_plan_response(response.content)
+                plan = self._parse_plan_response(response.content)
 
                 # Validate plan structure
-                self._validate_plan(plan_steps)
-                print(f"[Planner] Plan validated: {len(plan_steps)} topics generated")
+                self._validate_plan(plan)
 
-                return plan_steps
+                return plan
 
             except Exception as e:
                 last_error = e
@@ -199,32 +200,32 @@ Generate plan now:"""
     def _validate_plan(self, plan: List[PlanStep]):
         """Validate plan structure"""
 
-        if not plan:
-            raise ValueError("Plan cannot be empty")
-
-        # Let AI decide appropriate number of topics based on content
-        # Soft limits: warn but don't fail
-        if len(plan) < 3:
-            print(
-                f"[Planner] Warning: Only {len(plan)} topics generated (unusually low)"
-            )
-
-        if len(plan) > 25:
-            print(f"[Planner] Warning: {len(plan)} topics generated (unusually high)")
-
-        # Check for duplicate IDs
-        ids = [step.id for step in plan]
-        if len(ids) != len(set(ids)):
-            raise ValueError("Plan contains duplicate topic IDs")
-
-        # Validate dependencies
-        id_set = set(ids)
-        for step in plan:
-            for dep_id in step.dependencies:
-                if dep_id not in id_set:
-                    raise ValueError(
-                        f"Topic {step.id} has invalid dependency: {dep_id}"
-                    )
+        from app.agent.schemas import ExamPlan
+        
+        if not plan.blocks:
+            raise ValueError("Plan must have at least one block")
+        
+        if plan.total_blocks != len(plan.blocks):
+            raise ValueError(f"total_blocks mismatch: declared {plan.total_blocks}, got {len(plan.blocks)}")
+        
+        all_topics = plan.get_all_topics()
+        if plan.total_topics != len(all_topics):
+            raise ValueError(f"total_topics mismatch: declared {plan.total_topics}, got {len(all_topics)}")
+        
+        if len(all_topics) < 2:
+            raise ValueError(f"Plan must have at least 2 topics, got {len(all_topics)}")
+        
+        # Validate topic IDs are unique
+        topic_ids = [t.id for t in all_topics]
+        if len(topic_ids) != len(set(topic_ids)):
+            raise ValueError("Topic IDs must be unique")
+        
+        # Validate block IDs are unique
+        block_ids = [b.block_id for b in plan.blocks]
+        if len(block_ids) != len(set(block_ids)):
+            raise ValueError("Block IDs must be unique")
+        
+        print(f"[Planner] Plan validated: {plan.total_blocks} blocks, {plan.total_topics} topics")
 
     async def extract_topic_outline(self, content: str, subject: str = "General") -> dict:
         """
