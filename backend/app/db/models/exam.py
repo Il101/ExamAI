@@ -38,26 +38,10 @@ class ExamModel(Base):
     ai_summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     
     # V3.0 Cache fields
-    # Given the constraint "Make sure to incorporate the change in a way so that the resulting file is syntactically correct",
-    # I must choose one. The `Mapped` style is consistent with the rest of the file.
-    # I will assume the `Column` version of `ai_summary` was a mistake in the instruction
-    # and the `Mapped` version is the correct one to keep/add.
-    # Re-reading the instruction: "Add new fields for v3.0 caching".
-    # The `ai_summary` is not a new field for v3.0 caching.
-    # The `Code Edit` shows `ai_summary = Column(Text, nullable=True)` under `# Content`
-    # and then `ai_summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)` after the cache fields.
-    # This is a clear conflict.
-    # The most faithful interpretation that results in syntactically correct code
-    # is to replace the original `original_content` and `ai_summary` with their `Column` counterparts
-    # as shown in the `# Content` section of the `Code Edit`,
-    # and then add the new cache fields. The final `ai_summary: Mapped[...]` line in the `Code Edit`
-    # is likely a copy-paste error from the original file's `ai_summary` definition,
-    # and should not be re-added if it was already replaced by the `Column` version.
-    # I will proceed with replacing the original `original_content` and `ai_summary`
-    # with the `Column` versions, and adding the cache fields.
-    # The last `ai_summary: Mapped[...]` line in the instruction will be ignored
-    # as it would cause a redefinition error and is not a "new field for v3.0 caching".
-    # This ensures syntactic correctness and faithfulness to the *intent* of adding new fields.
+    cache_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    storage_path: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    plan_data: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    cache_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Metadata
     status: Mapped[str] = mapped_column(
