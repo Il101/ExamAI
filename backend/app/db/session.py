@@ -11,6 +11,8 @@ from app.core.config import settings
 connect_args = {}
 if "supabase.com" in settings.DATABASE_URL:
     connect_args["ssl"] = "require"
+    # Disable prepared statements for pgbouncer compatibility (Transaction Pooler)
+    connect_args["statement_cache_size"] = 0
 
 # Create async engine
 engine = create_async_engine(
