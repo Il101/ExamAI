@@ -7,12 +7,19 @@ from sqlalchemy.pool import NullPool
 from app.core.config import settings
 
 # Create async engine
+# Determine connection args (e.g. SSL for Supabase)
+connect_args = {}
+if "supabase.com" in settings.DATABASE_URL:
+    connect_args["ssl"] = "require"
+
+# Create async engine
 engine = create_async_engine(
     settings.DATABASE_URL,
     echo=settings.DEBUG,  # Log SQL in debug mode
     future=True,
     pool_pre_ping=True,  # Check connection before using
     poolclass=NullPool if settings.ENVIRONMENT == "test" or os.getenv("DB_POOL_DISABLE") else None,
+    connect_args=connect_args,
 )
 
 # Session factory

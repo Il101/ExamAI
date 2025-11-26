@@ -4,7 +4,25 @@ set -e
 # Function to run migrations safely
 run_migrations() {
     echo "Running database migrations..."
-    alembic upgrade head
+    # Retry migrations up to 5 times to handle transient connection issues
+    MAX_RETRIES=5
+    RETRY_DELAY=5
+
+    for i in $(seq 1 $MAX_RETRIES); do
+        echo "Attempt $i of $MAX_RETRIES: Running alembic upgrade head..."
+        if alembic upgrade head; then
+            echo "Database migrations completed successfully."
+            return 0
+        fi
+        echo "Migration attempt $i failed."
+        if [ $i -lt $MAX_RETRIES ]; then
+            echo "Retrying in $RETRY_DELAY seconds..."
+            sleep $RETRY_DELAY
+        fi
+    done
+
+    echo "Error: Database migrations failed after $MAX_RETRIES attempts."
+    exit 1
 }
 
 # Run the migration function
