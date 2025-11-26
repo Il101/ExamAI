@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Literal, Optional
 from uuid import UUID, uuid4
 
-ExamStatus = Literal["draft", "planned", "generating", "ready", "failed", "archived"]
+ExamStatus = Literal["draft", "planning", "planned", "generating", "ready", "failed", "archived"]
 ExamType = Literal["oral", "written", "test"]
 ExamLevel = Literal["school", "bachelor", "master", "phd"]
 
@@ -59,28 +59,34 @@ class Exam:
 
     # Business logic
 
-    def can_generate(self) -> bool:
-        """Check if exam can start generation"""
-        return self.status in ["draft", "planned", "failed"] and len(self.original_content) >= 100
-    
     def can_create_plan(self) -> bool:
-        """Check if exam can create plan"""
+        """Check if exam can start plan creation"""
         return self.status == "draft" and len(self.original_content) >= 100
+    
+    def start_planning(self):
+        """Mark exam as planning (plan creation task started)"""
+        if not self.can_create_plan():
+            raise ValueError(f"Cannot start planning: status={self.status}")
+        self.status = "planning"
+        self.updated_at = datetime.utcnow()
+    
+    def can_generate(self) -> bool:
+        """Check if exam can start content generation"""
+        return self.status in ["planned", "failed"] and self.topic_count > 0
 
     def mark_as_planned(self):
         """Mark exam as planned (topics created, ready for generation)"""
-        if not self.can_create_plan():
-            raise ValueError(f"Cannot create plan: status={self.status}")
+        if self.status != "planning":
+            raise ValueError(f"Cannot mark as planned: status={self.status}")
         
         self.status = "planned"
         self.plan_ready_at = datetime.utcnow()
         self.updated_at = datetime.utcnow()
     
     def start_generation(self):
-        """Mark exam as generating"""
+        """Mark exam as generating content"""
         if not self.can_generate():
             raise ValueError(f"Cannot start generation: status={self.status}")
-
         self.status = "generating"
         self.updated_at = datetime.utcnow()
 

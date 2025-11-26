@@ -183,44 +183,33 @@ class ExamService:
 
         return await self.exam_repo.delete(exam_id)
 
-    async def start_generation(self, user_id: UUID, exam_id: UUID) -> Tuple[Exam, str]:
+    async def start_generation(
+        self, user_id: UUID, exam_id: UUID
+    ) -> Tuple[Exam, str]:
         """
-        Start exam generation process.
-        This marks exam as "generating" and triggers a chain of background tasks:
-        1. Create exam plan (topics)
-        2. Generate content for each topic
-
+        Start content generation for exam (progressive generation step 2).
+        Exam must be in 'planned' status (topics already created).
+        
         Returns:
-            Tuple of (Updated exam, Task ID of the first task in the chain)
+            Tuple of (Updated exam, Task ID)
         """
         # Import tasks here to avoid circular import
-        from app.tasks.exam_tasks import create_exam_plan, generate_exam_content
+        from app.tasks.exam_tasks import generate_exam_content
         
         exam = await self.exam_repo.get_by_user_and_id(user_id, exam_id)
         if not exam:
             raise ValueError("Exam not found")
 
-        # Check if can generate
-        # This should be checked for the initial state (e.g., 'draft' or 'planned')
+        # Check if can generate (requires 'planned' status and topics)
         if not exam.can_generate():
-            raise ValueError(f"Cannot generate exam with status: {exam.status}")
+            raise ValueError(f"Cannot generate exam with status: {exam.status}, topic_count: {exam.topic_count}")
 
+        # Mark as generating
         exam.start_generation()
         updated = await self.exam_repo.update(exam)
 
-        # Create a Celery chain: plan -> generate
-        # The `generate_exam_content` task will be triggered after `create_exam_plan` succeeds.
-        # Note: We need to ensure the signature of the tasks is compatible with chaining,
-        # or that the second task can get its required arguments.
-        # `generate_exam_content` takes exam_id and user_id, which we have.
-        # We can create a chain where the result of the first task is ignored,
-        # and the second task is called with its own arguments by using an immutable signature (.si).
-        generation_chain = chain(
-            create_exam_plan.s(exam_id=str(exam_id), user_id=str(user_id)),
-            generate_exam_content.si(exam_id=str(exam_id), user_id=str(user_id)),
-        )
-
-        task = generation_chain.apply_async()
+        # Start content generation task
+        task = generate_exam_content.apply_async(args=[str(exam_id), str(user_id)])
 
         return updated, task.id
 
@@ -244,13 +233,11 @@ class ExamService:
         if not exam.can_create_plan():
             raise ValueError(f"Cannot create plan: status={exam.status}")
         
-        # Mark as generating (will become 'planned' after task completes)
-        exam.start_generation()
+        # Mark as planning (task will mark as 'planned' when complete)
+        exam.start_planning()
         updated = await self.exam_repo.update(exam)
         
-        # Trigger background task to create plan
-        task = create_exam_plan.delay(
-            exam_id=str(exam_id), user_id=str(user_id)
-        )
+        # Start plan creation task
+        task = create_exam_plan.apply_async(args=[str(exam_id), str(user_id)])
         
         return updated, task.id

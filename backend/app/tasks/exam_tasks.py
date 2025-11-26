@@ -280,6 +280,10 @@ async def _create_exam_plan_async(exam_id: UUID, user_id: UUID) -> int:
         if not exam:
             raise ValueError(f"Exam {exam_id} not found")
         
+        # Verify exam is in correct status
+        if exam.status != "planning":
+            raise ValueError(f"Exam must be in 'planning' status, got: {exam.status}")
+        
         user = await user_repo.get_by_id(user_id)
         if not user:
             raise ValueError(f"User {user_id} not found")
