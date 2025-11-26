@@ -63,6 +63,68 @@ async def create_exam(
         raise ValidationException(str(e))
 
 
+@router.post("/v3", response_model=dict, status_code=status.HTTP_201_CREATED)
+async def create_exam_v3(
+    request: ExamCreate,
+    current_user: User = Depends(get_current_active_user),
+    exam_service: ExamService = Depends(get_exam_service),
+):
+    """
+    Create exam with automatic plan generation and caching (v3.0).
+    
+    This endpoint:
+    1. Creates exam
+    2. Generates plan with blocks
+    3. Creates Gemini cache and uploads to S3
+    4. Triggers prefetch for first 2 topics
+    5. Returns exam with plan
+    
+    Rate limits:
+    - Free tier: 50 requests/hour
+    - Pro tier: 500 requests/hour
+    - Premium tier: Unlimited
+    """
+    from app.services.exam_creation_v3 import create_exam_with_plan
+    from app.agent.cached_planner import CachedCoursePlanner
+    from app.integrations.llm.gemini_provider import GeminiProvider
+    from app.api.dependencies import (
+        get_storage, get_cache_manager, get_generation_service
+    )
+    from app.core.config import settings
+    
+    try:
+        # Initialize services
+        llm = GeminiProvider(api_key=settings.GEMINI_API_KEY, model=settings.GEMINI_MODEL)
+        planner = CachedCoursePlanner(llm)
+        storage = get_storage()
+        cache_manager = get_cache_manager()
+        generation_service = get_generation_service()
+        
+        # Create exam with plan
+        exam, plan = await create_exam_with_plan(
+            exam_service=exam_service,
+            user=current_user,
+            title=request.title,
+            subject=request.subject,
+            exam_type=request.exam_type,
+            level=request.level,
+            original_content=request.original_content,
+            planner=planner,
+            storage=storage,
+            cache_manager=cache_manager,
+            generation_service=generation_service
+        )
+        
+        return {
+            "exam": ExamResponse.model_validate(exam).model_dump(),
+            "plan": plan.model_dump(),
+            "message": "Exam created with plan. First 2 topics are being generated."
+        }
+    
+    except ValueError as e:
+        raise ValidationException(str(e))
+
+
 
 
 @router.get("/", response_model=ExamListResponse)
