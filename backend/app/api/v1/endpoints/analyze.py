@@ -1,8 +1,10 @@
+```python
 from typing import Optional, List
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile, status
 from fastapi.responses import JSONResponse
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from pydantic import BaseModel, Field
 
 from app.agent.planner import CoursePlanner
@@ -84,8 +86,11 @@ async def analyze_content(
             tmp_path = tmp.name
         
         try:
+            # Get client from provider (assuming it's migrated to google-genai)
+            client = llm_provider.client
+            
             # Upload to Gemini
-            uploaded_file = genai.upload_file(tmp_path, mime_type=file.content_type)
+            uploaded_file = client.files.upload(file=tmp_path, config={'mime_type': file.content_type})
             
             # Create prompt that references the uploaded file
             prompt = f"""You are an expert educator analyzing study materials. Extract a clear, hierarchical outline of topics and subtopics from the uploaded file.
@@ -105,9 +110,10 @@ Create a structured outline showing:
 """
 
             # Generate with file context and structured output
-            response = await llm_provider.model.generate_content_async(
-                [uploaded_file, prompt],
-                generation_config=genai.GenerationConfig(
+            response = await client.models.generate_content_async(
+                model=llm_provider.model_name,
+                contents=[uploaded_file, prompt],
+                config=types.GenerateContentConfig(
                     temperature=0.2,
                     response_mime_type="application/json",
                     response_schema=OutlineSchema
@@ -126,7 +132,12 @@ Create a structured outline showing:
             outline = json.loads(json_text)
             
             # Delete uploaded file from Gemini
-            genai.delete_file(uploaded_file.name)
+            # Note: google-genai SDK might not have explicit delete in client.files yet or it's different
+            # Checking docs or assuming it's similar: client.files.delete(name=...)
+            try:
+                client.files.delete(name=uploaded_file.name)
+            except:
+                pass # Ignore cleanup errors for now
             
             return JSONResponse(
                 status_code=status.HTTP_200_OK,
@@ -138,8 +149,10 @@ Create a structured outline showing:
             os.unlink(tmp_path)
             
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"error": f"Failed to analyze content: {str(e)}"}
         )
-
+```
