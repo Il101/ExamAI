@@ -176,25 +176,59 @@ async def generate_exam_content_endpoint(
 ):
     """
     Start AI content generation for exam (async with Celery).
-
+    
+    Automatically handles both draft and planned exams:
+    - If exam is in 'draft' status: creates plan first, then generates content
+    - If exam is in 'planned' status: directly generates content
+    
     Returns task ID to poll for progress.
     """
+    from app.tasks.exam_tasks import create_exam_plan, generate_exam_content
+    from celery import chain
+    
     try:
-        updated_exam, task_id = await exam_service.start_generation(
-            user_id=current_user.id, exam_id=exam_id
-        )
+        # Get exam to check status
+        exam = await exam_service.get_exam(current_user.id, exam_id)
+        if not exam:
+            raise NotFoundException("Exam", str(exam_id))
+        
+        # Handle based on current status
+        if exam.status == "draft":
+            # Need to create plan first, then generate content
+            # Start planning
+            exam.start_planning()
+            await exam_service.exam_repo.update(exam)
+            
+            # Create task chain: plan -> generate
+            task_chain = chain(
+                create_exam_plan.s(exam_id=str(exam_id), user_id=str(current_user.id)),
+                generate_exam_content.si(exam_id=str(exam_id), user_id=str(current_user.id)),
+            )
+            task = task_chain.apply_async()
+            
+            return {
+                "task_id": task.id,
+                "status": "Planning and generation started",
+                "message": "Creating plan and generating content. Poll /tasks/{task_id} for status.",
+            }
+            
+        elif exam.status == "planned":
+            # Already has plan, just generate content
+            updated_exam, task_id = await exam_service.start_generation(
+                user_id=current_user.id, exam_id=exam_id
+            )
+            return {
+                "task_id": task_id,
+                "status": "Generation started",
+                "message": "Generating content. Poll /tasks/{task_id} for status.",
+            }
+        else:
+            raise ValidationException(f"Cannot generate exam with status: {exam.status}")
+            
     except ValueError as e:
-         # Mapping ValueError to ValidationException or NotFoundException depending on message
-         # Ideally use custom exceptions in service
          if "not found" in str(e).lower():
              raise NotFoundException("Exam", str(exam_id))
          raise ValidationException(str(e))
-
-    return {
-        "task_id": task_id,
-        "status": "Task started",
-        "message": "Exam generation in progress. Poll /tasks/{task_id} for status.",
-    }
 
 
 @router.get("/{exam_id}/status", response_model=GenerationStatusResponse)
