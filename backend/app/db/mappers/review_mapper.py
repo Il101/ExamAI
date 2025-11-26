@@ -23,7 +23,7 @@ class ReviewItemMapper:
             reps=model.reps,
             lapses=model.lapses,
             state=cast(CardState, model.state),
-            state=cast(CardState, model.state),
+
             next_review_date=ReviewItemMapper._ensure_utc(model.next_review_date),
             last_reviewed_at=ReviewItemMapper._ensure_utc(model.last_reviewed_at),
             last_review_rating=(
