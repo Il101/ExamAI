@@ -1,11 +1,6 @@
 """Supabase Storage integration for file management"""
 from typing import Optional
-from supabase import create_client, Client
-from uuid import UUID
-import logging
-
-logger = logging.getLogger(__name__)
-
+from supabase import create_client, Client, ClientOptions
 
 class SupabaseStorage:
     """Service for managing files in Supabase Storage"""
@@ -15,10 +10,10 @@ class SupabaseStorage:
         self.client: Client = create_client(
             url, 
             key,
-            options={
-                "auto_refresh_token": False,
-                "persist_session": False,
-            }
+            options=ClientOptions(
+                auto_refresh_token=False,
+                persist_session=False,
+            )
         )
         logger.info(f"SupabaseStorage initialized with URL: {url}, Key length: {len(key)}")
         if "service_role" not in key and len(key) < 100:
