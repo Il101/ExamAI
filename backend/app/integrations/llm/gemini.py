@@ -78,6 +78,8 @@ class GeminiProvider(LLMProvider):
         max_tokens: Optional[int] = None,
         system_prompt: Optional[str] = None,
         response_schema: Optional[Any] = None,
+        response_mime_type: Optional[str] = None,
+        **kwargs,
     ) -> LLMResponse:
         """Generate text with Gemini"""
 
@@ -100,6 +102,8 @@ class GeminiProvider(LLMProvider):
             if response_schema:
                 config_args["response_mime_type"] = "application/json"
                 config_args["response_schema"] = response_schema
+            elif response_mime_type:
+                config_args["response_mime_type"] = response_mime_type
 
             config = types.GenerateContentConfig(**config_args)
 

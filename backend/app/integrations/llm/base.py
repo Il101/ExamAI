@@ -42,6 +42,7 @@ class LLMProvider(ABC):
         max_tokens: Optional[int] = None,
         system_prompt: Optional[str] = None,
         response_schema: Optional[Any] = None,
+        **kwargs,
     ) -> LLMResponse:
         """
         Generate text completion.
