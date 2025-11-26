@@ -3,27 +3,11 @@ from typing import List
 
 from pydantic import BaseModel, Field
 
-from app.agent.state import AgentState, PlanStep, Priority
+from app.agent.state import AgentState
 from app.integrations.llm.base import LLMProvider
+from app.agent.schemas import ExamPlan
 
-
-class PlanStepSchema(BaseModel):
-    """Pydantic schema for structured output validation"""
-
-    id: int = Field(..., description="Unique topic ID")
-    title: str = Field(..., description="Topic name (concise, max 10 words)")
-    description: str = Field(..., description="What should be covered")
-    priority: int = Field(..., description="Priority: 1-high, 2-medium, 3-low")
-    estimated_paragraphs: int = Field(..., description="Estimated content size")
-    dependencies: List[int] = Field(
-        default_factory=list, description="Prerequisite topic IDs"
-    )
-
-
-class StudyPlanSchema(BaseModel):
-    """Wrapper for list of steps to ensure valid JSON object structure"""
-
-    steps: List[PlanStepSchema]
+# Legacy schemas removed - using ExamPlan from schemas.py
 
 
 class CoursePlanner:
@@ -206,10 +190,8 @@ Generate the JSON plan now:"""
             )
 
 
-    def _validate_plan(self, plan: List[PlanStep]):
+    def _validate_plan(self, plan: ExamPlan):
         """Validate plan structure"""
-
-        from app.agent.schemas import ExamPlan
         
         if not plan.blocks:
             raise ValueError("Plan must have at least one block")
