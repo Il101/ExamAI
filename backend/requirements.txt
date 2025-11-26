@@ -31,12 +31,7 @@ storage3==2.24.0
 
 # Google AI
 google-genai==0.2.1
-google-ai-generativelanguage==0.6.15
-google-api-core==2.28.1
-google-api-python-client==2.187.0
-google-auth==2.43.0
-google-auth-httplib2==0.2.1
-googleapis-common-protos==1.72.0
+google-genai==0.2.1
 
 # OpenAI
 openai==2.8.1
