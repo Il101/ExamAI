@@ -55,6 +55,7 @@ class ExamResponse(BaseModel):
     token_count_input: Optional[int] = None
     token_count_output: Optional[int] = None
     generation_cost_usd: Optional[float] = None
+    plan_data: Optional[dict] = None  # JSON plan data
     topics: List["TopicResponse"] = []  # Related topics
 
     class Config:
