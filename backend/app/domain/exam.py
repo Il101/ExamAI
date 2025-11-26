@@ -106,8 +106,8 @@ class Exam:
 
     def mark_as_failed(self):
         """Mark exam generation as failed"""
-        if self.status != "generating":
-            raise ValueError("Can only mark generating exams as failed")
+        if self.status not in ["planning", "planned", "generating"]:
+            raise ValueError(f"Cannot mark as failed: status={self.status}")
 
         self.status = "failed"
         self.updated_at = datetime.utcnow()

@@ -44,3 +44,18 @@ class TopicMapper:
             updated_at=entity.updated_at,
             estimated_study_minutes=entity.estimated_study_minutes,
         )
+
+    @staticmethod
+    def update_model(model: TopicModel, entity: Topic) -> TopicModel:
+        """Update existing DB model with domain data"""
+        model.topic_name = entity.topic_name
+        model.content = entity.content
+        model.file_context = entity.file_context
+        model.status = entity.status
+        model.order_index = entity.order_index
+        model.generation_priority = entity.generation_priority
+        model.difficulty_level = entity.difficulty_level
+        model.updated_at = entity.updated_at
+        model.estimated_study_minutes = entity.estimated_study_minutes
+        
+        return model
