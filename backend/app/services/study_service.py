@@ -1,6 +1,6 @@
 from typing import Any, Dict, List
 from uuid import UUID
-from datetime import date, timedelta, datetime
+from datetime import date, timedelta, datetime, timezone
 import random
 
 from app.domain.review import Rating, ReviewItem
@@ -83,7 +83,6 @@ class StudyService:
             user_id=user_id,
             review_item_id=review_item_id,
             rating=quality,
-            from datetime import timezone
             review_time=datetime.now(timezone.utc),
             interval_days=item.elapsed_days,
             scheduled_days=item.scheduled_days,
