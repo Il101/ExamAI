@@ -78,13 +78,17 @@ class CoursePlanner:
                     response.tokens_input, response.tokens_output, response.cost_usd
                 )
 
-                # Parse and validate JSON response with Pydantic
+                # Parse and validate
                 plan = self._parse_plan_response(response.content)
-
-                # Validate plan structure
                 self._validate_plan(plan)
-
-                return plan
+                
+                print(f"[Planner] Plan validated: {plan.total_blocks} blocks, {plan.total_topics} topics")
+                
+                # Convert to legacy format for backward compatibility
+                from app.agent.plan_adapter import exam_plan_to_steps
+                legacy_steps = exam_plan_to_steps(plan)
+                
+                return legacy_steps
 
             except Exception as e:
                 last_error = e
