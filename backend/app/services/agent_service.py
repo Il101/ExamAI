@@ -217,6 +217,7 @@ class AgentService:
 
         if exam.status == "ready":
             return {
+                "exam_id": str(exam_id),
                 "status": "ready",
                 "progress": 1.0,
                 "message": "Generation complete",
@@ -227,6 +228,7 @@ class AgentService:
             
         if exam.status == "failed":
              return {
+                "exam_id": str(exam_id),
                 "status": "failed",
                 "progress": 0.0,
                 "message": getattr(exam, "error_message", "Generation failed"),
@@ -239,6 +241,7 @@ class AgentService:
         topics = await self.topic_repo.get_by_exam_id(exam_id)
         if not topics:
              return {
+                "exam_id": str(exam_id),
                 "status": exam.status,
                 "progress": 0.0,
                 "message": "Initializing...",
@@ -265,6 +268,7 @@ class AgentService:
         
         if exam.status == "planned":
              return {
+                "exam_id": str(exam_id),
                 "status": "planned",
                 "progress": 0.2,
                 "message": "Ready to generate",
@@ -277,6 +281,7 @@ class AgentService:
         display_progress = 0.2 + (progress * 0.7)
         
         return {
+            "exam_id": str(exam_id),
             "status": "generating",
             "progress": display_progress,
             "message": current_topic_name,
