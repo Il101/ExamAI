@@ -23,6 +23,7 @@ export function useExamDetail(examId: string) {
     // Merge status data into exam if available
     const mergedExam = exam ? {
         ...exam,
+        status: (statusQuery.data?.status as any) || exam.status,
         progress: statusQuery.data?.progress || 0,
         current_step: statusQuery.data?.current_step || '',
         message: statusQuery.data?.message || '',
