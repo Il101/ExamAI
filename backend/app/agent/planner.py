@@ -139,10 +139,11 @@ class CoursePlanner:
 - Keep blocks balanced in size
 - Base ONLY on content that exists in the materials
 
-**Output as JSON matching this exact schema:**
+**CRITICAL: You MUST return ONLY valid JSON in this EXACT format (no markdown, no code blocks):**
+
 {{
-  "total_topics": <number>,
-  "total_blocks": <number>,
+  "total_topics": 8,
+  "total_blocks": 3,
   "blocks": [
     {{
       "block_id": "block_01",
@@ -153,6 +154,12 @@ class CoursePlanner:
           "title": "Core Concepts",
           "description": "Fundamental principles",
           "estimated_paragraphs": 4
+        }},
+        {{
+          "id": "topic_02",
+          "title": "Basic Terminology",
+          "description": "Key terms and definitions",
+          "estimated_paragraphs": 3
         }}
       ]
     }}
@@ -160,12 +167,13 @@ class CoursePlanner:
 }}
 
 **Requirements:**
+- Return ONLY the JSON object (no markdown code blocks, no extra text)
+- MUST include total_topics and total_blocks fields
 - ONLY create topics for content that exists in the materials
-- Do NOT invent topics based on assumptions
 - Keep titles and descriptions CONCISE (max 100 chars)
 - Ensure logical progression within and across blocks
 
-Generate plan now:"""
+Generate the JSON plan now:"""
 
         return prompt
 
