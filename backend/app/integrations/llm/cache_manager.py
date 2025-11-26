@@ -33,7 +33,6 @@ class ContextCacheManager:
             Cache name for future reference
         """
         try:
-        try:
             # Use async client and pass arguments via config
             cache = await self.client.aio.caches.create(
                 config={
