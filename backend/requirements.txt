@@ -113,5 +113,5 @@ StrEnum==0.4.15
 tqdm==4.67.1
 uritemplate==4.2.0
 urllib3==2.5.0
-websockets==15.0.1
+websockets==14.1
 yarl==1.22.0
