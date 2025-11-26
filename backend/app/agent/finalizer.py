@@ -81,29 +81,48 @@ class NoteFinalizer:
         # Count total sections
         section_count = len([s for s in state.plan if s.id in state.results])
 
-        return f"""You are an editor of educational materials. You have a draft of study notes for "{state.subject}".
+        return f"""You are an editor of educational materials. Polish the study notes below into a professional document.
+
+**CRITICAL:** The course title may be generic or misleading - focus on the ACTUAL CONTENT of the materials.
 
 **Your Task:**
-1. Add a title page with:
-   - Subject name
-   - Exam type and academic level
-   - Brief description (2-3 sentences)
+1. Add a professional title page with:
+   - **AI Summary** heading
+   - Subject: Infer from content (ignore generic title)
+   - Exam Type: {state.exam_type}
+   - Academic Level: {state.level}
+   - Brief description (2-3 sentences about ACTUAL content)
 2. Create Table of Contents with all {section_count} topics
-3. Review and polish the content:
-   - Remove any duplicate information
-   - Ensure consistent terminology throughout
-   - Add brief transitions between topics where needed
-   - Fix formatting inconsistencies
-4. Add a final section "Self-Check Questions" with 8-12 key questions covering all topics
+3. Polish the formatting:
+   - Ensure consistent heading levels
+   - Add proper spacing between sections
+   - Make sure lists are properly formatted
+   - Verify tables render correctly
+   - Add horizontal rules between major sections
+4. Review content quality:
+   - Remove any placeholder text `[Insert X]`
+   - Remove duplicate information
+   - Ensure terminology is consistent
+   - Add smooth transitions between topics
+5. Add final section with 10-12 self-check questions covering all topics
+
+**FORMATTING GUIDELINES:**
+- Use `###` for topic headings
+- Use `-` for bullet lists
+- Use `1.` for numbered lists
+- Use tables for comparisons
+- Keep paragraphs SHORT (2-4 sentences)
+- Use **bold** for key terms
+- Use `>` blockquotes for important notes
 
 **Important:**
 - Do NOT change factual content
-- Do NOT add new topics
-- Do NOT remove existing topics
-- Maintain the original structure and depth
+- Do NOT add new topics or remove existing ones
+- Do NOT use placeholder text
+- Make it scannable and easy to review quickly
 
 **Draft Study Notes:**
 
 {combined_notes}
 
-**Output:** Complete, polished study notes in Markdown format, ready for exam preparation."""
+**Output:** Complete, professionally formatted study notes in Markdown."""

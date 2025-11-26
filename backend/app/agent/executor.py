@@ -137,54 +137,63 @@ class TopicExecutor:
     ) -> str:
         """Build prompt for topic content generation"""
 
-        # Add original content context if available
-        content_context = ""
+        # Extract relevant content sections based on step title
+        content_section = ""
         if state.original_content:
-            # Extract relevant sections (simple keyword matching)
+            # Use more content for better context (500 lines instead of 100)
+            lines = state.original_content.split("\n")[:500]
             keywords = step.title.lower().split()
-            relevant_lines = []
-            for line in state.original_content.split("\n")[:100]:  # First 100 lines
-                if any(kw in line.lower() for kw in keywords):
-                    relevant_lines.append(line)
-
-            if relevant_lines:
-                content_context = (
-                    "\\n**Relevant excerpts from user materials:**\\n"
-                    + "\\n".join(relevant_lines[:10])
-                    + "\\n"
+            
+            # Find relevant paragraphs (not just lines)
+            relevant_content = []
+            current_para = []
+            
+            for line in lines:
+                if line.strip():
+                    current_para.append(line)
+                else:
+                    if current_para:
+                        para_text = " ".join(current_para)
+                        if any(kw in para_text.lower() for kw in keywords):
+                            relevant_content.append("\n".join(current_para))
+                        current_para = []
+            
+            if relevant_content:
+                content_section = (
+                    "\n**Relevant content from user's materials:**\n"
+                    + "\n\n".join(relevant_content[:5])  # Top 5 relevant paragraphs
+                    + "\n"
+                )
+            else:
+                # If no specific matches, provide general context
+                content_section = (
+                    "\n**User's study materials (excerpt):**\n"
+                    + "\n".join(lines[:30])  # First 30 lines
+                    + "\n\n[... more content available]\n"
                 )
 
-        return f"""You are an expert educator for {state.subject}. Write structured study notes for a specific topic.
+        return f"""You are creating structured study notes from user-provided materials.
 
-**Course Context:**
-- Subject: {state.subject}
+**CRITICAL:** Analyze the actual content below, NOT the course title. The user may have named the exam anything - focus on what's ACTUALLY in their materials.
+
+**Context:**
 - Academic Level: {state.level}
 - Exam Type: {state.exam_type}
 {previous_context}
 
-**Current Topic:**
-- Title: {step.title}
-- Coverage: {step.description}
-- Target Length: {step.estimated_paragraphs} paragraphs
-- Priority: {"Essential" if step.priority == 1 else "Important" if step.priority == 2 else "Advanced"}
-{content_context}
+**Your task for this section:**
+- Section Title: {step.title}
+- Description: {step.description}
+- Target Length: {step.estimated_paragraphs} well-structured paragraphs
+{content_section}
 
-**Requirements for Study Notes:**
-1. Start with a clear definition/introduction
-2. Structure content with subheadings
-3. Include:
-   - Key definitions and concepts
-   - Formulas/theorems/facts (if applicable)
-   - 1-2 examples or practice problems
-   - Common mistakes and important notes
-4. Write concisely - this is for quick review before exam
-5. Use bullet points and numbered lists where appropriate
-6. Do NOT duplicate content from other topics
-7. Write in clear, student-friendly language
-
-**Output Format:** Well-structured Markdown text ready for study.
-
-Begin with topic content:"""
+**FORMATTING REQUIREMENTS (CRITICAL):**
+1. **Use headings:** Start with `###` for subsections
+2. **Use bullet points:** Prefer `-` lists over long paragraphs
+3. **Use numbered lists:** For steps, procedures, rankings
+4. **Use tables:** For comparisons, formulas, data
+5. **Keep paragraphs SHORT:** 2-4 sentences maximum
+6. **Use bold** for key terms
 
     async def execute_all(self, state: AgentState) -> Dict[int, StepResult]:
         """
