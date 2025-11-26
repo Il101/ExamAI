@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text
@@ -48,7 +48,7 @@ class LLMUsageLogModel(Base):
 
     # Request context
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=datetime.utcnow, index=True
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), index=True
     )
     request_metadata: Mapped[Optional[dict[str, Any]]] = mapped_column(
         JSONB, default={}

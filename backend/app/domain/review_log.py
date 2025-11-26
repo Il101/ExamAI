@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
 @dataclass
@@ -13,7 +13,7 @@ class ReviewLog:
     review_item_id: UUID = field(default_factory=uuid4)
     
     rating: int = 0  # 1-4
-    review_time: datetime = field(default_factory=datetime.utcnow)
+    review_time: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     
     # Snapshot of FSRS state at time of review
     interval_days: int = 0  # Actual days since last review

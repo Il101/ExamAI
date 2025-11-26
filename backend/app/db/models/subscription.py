@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, String
@@ -31,7 +31,7 @@ class SubscriptionModel(Base):
 
     # Billing cycle
     current_period_start: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=datetime.utcnow, nullable=False
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
     )
     current_period_end: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False

@@ -1,7 +1,7 @@
 # backend/app/domain/user.py
 import re
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Literal, Optional
 from uuid import UUID, uuid4
 
@@ -25,7 +25,7 @@ class User:
     is_verified: bool = False
     verification_token: Optional[str] = None
 
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     last_login: Optional[datetime] = None
 
     # User preferences (for future personalization)
@@ -89,7 +89,7 @@ class User:
 
     def update_last_login(self):
         """Update last login timestamp"""
-        self.last_login = datetime.utcnow()
+        self.last_login = datetime.now(timezone.utc)
 
     def upgrade_subscription(self, plan: SubscriptionPlan):
         """Upgrade user subscription"""

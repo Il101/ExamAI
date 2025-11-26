@@ -1,6 +1,6 @@
 # backend/app/domain/topic.py
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Literal, Optional
 from uuid import UUID, uuid4
 
@@ -30,8 +30,8 @@ class Topic:
     generation_priority: int = 0  # Lower = higher priority
     difficulty_level: DifficultyLevel = 3  # 1=easy, 5=hard
 
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     # Estimated study time (in minutes)
     estimated_study_minutes: int = 0
@@ -63,7 +63,7 @@ class Topic:
             raise ValueError(f"Cannot start generation: status={self.status}")
         
         self.status = "generating"
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
     
     def mark_as_ready(self, content: str):
         """Mark topic as ready with generated content"""
@@ -72,7 +72,7 @@ class Topic:
         
         self.content = content
         self.status = "ready"
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
     
     def mark_as_failed(self, error_message: Optional[str] = None):
         """Mark topic generation as failed"""
@@ -80,7 +80,7 @@ class Topic:
             raise ValueError("Can only mark generating topics as failed")
         
         self.status = "failed"
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
     def estimate_study_time(self) -> int:
         """

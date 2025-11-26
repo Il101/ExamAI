@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -83,7 +83,7 @@ async def export_user_data(
     try:
         # Collect all user data
         data: Dict[str, Any] = {
-            "export_date": datetime.utcnow().isoformat(),
+            "export_date": datetime.now(timezone.utc).isoformat(),
             "user": {
                 "id": str(current_user.id),
                 "email": current_user.email,

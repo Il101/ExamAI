@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
 from uuid import UUID
 
@@ -64,7 +64,7 @@ class CostGuardService:
         )
 
         # Get today's spending
-        today_start = datetime.utcnow().replace(
+        today_start = datetime.now(timezone.utc).replace(
             hour=0, minute=0, second=0, microsecond=0
         )
 
@@ -156,7 +156,7 @@ class CostGuardService:
             user.subscription_plan, self.DAILY_LIMITS["free"]
         )
 
-        today_start = datetime.utcnow().replace(
+        today_start = datetime.now(timezone.utc).replace(
             hour=0, minute=0, second=0, microsecond=0
         )
 
@@ -215,7 +215,7 @@ class CostGuardService:
                 "avg_cost_per_operation": 0.50
             }
         """
-        start_date = datetime.utcnow() - timedelta(days=days)
+        start_date = datetime.now(timezone.utc) - timedelta(days=days)
 
         stmt = select(
             func.sum(LLMUsageLogModel.cost_usd).label("total_cost"),

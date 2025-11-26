@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -131,7 +131,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
                     if hasattr(request.state, "request_id")
                     else None
                 ),
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
         },
     )
@@ -159,7 +159,7 @@ async def app_exception_handler(request: Request, exc: AppException):
                     if hasattr(request.state, "request_id")
                     else None
                 ),
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
         },
     )
@@ -193,7 +193,7 @@ async def global_exception_handler(request: Request, exc: Exception):
                     if hasattr(request.state, "request_id")
                     else None
                 ),
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             }
         },
     )

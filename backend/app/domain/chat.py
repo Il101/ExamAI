@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Literal, Optional, List, Dict, Any
 from uuid import UUID, uuid4
 
@@ -21,7 +21,7 @@ class ChatMessage:
     # Function Calling metadata
     tool_calls: Optional[List[Dict[str, Any]]] = None
     
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     def __post_init__(self):
         self._validate()

@@ -1,6 +1,6 @@
 # backend/app/domain/exam.py
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Literal, Optional
 from uuid import UUID, uuid4
 
@@ -38,8 +38,8 @@ class Exam:
     # Metadata
     status: ExamStatus = "draft"
     plan_ready_at: Optional[datetime] = None  # When plan was created
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     # AI usage tracking
     token_count_input: int = 0
@@ -74,7 +74,7 @@ class Exam:
         if not self.can_create_plan():
             raise ValueError(f"Cannot start planning: status={self.status}")
         self.status = "planning"
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
     
     def can_generate(self) -> bool:
         """Check if exam can start content generation"""
@@ -86,15 +86,15 @@ class Exam:
             raise ValueError(f"Cannot mark as planned: status={self.status}")
         
         self.status = "planned"
-        self.plan_ready_at = datetime.utcnow()
-        self.updated_at = datetime.utcnow()
+        self.plan_ready_at = datetime.now(timezone.utc)
+        self.updated_at = datetime.now(timezone.utc)
     
     def start_generation(self):
         """Mark exam as generating content"""
         if not self.can_generate():
             raise ValueError(f"Cannot start generation: status={self.status}")
         self.status = "generating"
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
     def mark_as_ready(
         self, ai_summary: str, token_input: int, token_output: int, cost: float
@@ -108,7 +108,7 @@ class Exam:
         self.token_count_output = token_output
         self.generation_cost_usd = cost
         self.status = "ready"
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
     def mark_as_failed(self):
         """Mark exam generation as failed (idempotent)"""
@@ -118,7 +118,7 @@ class Exam:
         
         # Idempotent - if already failed, just update timestamp
         self.status = "failed"
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
     def archive(self):
         """Archive exam"""
@@ -126,7 +126,7 @@ class Exam:
             raise ValueError("Cannot archive exam during generation")
 
         self.status = "archived"
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
     def get_estimated_tokens(self) -> int:
         """Estimate tokens for generation (rough: 1 token ≈ 4 chars)"""
@@ -137,4 +137,4 @@ class Exam:
         if count < 0:
             raise ValueError("Topic count cannot be negative")
         self.topic_count = count
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)

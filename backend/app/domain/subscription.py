@@ -1,6 +1,6 @@
 # backend/app/domain/subscription.py
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Literal, Optional
 from uuid import UUID, uuid4
 
@@ -21,9 +21,9 @@ class Subscription:
     status: SubscriptionStatus = "active"
 
     # Billing cycle
-    current_period_start: datetime = field(default_factory=datetime.utcnow)
+    current_period_start: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     current_period_end: datetime = field(
-        default_factory=lambda: datetime.utcnow() + timedelta(days=30)
+        default_factory=lambda: datetime.now(timezone.utc) + timedelta(days=30)
     )
 
     # External billing IDs (Stripe)
@@ -34,14 +34,14 @@ class Subscription:
     cancel_at_period_end: bool = False
     canceled_at: Optional[datetime] = None
 
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     # Business logic
 
     def is_active(self) -> bool:
         """Check if subscription is active"""
-        return self.status == "active" and datetime.utcnow() <= self.current_period_end
+        return self.status == "active" and datetime.now(timezone.utc) <= self.current_period_end
 
     def can_access_feature(self, feature: str) -> bool:
         """Check feature access based on plan"""
@@ -72,18 +72,18 @@ class Subscription:
             raise ValueError("Can only upgrade to higher plan")
 
         self.plan_type = new_plan
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
     def cancel(self, immediate: bool = False):
         """Cancel subscription"""
         if immediate:
             self.status = "canceled"
-            self.current_period_end = datetime.utcnow()
+            self.current_period_end = datetime.now(timezone.utc)
         else:
             self.cancel_at_period_end = True
 
-        self.canceled_at = datetime.utcnow()
-        self.updated_at = datetime.utcnow()
+        self.canceled_at = datetime.now(timezone.utc)
+        self.updated_at = datetime.now(timezone.utc)
 
     def renew(self, duration_days: int = 30):
         """Renew subscription for next period"""
@@ -94,9 +94,9 @@ class Subscription:
         self.current_period_end = self.current_period_start + timedelta(
             days=duration_days
         )
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
     def days_until_renewal(self) -> int:
         """Days until next billing"""
-        delta = self.current_period_end - datetime.utcnow()
+        delta = self.current_period_end - datetime.now(timezone.utc)
         return max(0, delta.days)

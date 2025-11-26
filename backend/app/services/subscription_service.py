@@ -1,6 +1,6 @@
 from typing import Dict, Any, List
 from uuid import UUID
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 
 from app.domain.subscription import Subscription
 from app.repositories.subscription_repository import SubscriptionRepository
@@ -89,8 +89,8 @@ class SubscriptionService:
                 user_id=user_id,
                 plan_type="free",
                 status="active",
-                current_period_start=datetime.utcnow(),
-                current_period_end=datetime.utcnow()
+                current_period_start=datetime.now(timezone.utc),
+                current_period_end=datetime.now(timezone.utc)
                 + timedelta(days=36500),  # 100 years (permanent)
             )
             subscription = await self.subscription_repo.create(subscription)

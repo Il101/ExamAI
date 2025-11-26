@@ -1,6 +1,6 @@
 # backend/app/domain/study_session.py
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from typing import List, Optional
 from uuid import UUID, uuid4
 
@@ -17,7 +17,7 @@ class StudySession:
     exam_id: UUID = field(default_factory=uuid4)
 
     # Session info
-    started_at: datetime = field(default_factory=datetime.utcnow)
+    started_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     ended_at: Optional[datetime] = None
 
     # Pomodoro settings
@@ -35,7 +35,7 @@ class StudySession:
 
     is_active: bool = True
 
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: Optional[datetime] = None
 
     def __post_init__(self):
@@ -73,11 +73,11 @@ class StudySession:
             raise ValueError("Session already ended")
 
         self.is_active = False
-        self.ended_at = datetime.utcnow()
+        self.ended_at = datetime.now(timezone.utc)
 
     def get_duration_minutes(self) -> int:
         """Get session duration in minutes"""
-        end_time = self.ended_at or datetime.utcnow()
+        end_time = self.ended_at or datetime.now(timezone.utc)
         duration = end_time - self.started_at
         return int(duration.total_seconds() / 60)
 

@@ -37,10 +37,10 @@ class AdminService:
         )
 
         # Active users (last 7/30 days)
-        from datetime import datetime, timedelta
+        from datetime import datetime, timedelta, timezone
 
-        seven_days_ago = datetime.utcnow() - timedelta(days=7)
-        thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+        seven_days_ago = datetime.now(timezone.utc) - timedelta(days=7)
+        thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
 
         active_7_days = await self.session.scalar(
             select(func.count(UserModel.id)).where(

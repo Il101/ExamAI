@@ -10,7 +10,7 @@ This method:
 """
 from typing import Tuple
 from uuid import UUID
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from app.domain.exam import Exam
 from app.domain.user import User
@@ -87,12 +87,12 @@ async def create_exam_with_plan(
         "cache_name": cache_name,
         "storage_path": f"exams/{exam.id}/original_content.txt",
         "status": "planned",
-        "plan_ready_at": datetime.utcnow(),
+        "plan_ready_at": datetime.now(timezone.utc),
         "topic_count": plan.total_topics,
     }
     
     if cache_name:
-        updates["cache_expires_at"] = datetime.utcnow() + timedelta(hours=1)
+        updates["cache_expires_at"] = datetime.now(timezone.utc) + timedelta(hours=1)
     
     # Update exam using service method
     await exam_service.update_exam(
