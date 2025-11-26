@@ -193,9 +193,33 @@ class TopicExecutor:
 3. **Use numbered lists:** For steps, procedures, rankings
 4. **Use tables:** For comparisons, formulas, data
 5. **Keep paragraphs SHORT:** 2-4 sentences maximum
+**FORMATTING REQUIREMENTS (CRITICAL):**
+1. **Use headings:** Start with `###` for subsections
+2. **Use bullet points:** Prefer `-` lists over long paragraphs
+3. **Use numbered lists:** For steps, procedures, rankings
+4. **Use tables:** For comparisons, formulas, data
+5. **Keep paragraphs SHORT:** 2-4 sentences maximum
 6. **Use bold** for key terms
+7. **Break up text:** Use horizontal rules `---` between major concepts
+8. **Add examples in code blocks:** Use ``` for code, formulas, or structured data
+9. **Use blockquotes** for important notes: `> **Note:** ...`
+10. **NO PLACEHOLDERS:** Never write `[Insert X Here]` - use actual content from materials
 
-    async def execute_all(self, state: AgentState) -> Dict[int, StepResult]:
+**Content Structure:**
+1. Brief introduction (1-2 sentences)
+2. Key concepts with bullet points
+3. Detailed explanation with subheadings
+4. Examples or practice problems
+5. Common mistakes to avoid
+6. Quick summary at the end
+
+**IMPORTANT:**
+- Extract REAL information from the user's materials above
+- If materials don't contain specific info, make reasonable educational content
+- NEVER use placeholder text like `[Insert Definition]`
+- Keep it scannable - students should grasp key points in 30 seconds
+
+Generate structured study notes now:"""
         """
         Execute all steps in plan sequentially with granular error handling.
         Continues execution even if some steps fail (partial success).
