@@ -111,52 +111,68 @@ class CoursePlanner:
         raise ValueError(f"Plan generation failed: {str(last_error)}")
 
     def _build_planning_prompt(self, state: AgentState) -> str:
-        """Build prompt for plan generation"""
+        """Build prompt for block-based plan generation"""
 
         # Include original content context if available
         content_context = ""
-        content_instruction = ""
         if state.original_content:
-            # Use full content for analysis, not just preview
-            content_context = f"\n**User-provided study materials:**\n```\n{state.original_content}\n```\n"
-            content_instruction = """
-**CRITICAL INSTRUCTION:**
-- Base your topic structure ONLY on the actual content provided above
-- DO NOT add topics that are not covered in the provided materials
-- If the content is limited or organizational, create fewer topics (even 2-4 is fine)
-- Each topic must correspond to content that actually exists in the materials
-- If materials are incomplete, acknowledge this in topic descriptions
-"""
+            content_context = f"\n**Study materials to analyze:**\n```\n{state.original_content}\n```\n"
 
-        # Build prompt - simplified for Structured Output
-        prompt = f"""You are an experienced educator. Analyze the study materials below and create a structured study plan.
+        # Build prompt for block-based structure
+        prompt = f"""You are an educational content analyst. Analyze the study materials and create a structured learning plan.
 
-**CRITICAL:** Ignore any generic or misleading titles. Determine the ACTUAL subject by reading the content.
+**CRITICAL:** Determine the subject from the CONTENT ITSELF, not from any title or filename.
 
-**Context:**
-- Exam Type: {state.exam_type}
-- Academic Level: {state.level}
 {content_context}
-{content_instruction}
 
-**Your Task:**
+**Your task:**
 1. Read the materials above and identify the REAL subject/topic
-2. Analyze what topics are ACTUALLY covered in the materials
-3. Create 3-10 topics based on what's present (not what you think should be there)
+2. Divide content into logical BLOCKS (chapters/modules)
+3. Within each block, define 2-5 TOPICS (specific concepts)
+4. Each block should be completable in one study session (20-30 min)
+
+**Block Strategy:**
+- Block = coherent chapter/module (e.g., "Introduction to Python", "Control Flow")
+- Topic = specific concept within block (e.g., "Variables", "Data Types")
+- Aim for 3-6 blocks total
+- Keep blocks balanced in size
+- Base ONLY on content that exists in the materials
+
+**Output as JSON matching this exact schema:**
+{{
+  "total_topics": <number>,
+  "total_blocks": <number>,
+  "blocks": [
+    {{
+      "block_id": "block_01",
+      "block_title": "Introduction",
+      "topics": [
+        {{
+          "id": "topic_01",
+          "title": "Core Concepts",
+          "description": "Fundamental principles",
+          "estimated_paragraphs": 4
+        }}
+      ]
+    }}
+  ]
+}}
 
 **Requirements:**
-- Base topics ONLY on content that exists in the materials
+- ONLY create topics for content that exists in the materials
 - Do NOT invent topics based on assumptions
-- Keep titles and descriptions CONCISE
-- Ensure logical progression
-"""
+- Keep titles and descriptions CONCISE (max 100 chars)
+- Ensure logical progression within and across blocks
+
+Generate plan now:"""
 
         return prompt
 
-    def _parse_plan_response(self, response_text: str) -> List[PlanStep]:
-        """Parse JSON response into PlanStep objects with Pydantic validation"""
-
-        # Clean response (remove markdown code blocks if present - just in case)
+    def _parse_plan_response(self, response_text: str) -> "ExamPlan":
+        """Parse JSON response into ExamPlan object with Pydantic validation"""
+        from app.agent.schemas import ExamPlan
+        
+        # Clean response (remove markdown code blocks if present)
         json_text = response_text.strip()
 
         if json_text.startswith("```json"):
@@ -165,9 +181,10 @@ class CoursePlanner:
             json_text = json_text[3:-3].strip()
 
         try:
-            plan_data = json.loads(json_text)
-        except json.JSONDecodeError as e:
-            # Provide more helpful error message for truncation
+            # Parse and validate with Pydantic
+            plan = ExamPlan.model_validate_json(json_text)
+            return plan
+        except Exception as e:
             error_msg = str(e)
             if "Unterminated string" in error_msg or "Expecting" in error_msg:
                 raise ValueError(
@@ -178,36 +195,6 @@ class CoursePlanner:
                 f"Failed to parse plan JSON: {error_msg}. Response: {response_text[:200]}"
             )
 
-        # Handle wrapped response (from structured output)
-        # Gemini usually returns the object directly matching the schema
-        if isinstance(plan_data, dict) and "steps" in plan_data:
-            plan_data = plan_data["steps"]
-
-        if not isinstance(plan_data, list):
-            # If schema was respected, this shouldn't happen unless schema is wrong
-            raise ValueError("Plan must be a JSON array or object with 'steps' array")
-
-        # Validate with Pydantic and convert to PlanStep objects
-        plan_steps = []
-        for idx, item in enumerate(plan_data):
-            try:
-                # Pydantic validation
-                validated = PlanStepSchema(**item)
-                # Convert to domain model
-                plan_steps.append(
-                    PlanStep(
-                        id=validated.id,
-                        title=validated.title,
-                        description=validated.description,
-                        priority=Priority(validated.priority),
-                        estimated_paragraphs=validated.estimated_paragraphs,
-                        dependencies=validated.dependencies,
-                    )
-                )
-            except Exception as e:
-                raise ValueError(f"Invalid plan step at index {idx}: {str(e)}")
-
-        return plan_steps
 
     def _validate_plan(self, plan: List[PlanStep]):
         """Validate plan structure"""
