@@ -27,6 +27,11 @@ class ExamMapper:
             token_count_output=model.token_count_output,
             generation_cost_usd=model.generation_cost_usd,
             topic_count=model.topic_count,
+            # V3.0 cache fields
+            cache_name=model.cache_name,
+            storage_path=model.storage_path,
+            plan_data=model.plan_data,
+            cache_expires_at=model.cache_expires_at,
         )
 
     @staticmethod
@@ -49,6 +54,11 @@ class ExamMapper:
             token_count_output=domain.token_count_output,
             generation_cost_usd=domain.generation_cost_usd,
             topic_count=domain.topic_count,
+            # V3.0 cache fields
+            cache_name=domain.cache_name,
+            storage_path=domain.storage_path,
+            plan_data=domain.plan_data,
+            cache_expires_at=domain.cache_expires_at,
         )
 
     @staticmethod
@@ -66,5 +76,10 @@ class ExamMapper:
         model.token_count_output = domain.token_count_output
         model.generation_cost_usd = domain.generation_cost_usd
         model.topic_count = domain.topic_count
+        # V3.0 cache fields
+        model.cache_name = domain.cache_name
+        model.storage_path = domain.storage_path
+        model.plan_data = domain.plan_data
+        model.cache_expires_at = domain.cache_expires_at
 
         return model
