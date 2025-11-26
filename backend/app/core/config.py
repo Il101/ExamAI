@@ -66,6 +66,7 @@ class Settings(BaseSettings):
     # Supabase
     SUPABASE_URL: str = ""
     SUPABASE_KEY: str = ""  # Service_role key for admin tasks
+    SUPABASE_BUCKET: str = "exam-files"  # Storage bucket for exam files
 
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
