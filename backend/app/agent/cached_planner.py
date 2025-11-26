@@ -64,7 +64,37 @@ class CachedCoursePlanner(CoursePlanner):
         else:
             logger.info(f"Content too small ({token_count} tokens), skipping cache")
         
-        # 3. Generate plan (using cache if available)
-        plan = await self.make_plan(state)
+        # 3. Generate plan (call internal method that returns ExamPlan, not adapter version)
+        plan = await self._make_plan_internal(state)
         
         return plan, cache_name
+    
+    async def _make_plan_internal(self, state: AgentState) -> ExamPlan:
+        """Internal method that returns ExamPlan before adapter conversion"""
+        max_retries = 3
+        last_error = None
+        
+        for attempt in range(max_retries):
+            try:
+                prompt = self._build_planning_prompt(state)
+                
+                response = await self.llm.generate(
+                    prompt=prompt,
+                    temperature=0.3,
+                    max_tokens=4000,
+                    response_mime_type="application/json",
+                    response_schema=ExamPlan,
+                )
+                
+                # Parse and validate (returns ExamPlan, not converted)
+                plan = self._parse_plan_response(response.content)
+                self._validate_plan(plan)
+                
+                return plan
+                
+            except Exception as e:
+                last_error = e
+                if attempt == max_retries - 1:
+                    raise ValueError(f"Failed to generate plan after {max_retries} attempts: {str(e)}")
+        
+        raise ValueError(f"Plan generation failed: {str(last_error)}")
