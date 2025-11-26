@@ -65,9 +65,6 @@ export const examsApi = {
     // Increase timeout to 120s for AI plan generation
     const response = await api.post('/exams/v3', data, {
       timeout: 120000,
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
     });
     return response.data;
   },
