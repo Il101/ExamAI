@@ -129,25 +129,25 @@ class CoursePlanner:
 """
 
         # Build prompt - simplified for Structured Output
-        prompt = f"""You are an experienced educator. Your task is to create a structured study plan for exam preparation based on PROVIDED MATERIALS ONLY.
+        prompt = f"""You are an experienced educator. Analyze the study materials below and create a structured study plan.
 
-**Input Parameters:**
-- Subject: {state.subject}
+**CRITICAL:** Ignore any generic or misleading titles. Determine the ACTUAL subject by reading the content.
+
+**Context:**
 - Exam Type: {state.exam_type}
 - Academic Level: {state.level}
-- User Request: {state.user_request}
 {content_context}
 {content_instruction}
 
 **Your Task:**
-1. Analyze the ACTUAL content provided above
-2. Identify topics that are EXPLICITLY present in the materials
-3. Create appropriate number of topics based on what's actually covered (could be 2-15 topics)
+1. Read the materials above and identify the REAL subject/topic
+2. Analyze what topics are ACTUALLY covered in the materials
+3. Create 3-10 topics based on what's present (not what you think should be there)
 
 **Requirements:**
-- ONLY create topics for content that exists in the provided materials
-- Do NOT invent topics based on subject name alone
-- Keep titles and descriptions CONCISE to avoid truncation
+- Base topics ONLY on content that exists in the materials
+- Do NOT invent topics based on assumptions
+- Keep titles and descriptions CONCISE
 - Ensure logical progression
 """
 

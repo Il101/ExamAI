@@ -191,7 +191,7 @@ class TopicExecutor:
 
         return f"""You are creating structured study notes from user-provided materials.
 
-**CRITICAL:** Analyze the actual content below, NOT the course title. The user may have named the exam anything - focus on what's ACTUALLY in their materials.
+**CRITICAL:** Analyze the actual content below, NOT any course title. Determine the subject yourself from the materials.
 
 **Context:**
 - Academic Level: {state.level}
