@@ -53,6 +53,15 @@ export function ExamCard({ exam, onDelete, onGenerate }: ExamCardProps) {
                 </Button>
               </Link>
             )}
+            {/* Add support for planned/generating status */}
+            {(exam.status === 'planned' || exam.status === 'generating') && (
+              <Link href={`/dashboard/exams/${exam.id}`}>
+                <Button size="sm" variant="default" className={exam.status === 'generating' ? 'animate-pulse' : ''}>
+                  <Play className="h-3 w-3 mr-1" />
+                  {exam.status === 'generating' ? 'Generating...' : 'Continue'}
+                </Button>
+              </Link>
+            )}
             {onDelete && (
               <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-600 hover:bg-red-50" onClick={onDelete}>
                 <Trash2 className="h-3 w-3" />
