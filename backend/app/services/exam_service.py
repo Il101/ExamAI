@@ -1,7 +1,7 @@
 from typing import List, Optional, Tuple
 from uuid import UUID
 
-from app.domain.exam import Exam, ExamStatus
+from app.domain.exam import Exam, ExamStatus, ExamType, ExamLevel
 from app.domain.user import User
 from app.integrations.llm.base import LLMProvider
 from app.repositories.exam_repository import ExamRepository
@@ -32,8 +32,8 @@ class ExamService:
         user: User,
         title: str,
         subject: str,
-        exam_type: str,
-        level: str,
+        exam_type: ExamType,
+        level: ExamLevel,
         original_content: str,
     ) -> Exam:
         """

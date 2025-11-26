@@ -117,9 +117,12 @@ class AgentService:
             # but we can approximate or improve AgentState to track them separately.
             # For now, we'll use the approximation from the doc.
 
+            # Mark as ready with usage stats
+            # Note: AgentState tracks total tokens but not input/output separately
+            # We approximate 50/50 split - could be improved by tracking separately
             exam.mark_as_ready(
                 ai_summary=state.final_notes,
-                token_input=state.total_tokens_used // 2,  # Approximate
+                token_input=state.total_tokens_used // 2,
                 token_output=state.total_tokens_used // 2,
                 cost=state.total_cost_usd,
             )
