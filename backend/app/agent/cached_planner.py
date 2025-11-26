@@ -1,0 +1,70 @@
+"""Extended planner with cache integration"""
+from typing import Tuple, Optional
+from uuid import UUID
+
+from app.agent.planner import CoursePlanner
+from app.agent.state import AgentState
+from app.agent.schemas import ExamPlan
+from app.integrations.storage import SupabaseStorage
+from app.integrations.llm.cache_manager import ContextCacheManager
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+class CachedCoursePlanner(CoursePlanner):
+    """Planner with integrated cache creation"""
+    
+    async def make_plan_with_cache(
+        self,
+        state: AgentState,
+        cache_manager: ContextCacheManager,
+        storage: SupabaseStorage,
+        exam_id: UUID
+    ) -> Tuple[ExamPlan, Optional[str]]:
+        """
+        Generate plan and create cache simultaneously
+        
+        Args:
+            state: AgentState with content
+            cache_manager: Cache manager instance
+            storage: Storage service
+            exam_id: Exam UUID
+        
+        Returns:
+            Tuple of (ExamPlan, cache_name or None)
+        """
+        # 1. Upload file to storage
+        if state.original_content:
+            file_path = f"exams/{exam_id}/original_content.txt"
+            try:
+                await storage.upload_file(
+                    state.original_content.encode('utf-8'),
+                    file_path
+                )
+                logger.info(f"Uploaded content to storage: {file_path}")
+            except Exception as e:
+                logger.error(f"Failed to upload to storage: {e}")
+                # Continue anyway, cache can still work
+        
+        # 2. Create cache if content is large enough
+        token_count = len(state.original_content) // 4 if state.original_content else 0
+        cache_name = None
+        
+        if token_count > 1000:
+            try:
+                cache_name = await cache_manager.create_cache(
+                    exam_id,
+                    state.original_content,
+                    ttl_seconds=3600  # 1 hour
+                )
+                logger.info(f"Created cache for exam {exam_id}: {cache_name}")
+            except Exception as e:
+                logger.warning(f"Failed to create cache: {e}. Continuing without cache.")
+        else:
+            logger.info(f"Content too small ({token_count} tokens), skipping cache")
+        
+        # 3. Generate plan (using cache if available)
+        plan = await self.make_plan(state)
+        
+        return plan, cache_name
