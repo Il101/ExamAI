@@ -1,7 +1,7 @@
 # backend/app/domain/review.py
 import math
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Literal, Optional
 from uuid import UUID, uuid4
 
@@ -45,11 +45,11 @@ class ReviewItem:
     current_step_index: int = 0  # Current step in learning_steps
 
     # Review history
-    next_review_date: datetime = field(default_factory=datetime.utcnow)
+    next_review_date: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     last_reviewed_at: Optional[datetime] = None
     last_review_rating: Optional[Rating] = None
 
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     # Default FSRS Weights (v4.5 optimized on Anki dataset)
     # Can be overridden per user in future
@@ -96,7 +96,7 @@ class ReviewItem:
         Updates stability, difficulty, and schedules next review.
         """
         if review_time is None:
-            review_time = datetime.utcnow()
+            review_time = datetime.now(timezone.utc)
 
         if self.last_reviewed_at:
             self.elapsed_days = (review_time - self.last_reviewed_at).days
@@ -254,7 +254,7 @@ class ReviewItem:
 
     def is_due(self) -> bool:
         """Check if review is due"""
-        return datetime.utcnow() >= self.next_review_date
+        return datetime.now(timezone.utc) >= self.next_review_date
 
     def get_success_rate(self) -> float:
         """Get success rate (0.0 to 1.0)"""
@@ -274,6 +274,6 @@ class ReviewItem:
         self.lapses = 0
         self.state = "new"
         self.current_step_index = 0
-        self.next_review_date = datetime.utcnow()
+        self.next_review_date = datetime.now(timezone.utc)
         self.last_reviewed_at = None
         self.last_review_rating = None
