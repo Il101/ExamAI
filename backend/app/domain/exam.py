@@ -28,6 +28,12 @@ class Exam:
     # Content
     original_content: str = ""  # User-provided material
     ai_summary: Optional[str] = None  # Generated summary
+    
+    # V3.0 Cache fields
+    cache_name: Optional[str] = None  # Gemini cache identifier
+    storage_path: Optional[str] = None  # S3/Supabase storage path
+    plan_data: Optional[dict] = None  # ExamPlan JSON
+    cache_expires_at: Optional[datetime] = None  # Cache expiry timestamp
 
     # Metadata
     status: ExamStatus = "draft"
