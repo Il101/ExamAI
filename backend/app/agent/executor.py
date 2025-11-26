@@ -140,8 +140,8 @@ class TopicExecutor:
         # Extract relevant content sections based on step title
         content_section = ""
         if state.original_content:
-            # Use more content for better context (500 lines instead of 100)
-            lines = state.original_content.split("\n")[:500]
+            # Analyze ENTIRE file, not just first N lines
+            lines = state.original_content.split("\n")
             keywords = step.title.lower().split()
             
             # Find relevant paragraphs (not just lines)
@@ -158,18 +158,35 @@ class TopicExecutor:
                             relevant_content.append("\n".join(current_para))
                         current_para = []
             
+            # Don't forget last paragraph
+            if current_para:
+                para_text = " ".join(current_para)
+                if any(kw in para_text.lower() for kw in keywords):
+                    relevant_content.append("\n".join(current_para))
+            
             if relevant_content:
+                # Provide top relevant paragraphs (up to 10 for better context)
                 content_section = (
                     "\n**Relevant content from user's materials:**\n"
-                    + "\n\n".join(relevant_content[:5])  # Top 5 relevant paragraphs
+                    + "\n\n".join(relevant_content[:10])
                     + "\n"
                 )
             else:
-                # If no specific matches, provide general context
+                # If no specific keyword matches, provide general context from entire file
+                # Take samples from beginning, middle, and end
+                total_lines = len(lines)
+                sample_size = min(50, total_lines // 3)
+                
+                beginning = "\n".join(lines[:sample_size])
+                middle_start = (total_lines - sample_size) // 2
+                middle = "\n".join(lines[middle_start:middle_start + sample_size])
+                end = "\n".join(lines[-sample_size:])
+                
                 content_section = (
-                    "\n**User's study materials (excerpt):**\n"
-                    + "\n".join(lines[:30])  # First 30 lines
-                    + "\n\n[... more content available]\n"
+                    "\n**User's study materials (sampled from entire file):**\n"
+                    + f"\n[Beginning]\n{beginning}\n\n"
+                    + f"[Middle]\n{middle}\n\n"
+                    + f"[End]\n{end}\n"
                 )
 
         return f"""You are creating structured study notes from user-provided materials.
