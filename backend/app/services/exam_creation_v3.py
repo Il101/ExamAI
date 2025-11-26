@@ -81,19 +81,25 @@ async def create_exam_with_plan(
         exam_id=exam.id
     )
     
-    # 3. Update exam with plan data
-    exam.plan_data = plan.model_dump()
-    exam.cache_name = cache_name
-    exam.storage_path = f"exams/{exam.id}/original_content.txt"
+    # Prepare updates dictionary
+    updates = {
+        "plan_data": plan.model_dump(),
+        "cache_name": cache_name,
+        "storage_path": f"exams/{exam.id}/original_content.txt",
+        "status": "planned",
+        "plan_ready_at": datetime.utcnow(),
+        "topic_count": plan.total_topics,
+    }
     
     if cache_name:
-        exam.cache_expires_at = datetime.utcnow() + timedelta(hours=1)
+        updates["cache_expires_at"] = datetime.utcnow() + timedelta(hours=1)
     
-    exam.status = "planned"
-    exam.plan_ready_at = datetime.utcnow()
-    exam.topic_count = plan.total_topics
-    
-    await exam_service.update_exam(exam)
+    # Update exam using service method
+    await exam_service.update_exam(
+        user_id=exam.user_id,
+        exam_id=exam.id,
+        updates=updates
+    )
     
     # 4. Trigger initial prefetch
     if cache_name:
