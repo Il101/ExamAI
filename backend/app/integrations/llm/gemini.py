@@ -107,7 +107,7 @@ class GeminiProvider(LLMProvider):
             api_start = time.time()
             
             # Generate
-            response = await self.client.models.generate_content_async(
+            response = await self.client.aio.models.generate_content(
                 model=self.model_name,
                 contents=full_prompt,
                 config=config
@@ -187,7 +187,7 @@ class GeminiProvider(LLMProvider):
             # Actually, new SDK has automatic function calling support via 'tools' config
             # But let's stick to manual execution for now to match previous logic structure
             
-            response = await self.client.models.generate_content_async(
+            response = await self.client.aio.models.generate_content(
                 model=self.model_name,
                 contents=prompt,
                 config=config,
@@ -251,7 +251,7 @@ class GeminiProvider(LLMProvider):
 
     async def count_tokens(self, text: str) -> int:
         """Count tokens using Gemini's tokenizer"""
-        response = await self.client.models.count_tokens_async(
+        response = await self.client.aio.models.count_tokens(
             model=self.model_name,
             contents=text
         )

@@ -110,7 +110,7 @@ Create a structured outline showing:
 """
 
             # Generate with file context and structured output
-            response = await client.models.generate_content_async(
+            response = await client.aio.models.generate_content(
                 model=llm_provider.model_name,
                 contents=[uploaded_file, prompt],
                 config=types.GenerateContentConfig(
