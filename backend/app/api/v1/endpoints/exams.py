@@ -1,7 +1,7 @@
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Request, status
+from fastapi import APIRouter, Depends, Query, Request, status, File, UploadFile, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import NotFoundException, ValidationException
@@ -11,6 +11,7 @@ from app.dependencies import (
     get_agent_service,
     get_current_active_user,
     get_exam_service,
+    get_llm_provider,
 )
 from app.domain.user import User
 from app.repositories.topic_repository import TopicRepository
@@ -24,29 +25,23 @@ from app.schemas.exam import (
 from app.schemas.topic import TopicResponse
 from app.services.agent_service import AgentService
 from app.services.exam_service import ExamService
+from app.integrations.llm.base import LLMProvider
 from app.tasks.exam_tasks import generate_exam_content
 
 router = APIRouter()
 
 
-
-@router.post("/", response_model=ExamResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=ExamResponse, status_code=status.HTTP_201_CREATED)
 async def create_exam(
     request: ExamCreate,
     current_user: User = Depends(get_current_active_user),
     exam_service: ExamService = Depends(get_exam_service),
 ):
     """
-    Create new exam.
-
-    Creates exam in 'draft' status. Use /exams/{id}/generate to start AI generation.
+    Create a new exam (legacy endpoint).
     
-    Rate limits:
-    - Free tier: 100 requests/hour
-    - Pro tier: 1000 requests/hour
-    - Premium tier: Unlimited
+    Note: This endpoint is deprecated. Use POST /v3 instead.
     """
-
     try:
         exam = await exam_service.create_exam(
             user=current_user,
@@ -65,19 +60,25 @@ async def create_exam(
 
 @router.post("/v3", response_model=dict, status_code=status.HTTP_201_CREATED)
 async def create_exam_v3(
-    request: ExamCreate,
+    title: str = Form(...),
+    subject: str = Form(...),
+    exam_type: str = Form(...),
+    level: str = Form(...),
+    file: UploadFile = File(...),
     current_user: User = Depends(get_current_active_user),
     exam_service: ExamService = Depends(get_exam_service),
+    llm_provider: LLMProvider = Depends(get_llm_provider),
 ):
     """
     Create exam with automatic plan generation and caching (v3.0).
     
     This endpoint:
-    1. Creates exam
-    2. Generates plan with blocks
-    3. Creates Gemini cache and uploads to S3
-    4. Triggers prefetch for first 2 topics
-    5. Returns exam with plan
+    1. Accepts file upload (PDF, DOCX, TXT, MP3, MP4)
+    2. Extracts content using Gemini File API
+    3. Creates exam with generated plan
+    4. Creates Gemini cache and uploads to S3
+    5. Triggers prefetch for first 2 topics
+    6. Returns exam with plan
     
     Rate limits:
     - Free tier: 50 requests/hour
@@ -91,8 +92,70 @@ async def create_exam_v3(
         get_storage, get_cache_manager, get_generation_service
     )
     from app.core.config import settings
+    from google.genai import types
+    import tempfile
+    import os
     
     try:
+        # Validate file size (10MB limit)
+        MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+        content_bytes = await file.read()
+        
+        if len(content_bytes) > MAX_FILE_SIZE:
+            raise ValidationException("File too large. Maximum size is 10MB.")
+        
+        # Validate file type
+        allowed_types = [
+            "application/pdf",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "text/plain",
+            "audio/mpeg",
+            "video/mp4",
+        ]
+        
+        if file.content_type not in allowed_types:
+            raise ValidationException(
+                f"Unsupported file type: {file.content_type}. "
+                "Supported types: PDF, DOCX, TXT, MP3, MP4"
+            )
+        
+        # Upload file to Gemini File API and extract content
+        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1]) as tmp:
+            tmp.write(content_bytes)
+            tmp_path = tmp.name
+        
+        try:
+            # Get Gemini client
+            client = llm_provider.client
+            
+            # Upload to Gemini
+            uploaded_file = client.files.upload(file=tmp_path, config={'mime_type': file.content_type})
+            
+            # Extract content with Gemini
+            prompt = f"""Extract all text content from this file. Return ONLY the raw text content, no formatting, no analysis, no summary.
+
+If this is a study material, textbook, or educational content, extract everything as-is."""
+
+            response = await client.aio.models.generate_content(
+                model=llm_provider.model_name,
+                contents=[uploaded_file, prompt],
+                config=types.GenerateContentConfig(
+                    temperature=0.0,
+                )
+            )
+            
+            original_content = response.text.strip()
+            
+            # Delete uploaded file from Gemini
+            try:
+                client.files.delete(name=uploaded_file.name)
+            except:
+                pass  # Ignore cleanup errors
+                
+        finally:
+            # Clean up temp file
+            os.unlink(tmp_path)
+        
         # Initialize services
         llm = GeminiProvider(api_key=settings.GEMINI_API_KEY, model=settings.GEMINI_MODEL)
         planner = CachedCoursePlanner(llm)
@@ -104,11 +167,11 @@ async def create_exam_v3(
         exam, plan = await create_exam_with_plan(
             exam_service=exam_service,
             user=current_user,
-            title=request.title,
-            subject=request.subject,
-            exam_type=request.exam_type,
-            level=request.level,
-            original_content=request.original_content,
+            title=title,
+            subject=subject,
+            exam_type=exam_type,
+            level=level,
+            original_content=original_content,
             planner=planner,
             storage=storage,
             cache_manager=cache_manager,

@@ -19,7 +19,7 @@ const createExamSchema = z.object({
   subject: z.string().min(2, 'Subject is required'),
   exam_type: z.enum(['oral', 'written', 'test']),
   level: z.enum(['school', 'bachelor', 'master', 'phd']),
-  original_content: z.string().min(100, 'Content must be at least 100 characters'),
+  original_content: z.string().optional(),
 });
 
 type CreateExamFormData = z.infer<typeof createExamSchema>;
@@ -29,7 +29,7 @@ import { useRouter } from 'next/navigation';
 export function CreateExamForm({ onSuccess }: { onSuccess?: () => void }) {
   const router = useRouter();
   const { createExam, isCreating, startGeneration } = useExams();
-  const [uploadedFile, setUploadedFile] = useState<string>('');
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [examType, setExamType] = useState<'oral' | 'written' | 'test'>('written');
   const [level, setLevel] = useState<'school' | 'bachelor' | 'master' | 'phd'>('bachelor');
 
@@ -44,17 +44,27 @@ export function CreateExamForm({ onSuccess }: { onSuccess?: () => void }) {
   const onSubmit = (data: CreateExamFormData) => {
     const { title, subject, exam_type, level, original_content } = data;
 
-    // Backend expects only: title, subject, exam_type, level, original_content
-    createExam({
-      title,
-      subject,
-      exam_type,
-      level,
-      original_content,
-    } as CreateExamRequest, {
+    const formData = new FormData();
+    formData.append('title', title);
+    formData.append('subject', subject);
+    formData.append('exam_type', exam_type);
+    formData.append('level', level);
+
+    if (uploadedFile) {
+      formData.append('file', uploadedFile);
+    } else if (original_content) {
+      const blob = new Blob([original_content], { type: 'text/plain' });
+      const textFile = new File([blob], 'content.txt', { type: 'text/plain' });
+      formData.append('file', textFile);
+    } else {
+      toast.error('Please upload a file or paste content');
+      return;
+    }
+
+    createExam(formData, {
       onSuccess: (data) => {
         form.reset();
-        setUploadedFile('');
+        setUploadedFile(null);
 
         // Redirect to exam detail page
         // Cast data to any because the hook's return type might not be fully inferred
@@ -69,9 +79,10 @@ export function CreateExamForm({ onSuccess }: { onSuccess?: () => void }) {
     });
   };
 
-  const handleFileUpload = (content: string, filename: string) => {
-    form.setValue('original_content', content);
-    setUploadedFile(filename);
+  const handleFileUpload = (file: File) => {
+    setUploadedFile(file);
+    // Clear text content if file is uploaded
+    form.setValue('original_content', '');
   };
 
   return (
@@ -147,14 +158,13 @@ export function CreateExamForm({ onSuccess }: { onSuccess?: () => void }) {
         <Label>Study Material</Label>
         {uploadedFile ? (
           <div className="border rounded-lg p-4 flex items-center justify-between">
-            <p className="text-sm">Uploaded: {uploadedFile}</p>
+            <p className="text-sm">Uploaded: {uploadedFile.name}</p>
             <Button
               type="button"
               variant="ghost"
               size="sm"
               onClick={() => {
-                setUploadedFile('');
-                form.setValue('original_content', '');
+                setUploadedFile(null);
               }}
             >
               Remove

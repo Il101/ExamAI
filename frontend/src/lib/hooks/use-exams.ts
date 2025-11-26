@@ -11,7 +11,7 @@ export function useExams() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: CreateExamRequest) => examsApi.create(data),
+    mutationFn: (data: FormData) => examsApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['exams'] });
       toast.success('Exam created successfully');

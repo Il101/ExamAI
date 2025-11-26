@@ -61,9 +61,14 @@ export interface ExamListResponse {
 }
 
 export const examsApi = {
-  create: async (data: CreateExamRequest) => {
+  create: async (data: FormData) => {
     // Increase timeout to 120s for AI plan generation
-    const response = await api.post('/exams/v3', data, { timeout: 120000 });
+    const response = await api.post('/exams/v3', data, {
+      timeout: 120000,
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return response.data;
   },
 

@@ -4,11 +4,10 @@ import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Upload, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { parseFile } from '@/lib/file-parser';
 import { toast } from 'sonner';
 
 interface FileUploadZoneProps {
-  onFileContent: (content: string, filename: string) => void;
+  onFileContent: (file: File) => void;
   accept?: Record<string, string[]>;
   maxSize?: number;
 }
@@ -19,6 +18,8 @@ export function FileUploadZone({
     'text/plain': ['.txt'],
     'application/pdf': ['.pdf'],
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+    'audio/mpeg': ['.mp3'],
+    'video/mp4': ['.mp4'],
   },
   maxSize = 10 * 1024 * 1024, // 10MB
 }: FileUploadZoneProps) {
@@ -31,15 +32,8 @@ export function FileUploadZone({
 
       setIsProcessing(true);
       try {
-        const content = await parseFile(file);
-
-        if (!content.trim()) {
-          toast.error('Could not extract text from this file.');
-          return;
-        }
-
-        onFileContent(content, file.name);
-        toast.success('File processed successfully');
+        onFileContent(file);
+        toast.success('File ready for upload');
       } catch (error) {
         console.error('File processing error:', error);
         toast.error('Failed to process file. Please ensure it is a valid text, PDF, or DOCX file.');
