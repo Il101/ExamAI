@@ -1,4 +1,4 @@
-```python
+
 from typing import Optional, List
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile, status
@@ -155,4 +155,4 @@ Create a structured outline showing:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"error": f"Failed to analyze content: {str(e)}"}
         )
-```
+
