@@ -11,7 +11,18 @@ class SupabaseStorage:
     """Service for managing files in Supabase Storage"""
     
     def __init__(self, url: str, key: str, bucket: str = "exam-files"):
-        self.client: Client = create_client(url, key)
+        # Service role key should not use session persistence or auto refresh
+        self.client: Client = create_client(
+            url, 
+            key,
+            options={
+                "auto_refresh_token": False,
+                "persist_session": False,
+            }
+        )
+        logger.info(f"SupabaseStorage initialized with URL: {url}, Key length: {len(key)}")
+        if "service_role" not in key and len(key) < 100:
+             logger.warning("Supabase key might not be a service_role key (usually long). Check .env!")
         self.bucket = bucket
         self._ensure_bucket_exists()
     
