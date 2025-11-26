@@ -105,10 +105,12 @@ class Exam:
         self.updated_at = datetime.utcnow()
 
     def mark_as_failed(self):
-        """Mark exam generation as failed"""
-        if self.status not in ["planning", "planned", "generating"]:
+        """Mark exam generation as failed (idempotent)"""
+        # Allow marking as failed from planning, planned, generating, or already failed
+        if self.status not in ["planning", "planned", "generating", "failed"]:
             raise ValueError(f"Cannot mark as failed: status={self.status}")
-
+        
+        # Idempotent - if already failed, just update timestamp
         self.status = "failed"
         self.updated_at = datetime.utcnow()
 
