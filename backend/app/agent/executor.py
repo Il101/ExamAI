@@ -237,6 +237,9 @@ class TopicExecutor:
 - Keep it scannable - students should grasp key points in 30 seconds
 
 Generate structured study notes now:"""
+    async def execute_all_steps_with_recovery(
+        self, state: AgentState
+    ) -> dict[str, StepResult]:
         """
         Execute all steps in plan sequentially with granular error handling.
         Continues execution even if some steps fail (partial success).
