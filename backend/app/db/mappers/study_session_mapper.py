@@ -12,16 +12,26 @@ class StudySessionMapper:
             id=model.id,
             user_id=model.user_id,
             exam_id=model.exam_id,
-            started_at=model.started_at,
-            ended_at=model.ended_at,
+            started_at=StudySessionMapper._ensure_utc(model.started_at),
+            ended_at=StudySessionMapper._ensure_utc(model.ended_at),
             pomodoro_duration_minutes=model.pomodoro_duration_minutes,
             break_duration_minutes=model.break_duration_minutes,
             pomodoros_completed=model.pomodoros_completed,
             topic_ids=model.topic_ids or [],
             is_active=model.is_active,
-            created_at=model.created_at,
-            updated_at=model.updated_at,
+            created_at=StudySessionMapper._ensure_utc(model.created_at),
+            updated_at=StudySessionMapper._ensure_utc(model.updated_at),
         )
+
+    @staticmethod
+    def _ensure_utc(dt):
+        """Ensure datetime is timezone-aware UTC"""
+        if dt is None:
+            return None
+        from datetime import timezone
+        if dt.tzinfo is None:
+            return dt.replace(tzinfo=timezone.utc)
+        return dt
 
     @staticmethod
     def to_model(entity: StudySession) -> StudySessionModel:

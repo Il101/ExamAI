@@ -23,15 +23,26 @@ class ReviewItemMapper:
             reps=model.reps,
             lapses=model.lapses,
             state=cast(CardState, model.state),
-            next_review_date=model.next_review_date,
-            last_reviewed_at=model.last_reviewed_at,
+            state=cast(CardState, model.state),
+            next_review_date=ReviewItemMapper._ensure_utc(model.next_review_date),
+            last_reviewed_at=ReviewItemMapper._ensure_utc(model.last_reviewed_at),
             last_review_rating=(
                 cast(Rating, model.last_review_rating)
                 if model.last_review_rating is not None
                 else None
             ),
-            created_at=model.created_at,
+            created_at=ReviewItemMapper._ensure_utc(model.created_at),
         )
+
+    @staticmethod
+    def _ensure_utc(dt):
+        """Ensure datetime is timezone-aware UTC"""
+        if dt is None:
+            return None
+        from datetime import timezone
+        if dt.tzinfo is None:
+            return dt.replace(tzinfo=timezone.utc)
+        return dt
 
     @staticmethod
     def to_model(domain: ReviewItem) -> ReviewItemModel:
