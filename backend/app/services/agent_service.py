@@ -161,13 +161,9 @@ class AgentService:
                     created_topic = await self.topic_repo.create(topic)
                 
                 # Generate Flashcards for this topic
-                # Only if content is new or we want to regenerate
+                # Only if content is meaningful
                 if content and len(content) > 100:
                     try:
-                        # Check if flashcards already exist for this topic
-                        existing_reviews = await self.review_repo.get_due_reviews(user.id, limit=1) # Not efficient check but ok for now
-                        # Better: add get_by_topic_id to review_repo. For now, just generate if content is fresh.
-                        
                         if progress_callback:
                             await progress_callback(f"Generating flashcards for {plan_step.title}...", 0.9)
                             
