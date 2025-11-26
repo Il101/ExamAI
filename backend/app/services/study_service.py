@@ -83,7 +83,8 @@ class StudyService:
             user_id=user_id,
             review_item_id=review_item_id,
             rating=quality,
-            review_time=datetime.utcnow(),
+            from datetime import timezone
+            review_time=datetime.now(timezone.utc),
             interval_days=item.elapsed_days,
             scheduled_days=item.scheduled_days,
             stability=item.stability,

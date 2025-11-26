@@ -231,53 +231,8 @@ async def root():
     }
 
 
-# Debug endpoint for CORS configuration
-@app.get("/debug/cors")
-async def debug_cors():
-    """Debug endpoint to check CORS configuration"""
-    return {
-        "allowed_origins": settings.ALLOWED_ORIGINS,
-        "allow_origin_regex": settings.CORS_ORIGIN_REGEX,
-        "frontend_url": settings.FRONTEND_URL,
-        "environment": settings.ENVIRONMENT,
-    }
 
 
-# Debug endpoint for DB inspection
-@app.get("/debug/db")
-async def debug_db():
-    """Debug endpoint to check DB schema"""
-    from sqlalchemy import text
-    from app.db.session import AsyncSessionLocal
-    
-    async with AsyncSessionLocal() as session:
-        # Check alembic version
-        try:
-            result = await session.execute(text("SELECT * FROM alembic_version"))
-            version = result.scalar_one_or_none()
-        except Exception as e:
-            version = str(e)
-        
-        # Check columns
-        try:
-            result_cols = await session.execute(text(
-                "SELECT column_name FROM information_schema.columns WHERE table_name = 'users'"
-            ))
-            columns = [row[0] for row in result_cols.fetchall()]
-            
-            # Check for NULLs
-            result_nulls = await session.execute(text(
-                "SELECT COUNT(*) FROM users WHERE notification_exam_ready IS NULL"
-            ))
-            null_count = result_nulls.scalar()
-        except Exception as e:
-            columns = str(e)
-            null_count = -1
-            
-        return {
-            "alembic_version": version,
-            "columns": columns,
-            "has_notification_exam_ready": "notification_exam_ready" in columns if isinstance(columns, list) else False,
-            "null_count": null_count
-        }
+
+
 

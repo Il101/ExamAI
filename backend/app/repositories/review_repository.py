@@ -21,7 +21,8 @@ class ReviewItemRepository(BaseRepository[ReviewItem, ReviewItemModel]):
         self, user_id: UUID, limit: int = 100
     ) -> List[ReviewItem]:
         """Get review items due for review"""
-        now = datetime.utcnow()
+        from datetime import timezone
+        now = datetime.now(timezone.utc)
 
         stmt = (
             select(ReviewItemModel)
@@ -53,7 +54,8 @@ class ReviewItemRepository(BaseRepository[ReviewItem, ReviewItemModel]):
 
     async def count_due_by_user(self, user_id: UUID) -> int:
         """Count items due for review"""
-        now = datetime.utcnow()
+        from datetime import timezone
+        now = datetime.now(timezone.utc)
 
         stmt = (
             select(func.count())
@@ -86,7 +88,8 @@ class ReviewItemRepository(BaseRepository[ReviewItem, ReviewItemModel]):
         # Given the scope, we will implement a query that assumes `last_reviewed_at`
         # is the primary signal for "activity". This will undercount multiple reviews per day.
 
-        start_date = datetime.utcnow() - timedelta(days=days)
+        from datetime import timezone
+        start_date = datetime.now(timezone.utc) - timedelta(days=days)
 
         stmt = (
             select(

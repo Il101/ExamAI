@@ -58,7 +58,8 @@ class StudySessionRepository(BaseRepository[StudySession, StudySessionModel]):
         Returns:
             List of dicts: [{"date": date, "minutes": int}]
         """
-        start_date = datetime.utcnow() - timedelta(days=days)
+        from datetime import timezone
+        start_date = datetime.now(timezone.utc) - timedelta(days=days)
 
         # Calculate duration as difference between ended_at and started_at,
         # OR use pomodoros * duration if available?
@@ -134,7 +135,8 @@ class StudySessionRepository(BaseRepository[StudySession, StudySessionModel]):
         temp_streak = 0
         
         # Check if user studied today or yesterday to keep current streak alive
-        today = datetime.utcnow().date()
+        from datetime import timezone
+        today = datetime.now(timezone.utc).date()
         yesterday = today - timedelta(days=1)
         
         last_date = None

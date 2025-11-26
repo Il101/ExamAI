@@ -35,7 +35,8 @@ class CustomJsonFormatter(jsonlogger.JsonFormatter):
         super().add_fields(log_record, record, message_dict)
 
         # Add timestamp in ISO format
-        log_record["timestamp"] = datetime.utcnow().isoformat()
+        from datetime import timezone
+        log_record["timestamp"] = datetime.now(timezone.utc).isoformat()
 
         # Add environment
         log_record["environment"] = settings.ENVIRONMENT

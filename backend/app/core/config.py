@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     CORS_ORIGIN_REGEX: str = r"https://exam-ai-.*-ilias-projects-774295b7\.vercel\.app"
 
     # AI Configuration
-    GEMINI_API_KEY: str = ""
+    GEMINI_API_KEY: str
     GEMINI_MODEL: str = "gemini-2.5-flash-lite"
     OPENAI_API_KEY: str = ""
     OPENAI_MODEL: str = "gpt-4o-mini"
@@ -55,7 +55,7 @@ class Settings(BaseSettings):
     MAX_TOPICS: Optional[int] = None  # None = let AI decide based on content
 
     # Security
-    SECRET_KEY: str = ""  # min 32 chars, used for JWT
+    SECRET_KEY: str  # min 32 chars, used for JWT
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
