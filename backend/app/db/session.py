@@ -9,10 +9,11 @@ from app.core.config import settings
 # Create async engine
 # Determine connection args (e.g. SSL for Supabase)
 connect_args = {}
+# Force disable prepared statements for debugging
+connect_args["statement_cache_size"] = 0
+
 if "supabase.com" in settings.DATABASE_URL:
     connect_args["ssl"] = "require"
-    # Disable prepared statements for pgbouncer compatibility (Transaction Pooler)
-    connect_args["statement_cache_size"] = 0
 
 print(f"DEBUG: DATABASE_URL={settings.DATABASE_URL}")
 print(f"DEBUG: connect_args={connect_args}")

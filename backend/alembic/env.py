@@ -62,9 +62,14 @@ def run_migrations_offline() -> None:
 async def run_migrations_online() -> None:
     """Run migrations in 'online' mode."""
     connect_args = {}
+    # Force disable prepared statements for debugging
+    connect_args["statement_cache_size"] = 0
+    
+    print(f"DEBUG: Alembic database_url={database_url}")
+    print(f"DEBUG: Alembic connect_args={connect_args}")
+
     if "supabase.com" in database_url:
         connect_args["ssl"] = "require"
-        connect_args["statement_cache_size"] = 0
 
     connectable = async_engine_from_config(
         config.get_section(config.config_ini_section, {}),
