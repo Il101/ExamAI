@@ -1,9 +1,10 @@
+import asyncio
 import logging
 import time
 from typing import Any, Optional, List, Dict, Callable
 
 from google import genai
-from google.genai import types
+from google.genai import types, errors
 
 from app.integrations.llm.base import LLMProvider, LLMResponse
 
@@ -84,18 +85,19 @@ class GeminiProvider(LLMProvider):
         Get or create a shared genai.Client instance.
         """
         if cls._shared_client is None or cls._shared_api_key != api_key:
-            # Configure retries for robust handling of 503/429 errors
-            http_options = {
-                "retry_options": {
+            # Configure timeout and retries using proper types.HttpOptions
+            http_options = types.HttpOptions(
+                timeout=120000,  # 120 seconds in milliseconds
+                retry_options={
                     "attempts": 5,  # Retry up to 5 times
                     "initial_delay": 2.0,  # Start with 2s delay
                     "max_delay": 60.0,  # Max delay 60s
                     "exp_base": 2.0,  # Exponential backoff
                     "http_status_codes": [429, 503, 504],  # Target transient errors
                 }
-            }
+            )
             
-            print(f"[GeminiProvider] Initializing new shared client with retries...")
+            print(f"[GeminiProvider] Initializing new shared client with timeout=120s and retries...")
             cls._shared_client = genai.Client(api_key=api_key, http_options=http_options)
             cls._shared_api_key = api_key
             
@@ -109,6 +111,7 @@ class GeminiProvider(LLMProvider):
         system_prompt: Optional[str] = None,
         response_schema: Optional[Any] = None,
         response_mime_type: Optional[str] = None,
+        timeout: float = 120.0,  # Timeout in seconds
         **kwargs,
     ) -> LLMResponse:
         """Generate text with Gemini"""
@@ -137,14 +140,17 @@ class GeminiProvider(LLMProvider):
 
             config = types.GenerateContentConfig(**config_args)
 
-            print(f"[GeminiProvider] Calling {self.model_name} API...")
+            print(f"[GeminiProvider] Calling {self.model_name} API with timeout={timeout}s...")
             api_start = time.time()
             
-            # Generate
-            response = await self.client.aio.models.generate_content(
-                model=self.model_name,
-                contents=full_prompt,
-                config=config
+            # Wrap in asyncio.wait_for for guaranteed timeout
+            response = await asyncio.wait_for(
+                self.client.aio.models.generate_content(
+                    model=self.model_name,
+                    contents=full_prompt,
+                    config=config
+                ),
+                timeout=timeout
             )
             
             api_time = time.time() - api_start
@@ -176,14 +182,28 @@ class GeminiProvider(LLMProvider):
                 finish_reason=finish_reason,
             )
 
+        except asyncio.TimeoutError:
+            elapsed = time.time() - start_time
+            print(
+                f"[GeminiProvider] TIMEOUT after {elapsed:.2f}s (limit: {timeout}s)"
+            )
+            raise RuntimeError(f"Gemini API request timed out after {timeout} seconds")
+        
+        except errors.APIError as e:
+            elapsed = time.time() - start_time
+            print(
+                f"[GeminiProvider] API ERROR after {elapsed:.2f}s: code={e.code}, message={e.message}"
+            )
+            raise RuntimeError(f"Gemini API error [{e.code}]: {e.message}")
+        
         except Exception as e:
             elapsed = time.time() - start_time
             print(
-                f"[GeminiProvider] ERROR after {elapsed:.2f}s: {type(e).__name__}: {str(e)}"
+                f"[GeminiProvider] UNEXPECTED ERROR after {elapsed:.2f}s: {type(e).__name__}: {str(e)}"
             )
             import traceback
             traceback.print_exc()
-            raise RuntimeError(f"Gemini API error: {str(e)}")
+            raise RuntimeError(f"Unexpected Gemini error: {str(e)}")
 
     async def generate_with_tools(
         self,

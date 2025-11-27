@@ -56,20 +56,12 @@ class QuizGenerator:
             List of FlashcardSchema objects
         """
         
-        prompt = f"""You are an expert tutor. Create {num_cards} high-quality flashcards based on the text below.
+        # Simplified prompt without schema duplication (as per Google docs)
+        prompt = f"""Create {num_cards} high-quality flashcards from the following content:
 
-**Content:**
-```
-{content[:10000]}  # Limit context window
-```
+{content[:10000]}
 
-**Requirements:**
-- Create exactly {num_cards} cards
-- "Front" should be a clear question or concept
-- "Back" should be a concise but complete answer
-- Focus on key facts, definitions, and relationships
-- Avoid trivial questions
-"""
+Focus on key concepts, definitions, and important relationships."""
 
         print(f"[QuizGenerator] Generating {num_cards} flashcards...")
         
@@ -78,6 +70,7 @@ class QuizGenerator:
             temperature=0.3,
             system_prompt="You are an expert tutor creating study materials.",
             response_schema=FlashcardSetSchema,
+            timeout=60.0  # 60 seconds timeout for flashcards
         )
 
         # Parse response
@@ -122,22 +115,12 @@ class QuizGenerator:
             List of MCQQuestion objects
         """
         
-        prompt = f"""You are an expert tutor. Create {num_questions} multiple choice questions based on the text below.
+        # Simplified prompt without schema duplication
+        prompt = f"""Create {num_questions} multiple choice questions from the following content:
 
-**Content:**
-```
 {content[:10000]}
-```
 
-**Requirements:**
-- Create exactly {num_questions} questions
-- Each question must have exactly 4 options
-- Only ONE option should be correct (is_correct: true)
-- Questions should test understanding, not just memorization
-- Include an explanation for why the correct answer is right
-- Make distractors (wrong answers) plausible but clearly incorrect
-- Vary difficulty from easy to challenging
-"""
+Each question should test understanding, not just memorization. Include an explanation for the correct answer."""
 
         print(f"[QuizGenerator] Generating {num_questions} MCQ questions...")
         
@@ -146,6 +129,7 @@ class QuizGenerator:
             temperature=0.4,
             system_prompt="You are an expert tutor creating educational assessments.",
             response_schema=MCQQuizSchema,
+            timeout=60.0  # 60 seconds timeout for quiz generation
         )
 
         # Parse response
