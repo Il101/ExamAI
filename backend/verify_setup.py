@@ -22,8 +22,16 @@ async def check_database():
     print(f"Target: {'Localhost' if is_local else 'Remote (Supabase)'}")
     print(f"Connecting to: {db_url.split('@')[-1]}") # Hide credentials
     
+    # Determine connection args (e.g. SSL for Supabase)
+    connect_args = {}
+    # Force disable prepared statements for debugging
+    connect_args["statement_cache_size"] = 0
+
+    if "supabase.com" in db_url:
+        connect_args["ssl"] = "require"
+
     try:
-        engine = create_async_engine(db_url)
+        engine = create_async_engine(db_url, connect_args=connect_args)
         async with engine.connect() as conn:
             result = await conn.execute(text("SELECT 1"))
             print("✅ Database connection successful")
