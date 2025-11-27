@@ -60,16 +60,46 @@ class GeminiProvider(LLMProvider):
         },
     }
 
+    # Shared client instance for Singleton pattern
+    _shared_client: Optional[genai.Client] = None
+    _shared_api_key: Optional[str] = None
+
     def __init__(self, api_key: str, model: str = "gemini-2.0-flash-exp"):
         """
         Initialize Gemini provider.
+        
+        Uses a shared client instance to enable connection pooling and efficient resource usage.
+        Configures automatic retries for transient errors (429, 503).
 
         Args:
             api_key: Gemini API key
             model: Model name (gemini-2.0-flash-exp, gemini-1.5-flash, gemini-1.5-pro)
         """
-        self.client = genai.Client(api_key=api_key)
         self.model_name = model
+        self.client = self._get_client(api_key)
+
+    @classmethod
+    def _get_client(cls, api_key: str) -> genai.Client:
+        """
+        Get or create a shared genai.Client instance.
+        """
+        if cls._shared_client is None or cls._shared_api_key != api_key:
+            # Configure retries for robust handling of 503/429 errors
+            http_options = {
+                "retry_options": {
+                    "attempts": 5,  # Retry up to 5 times
+                    "initial_delay": 2.0,  # Start with 2s delay
+                    "max_delay": 60.0,  # Max delay 60s
+                    "exp_base": 2.0,  # Exponential backoff
+                    "http_status_codes": [429, 503, 504],  # Target transient errors
+                }
+            }
+            
+            print(f"[GeminiProvider] Initializing new shared client with retries...")
+            cls._shared_client = genai.Client(api_key=api_key, http_options=http_options)
+            cls._shared_api_key = api_key
+            
+        return cls._shared_client
 
     async def generate(
         self,
