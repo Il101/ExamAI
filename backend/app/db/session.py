@@ -10,9 +10,11 @@ from sqlalchemy.engine.url import make_url
 
 # Create async engine
 # Determine connection args (e.g. SSL for Supabase)
-connect_args = {}
-# Force disable prepared statements for debugging
-connect_args["statement_cache_size"] = 0
+connect_args = {
+    "statement_cache_size": 0,
+    "prepared_statement_cache_size": 0,
+    "prepared_statement_name_func": lambda: "",
+}
 
 if "supabase.com" in settings.DATABASE_URL:
     connect_args["ssl"] = "require"
