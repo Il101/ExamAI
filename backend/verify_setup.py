@@ -30,6 +30,16 @@ async def check_database():
     if "supabase.com" in db_url:
         connect_args["ssl"] = "require"
 
+    # Parse and clean URL to remove conflicting query parameters
+    try:
+        from sqlalchemy.engine.url import make_url
+        url_obj = make_url(db_url)
+        if url_obj.query:
+            print(f"DEBUG: Stripping query params from URL: {url_obj.query}")
+            db_url = url_obj._replace(query={}).render_as_string(hide_password=False)
+    except Exception as e:
+        print(f"WARNING: Failed to parse/clean URL: {e}")
+
     try:
         engine = create_async_engine(db_url, connect_args=connect_args)
         async with engine.connect() as conn:

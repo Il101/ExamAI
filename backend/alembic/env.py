@@ -36,7 +36,19 @@ if not database_url:
         "DATABASE_URL is not set. Please set it in .env file or as environment variable."
     )
 
+from sqlalchemy.engine.url import make_url
+
 print(f"DEBUG: Alembic using database_url: {database_url}")
+
+# Parse and clean URL to remove conflicting query parameters
+try:
+    url_obj = make_url(database_url)
+    if url_obj.query:
+        print(f"DEBUG: Stripping query params from URL: {url_obj.query}")
+        database_url = url_obj._replace(query={}).render_as_string(hide_password=False)
+except Exception as e:
+    print(f"WARNING: Failed to parse/clean URL: {e}")
+
 config.set_main_option("sqlalchemy.url", database_url)
 
 if config.config_file_name is not None:
