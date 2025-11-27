@@ -19,22 +19,23 @@ if "supabase.com" in settings.DATABASE_URL:
 
 # Parse and clean URL to remove conflicting query parameters
 db_url = settings.DATABASE_URL
+clean_url = settings.DATABASE_URL # Initialize clean_url with the original URL
 try:
     url_obj = make_url(db_url)
     if url_obj.query:
         print(f"DEBUG: Stripping query params from URL: {url_obj.query}")
         # Create a new URL object without query parameters
         # SQLAlchemy 1.4+ URL objects are immutable, use _replace or set
-        db_url = url_obj._replace(query={}).render_as_string(hide_password=False)
+        clean_url = url_obj._replace(query={}).render_as_string(hide_password=False)
 except Exception as e:
     print(f"WARNING: Failed to parse/clean URL: {e}")
 
-print(f"DEBUG: DATABASE_URL={db_url}")
+print(f"DEBUG: DATABASE_URL={settings.DATABASE_URL}")
 print(f"DEBUG: connect_args={connect_args}")
 
 # Create async engine
 engine = create_async_engine(
-    db_url,
+    clean_url,
     echo=settings.DEBUG,  # Log SQL in debug mode
     future=True,
     pool_pre_ping=True,  # Check connection before using

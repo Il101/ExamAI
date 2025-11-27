@@ -23,12 +23,17 @@ async def check_database():
     print(f"Connecting to: {db_url.split('@')[-1]}") # Hide credentials
     
     # Determine connection args (e.g. SSL for Supabase)
-    connect_args = {}
-    # Force disable prepared statements for debugging
-    connect_args["statement_cache_size"] = 0
-
+    # Force disable prepared statements for Supabase/PgBouncer
+    connect_args = {
+        "statement_cache_size": 0,
+        "prepared_statement_cache_size": 0,
+        "prepared_statement_name_func": lambda: "",
+    }
+    
     if "supabase.com" in db_url:
         connect_args["ssl"] = "require"
+
+    print(f"DEBUG: connect_args={connect_args}")
 
     # Parse and clean URL to remove conflicting query parameters
     try:

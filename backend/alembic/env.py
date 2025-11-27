@@ -73,10 +73,13 @@ def run_migrations_offline() -> None:
 
 async def run_migrations_online() -> None:
     """Run migrations in 'online' mode."""
-    connect_args = {}
-    # Force disable prepared statements for debugging
-    connect_args["statement_cache_size"] = 0
-    
+    # Force disable prepared statements for Supabase/PgBouncer
+    connect_args = {
+        "statement_cache_size": 0,
+        "prepared_statement_cache_size": 0,
+        "prepared_statement_name_func": lambda: "",
+    }
+
     print(f"DEBUG: Alembic database_url={database_url}")
     print(f"DEBUG: Alembic connect_args={connect_args}")
 
@@ -88,6 +91,7 @@ async def run_migrations_online() -> None:
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
         connect_args=connect_args,
+        url=database_url, # Use the clean URL
     )
 
     async with connectable.connect() as connection:
