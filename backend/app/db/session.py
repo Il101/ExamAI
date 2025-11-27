@@ -14,6 +14,9 @@ if "supabase.com" in settings.DATABASE_URL:
     # Disable prepared statements for pgbouncer compatibility (Transaction Pooler)
     connect_args["statement_cache_size"] = 0
 
+print(f"DEBUG: DATABASE_URL={settings.DATABASE_URL}")
+print(f"DEBUG: connect_args={connect_args}")
+
 # Create async engine
 engine = create_async_engine(
     settings.DATABASE_URL,
