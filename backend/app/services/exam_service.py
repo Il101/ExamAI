@@ -177,9 +177,9 @@ class ExamService:
         if not exam:
             return False
 
-        # Cannot delete during generation
-        if exam.status == "generating":
-            raise ValueError("Cannot delete exam during generation")
+        # Allow deletion even during generation to handle stuck jobs
+        # if exam.status == "generating":
+        #     raise ValueError("Cannot delete exam during generation")
 
         return await self.exam_repo.delete(exam_id)
 

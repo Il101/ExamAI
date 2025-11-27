@@ -38,6 +38,35 @@ async def lifespan(app: FastAPI):
     try:
         await init_db()
         print("✅ Database initialized")
+        
+        # Cleanup stale generating exams
+        try:
+            from sqlalchemy import select, update
+            from app.db.models.exam import ExamModel
+            from app.db.session import AsyncSessionLocal
+            
+            async with AsyncSessionLocal() as session:
+                # Find exams stuck in generating for > 1 hour
+                # For simplicity in this fix, we'll just mark ALL 'generating' exams as failed on startup
+                # because if the server is restarting, any in-memory generation tasks are lost anyway.
+                stmt = select(ExamModel).where(ExamModel.status == "generating")
+                result = await session.execute(stmt)
+                stale_exams = result.scalars().all()
+                
+                if stale_exams:
+                    print(f"🧹 Found {len(stale_exams)} stale generating exams. Marking as failed...")
+                    for exam in stale_exams:
+                        exam.status = "failed"
+                        exam.error_message = "Generation interrupted by system restart"
+                        exam.error_category = "system_restart"
+                        exam.failed_at = datetime.now(timezone.utc)
+                    
+                    await session.commit()
+                    print("✅ Stale exams cleaned up")
+                    
+        except Exception as e:
+            print(f"⚠️  Failed to cleanup stale exams: {e}")
+
     except Exception as e:
         print(f"⚠️  Database initialization failed: {e}")
         print("⚠️  App will start but database operations will fail")
