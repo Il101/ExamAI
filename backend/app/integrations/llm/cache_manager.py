@@ -33,10 +33,10 @@ class ContextCacheManager:
             Cache name for future reference
         """
         try:
-            # Use async client and pass arguments via config
+            # Create cache with model as direct parameter
             cache = await self.client.aio.caches.create(
+                model="gemini-2.5-flash-lite",
                 config={
-                    "model": "gemini-2.5-flash-lite",
                     "contents": [{
                         "role": "user",
                         "parts": [{"text": content}]

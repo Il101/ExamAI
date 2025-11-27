@@ -12,6 +12,25 @@ export interface Topic {
     updated_at: string;
 }
 
+export interface QuizOption {
+    id: number;
+    text: string;
+    is_correct: boolean;
+}
+
+export interface QuizQuestion {
+    id: number;
+    question: string;
+    options: QuizOption[];
+    explanation: string;
+}
+
+export interface QuizData {
+    topic_id: string;
+    topic_name: string;
+    questions: QuizQuestion[];
+}
+
 export const topicsApi = {
     getByExamId: async (examId: string): Promise<Topic[]> => {
         const response = await api.get(`/topics`, {
@@ -22,6 +41,13 @@ export const topicsApi = {
 
     getById: async (topicId: string): Promise<Topic> => {
         const response = await api.get(`/topics/${topicId}`);
+        return response.data;
+    },
+
+    getQuiz: async (topicId: string, numQuestions: number = 5): Promise<QuizData> => {
+        const response = await api.get(`/topics/${topicId}/quiz`, {
+            params: { num_questions: numQuestions },
+        });
         return response.data;
     },
 };

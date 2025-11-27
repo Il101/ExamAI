@@ -7,25 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { CheckCircle2, XCircle, Loader2, AlertCircle, ChevronRight, SkipForward } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-interface QuizOption {
-    id: number;
-    text: string;
-    is_correct: boolean;
-}
-
-interface QuizQuestion {
-    id: number;
-    question: string;
-    options: QuizOption[];
-    explanation: string;
-}
-
-interface QuizData {
-    topic_id: string;
-    topic_name: string;
-    questions: QuizQuestion[];
-}
+import { topicsApi, QuizData } from '@/lib/api/topics';
 
 interface CheckYourselfProps {
     topicId: string;
@@ -53,17 +35,7 @@ export function CheckYourself({ topicId, onComplete, onSkip }: CheckYourselfProp
             setIsLoading(true);
             setError(null);
 
-            const response = await fetch(`/api/topics/${topicId}/quiz?num_questions=5`, {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                },
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to load quiz');
-            }
-
-            const data = await response.json();
+            const data = await topicsApi.getQuiz(topicId, 5);
             setQuizData(data);
         } catch (err) {
             console.error('Failed to load quiz:', err);
