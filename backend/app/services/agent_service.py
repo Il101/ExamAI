@@ -11,6 +11,7 @@ from app.repositories.exam_repository import ExamRepository
 from app.repositories.review_repository import ReviewItemRepository
 from app.repositories.topic_repository import TopicRepository
 from app.services.cost_guard_service import CostGuardService
+from app.utils.content_cleaner import strip_thinking_tags
 
 
 class AgentService:
@@ -133,7 +134,10 @@ class AgentService:
             
             for i, plan_step in enumerate(state.plan):
                 result = state.results.get(plan_step.id)
-                content = result.content if result and result.success else ""
+                raw_content = result.content if result and result.success else ""
+                
+                # Clean content (remove <thinking> tags from Executor)
+                content = strip_thinking_tags(raw_content)
                 
                 if existing_plan:
                     # Update existing topic

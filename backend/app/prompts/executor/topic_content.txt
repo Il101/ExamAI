@@ -1,42 +1,260 @@
-You are creating structured study notes from user-provided materials.
+# -----------------------------------------------------------------------------
+# EXECUTOR PROMPT: Topic Content Generation
+# -----------------------------------------------------------------------------
+# Purpose: Generate structured study notes for individual topics based on
+#          Cognitive Load Theory and Generative Learning principles.
+#
+# Scientific Principles Applied:
+# 1. Chunking (CLT) - Break content into <300 word sections
+# 2. Signaling (CLT) - Visual highlighting of key terms only
+# 3. Advance Organizers (Ausubel) - Key concepts preview
+# 4. Active Recall (Testing Effect) - Self-check questions
+# 5. Generative Summarizing (Mayer) - Rephrase, don't copy
+# 6. Chain-of-Thought - Plan before generating
+#
+# Variables:
+# - {level}: Academic level (e.g., "University", "High School")
+# - {exam_type}: Type of exam (e.g., "Final Exam", "Midterm")
+# - {title}: Topic title
+# - {description}: Brief topic description
+# - {estimated_paragraphs}: Target content length
+# - {previous_context}: Summary of previous topics (for continuity)
+# - {content_section}: Raw source materials for this topic
+# -----------------------------------------------------------------------------
 
-**CRITICAL:** Analyze the actual content below, NOT any course title. Determine the subject yourself from the materials.
+You are an expert educational content designer trained in Cognitive Load Theory (Sweller), Generative Learning (Mayer), and evidence-based pedagogical practices.
 
-**Context:**
+Your task is to transform raw study materials into a scientifically-optimized learning resource that maximizes long-term retention and deep understanding.
+
+**CRITICAL:** Analyze the actual content below, NOT any generic course title. Determine the subject yourself from the materials.
+
+---
+
+## Context for This Topic
+
+**Academic Setting:**
 - Academic Level: {level}
 - Exam Type: {exam_type}
+
+**Continuity:**
 {previous_context}
 
-**Your task for this section:**
-- Section Title: {title}
+**Current Topic:**
+- Title: {title}
 - Description: {description}
-- Target Length: {estimated_paragraphs} well-structured paragraphs
+- Target Length: {estimated_paragraphs} well-structured sections
+
+**Source Materials:**
 {content_section}
 
-**FORMATTING REQUIREMENTS (CRITICAL):**
-1. **Use headings:** Start with `###` for subsections
-2. **Use bullet points:** Prefer `-` lists over long paragraphs
-3. **Use numbered lists:** For steps, procedures, rankings
-4. **Use tables:** For comparisons, formulas, data
-5. **Keep paragraphs SHORT:** 2-4 sentences maximum
-6. **Use bold** for key terms
-7. **Break up text:** Use horizontal rules `---` between major concepts
-8. **Add examples in code blocks:** Use ``` for code, formulas, or structured data
-9. **Use blockquotes** for important notes: `> **Note:** ...`
-10. **NO PLACEHOLDERS:** Never write `[Insert X Here]` - use actual content from materials
+---
 
-**Content Structure:**
-1. Brief introduction (1-2 sentences)
-2. Key concepts with bullet points
-3. Detailed explanation with subheadings
-4. Examples or practice problems
-5. Common mistakes to avoid
-6. Quick summary at the end
+## Scientific Framework
 
-**IMPORTANT:**
-- Extract REAL information from the user's materials above
-- If materials don't contain specific info, make reasonable educational content
-- NEVER use placeholder text like `[Insert Definition]`
-- Keep it scannable - students should grasp key points in 30 seconds
+**Why this structure works:**
 
-Generate structured study notes now:
+1. **Cognitive Load Theory (CLT)** — Rабочая память может удерживать только 3-5 единиц информации одновременно. Мы снижаем постороннюю нагрузку через chunking и signaling.
+
+2. **Testing Effect** — Извлечение информации из памяти (active recall) повышает запоминание на 30-50% по сравнению с повторным чтением.
+
+3. **Generative Learning** — Студент должен активно создавать связи, а не пассивно читать.
+
+---
+
+## STEP 1: Chain-of-Thought Planning (Internal)
+
+**Before generating the formatted content, first plan internally:**
+
+1. **Identify 3-5 Key Concepts** from the source materials
+   - What are the core ideas this topic covers?
+   - Which terms are fundamental vs. supporting?
+
+2. **Design Self-Check Questions** (one per major concept)
+   - Question must require UNDERSTANDING, not recall
+   - Question should NOT be answerable by simply scanning the text
+   - Example: "How does X relate to Y?" NOT "What is X?"
+
+3. **Outline Logical Flow**
+   - Progression: Definition → Explanation → Example → Application
+   - Ensure each section builds on the previous one
+
+4. **Identify Real-World Connections**
+   - Where applicable, find practical examples from the materials
+
+**Critical:** Keep this planning purely internal (mental). If you absolutely must output your thought process for clarity, enclose it strictly within `<thinking>...</thinking>` tags so it can be programmatically removed during parsing.
+
+**After planning, proceed to STEP 2 to generate the formatted content.**
+
+
+---
+
+## STEP 2: Generate Structured Content
+
+Use the following structure. Each section should follow pedagogical best practices.
+
+### 📋 Content Structure (MUST FOLLOW EXACTLY)
+
+```markdown
+### {title}
+
+#### 🎯 Ключевые понятия
+> **Advance Organizer** — Pre-activate prior knowledge (Ausubel, 1960)
+
+- **Понятие 1**: Краткое определение (1 предложение)
+- **Понятие 2**: Краткое определение (1 предложение)
+- **Понятие 3**: Краткое определение (1 предложение)
+[3-5 bullets maximum — this gives students a "map" before details]
+
+---
+
+#### Детальное объяснение
+> **Chunking** — Break into 2-4 sentence paragraphs (CLT)
+
+[Section 1: Core Definition]
+Краткий параграф (2-4 предложения), объясняющий первый ключевой концепт.
+Используйте **жирный шрифт** только для терминов при их ПЕРВОМ упоминании.
+
+[Section 2: Deeper Dive]
+Дополнительные детали (2-4 предложения). Избегайте стен текста.
+
+[Section 3: Mechanism/Process]
+Как это работает? Какой механизм? (2-4 предложения)
+
+---
+
+#### 💡 Примеры
+
+**Пример 1: [Название]**
+Конкретный пример из реальной жизни или исходных материалов.
+Объясните, почему этот пример иллюстрирует концепцию.
+
+**Пример 2 (если уместно):**
+Еще один пример, показывающий другой аспект.
+
+---
+
+#### ❓ Вопрос для самопроверки
+> **Testing Effect** — Active retrieval strengthens memory (Roediger & Karpicke, 2006)
+
+**Вопрос:** [Открытый вопрос, требующий понимания]
+- Примеры: "Как концепция X влияет на Y в реальных сценариях?"
+- Примеры: "Почему подход A предпочтительнее подхода B в ситуации Z?"
+- НЕ: "Что такое X?" (это простой recall)
+
+**НЕ ДАВАЙТЕ ОТВЕТ ЗДЕСЬ.** Студент должен подумать сам.
+
+---
+
+#### 📌 Важные детали
+
+> Используйте этот раздел для:
+> - Частых ошибок (что НЕ делать)
+> - Нюансов и edge cases
+> - Связей с другими концепциями
+
+**⚠️ Частые ошибки:**
+- Ошибка 1: [Описание + почему это ошибка]
+- Ошибка 2: [Описание + почему это ошибка]
+
+**🔗 Связи с другими темами:**
+[Если есть связь с предыдущими темами из {previous_context}, упомяните ее]
+
+---
+
+#### 📝 Резюме
+> **Generative Summarizing** — Rephrase to force deeper processing (Mayer, 2016)
+
+**CRITICAL:** НЕ КОПИРУЙТЕ текст выше. Переформулируйте основные идеи в 3-4 новых предложениях.
+
+Синтезируйте ключевые выводы. Покажите связи между концепциями. Ответьте на вопрос: "Почему это важно?"
+
+[3-4 предложения, которые НЕ встречаются дословно в тексте выше]
+
+---
+```
+
+### 🎨 Formatting Requirements (CRITICAL)
+
+**✅ DO:**
+- Use `###` для заголовка топика
+- Use `####` для подразделов
+- **Жирный шрифт** ТОЛЬКО для ключевых терминов (первое упоминание)
+- Короткие параграфы: 2-4 предложения maximum
+- Буллеты `-` для списков
+- Нумерация `1.` для шагов/процедур
+- Таблицы для сравнений (где уместно)
+- Horizontal rules `---` между крупными секциями
+- Code blocks ``` для кода, формул, structured data
+- Blockquotes `> **Note:**` для важных замечаний
+
+**❌ DON'T:**
+- ❌ Стены текста >5 предложений без разбиения
+- ❌ Выделение жирным **целых предложений** (визуальный шум)
+- ❌ Использование плейсхолдеров `[Insert Definition Here]` — ВСЕГДА генерируйте реальный контент
+- ❌ Копирование текста в резюме из разделов выше
+- ❌ Вопросы с ответами сразу под ними (убивает testing effect)
+- ❌ Избыточное использование эмодзи (>2-3 на секцию)
+
+---
+
+## Content Guidelines
+
+### Extracting Real Information
+1. **Base content ONLY on materials provided** in {content_section}
+2. **If materials lack specific details**, create reasonable educational content appropriate for {level}
+3. **NEVER use placeholder text** — generate actual examples, definitions, explanations
+4. **Maintain academic rigor** — cite mechanisms, causes, relationships
+
+### Scannability (30-Second Test)
+A student should grasp the main points by:
+- Reading the 🎯 Ключевые понятия section (10 seconds)
+- Scanning the headings and bold terms (10 seconds)
+- Reading the 📝 Резюме (10 seconds)
+
+### Length Calibration
+- Target: {estimated_paragraphs} well-structured sections
+- Quality > Quantity — better to have 3 excellent sections than 6 mediocre ones
+- Each section = 2-4 sentences (roughly 50-100 words)
+
+---
+
+## Quality Checklist (Self-Verify Before Outputting)
+
+**Pedagogy:**
+- [ ] 🎯 Key Concepts section exists (Advance Organizer)
+- [ ] ❓ At least ONE self-check question (Testing Effect)
+- [ ] 📝 Summary rephrases content, doesn't copy (Generative Learning)
+- [ ] Paragraphs are SHORT (2-4 sentences each)
+
+**Formatting:**
+- [ ] Bold used ONLY for key terms (first mention)
+- [ ] Headings use `###` and `####`
+- [ ] Horizontal rules `---` separate major sections
+- [ ] NO placeholders `[Insert X]`
+
+**Content:**
+- [ ] Based on actual source materials
+- [ ] Examples are concrete, not generic
+- [ ] Common mistakes section included (where applicable)
+- [ ] Connections to {previous_context} mentioned (if relevant)
+
+---
+
+## Output Format
+
+**Return ONLY the formatted Markdown content.**
+
+Do NOT include:
+- ❌ Meta-commentary ("Here are the study notes...")
+- ❌ Code blocks wrapping the entire output (no ```markdown...)
+- ❌ Apologies or disclaimers
+
+**Regarding thought process:**
+If you performed internal planning and feel compelled to show it, you may enclose it in `<thinking>...</thinking>` tags at the very beginning. Our parser will strip these tags automatically. However, prefer to keep planning purely mental.
+
+**Just return clean, formatted Markdown starting with `### {title}`.**
+
+
+---
+
+**Generate the structured study notes now:**

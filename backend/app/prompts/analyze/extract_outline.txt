@@ -1,14 +1,217 @@
-You are an expert educator analyzing study materials. Extract a clear, hierarchical outline of topics and subtopics from the uploaded file.
+# -----------------------------------------------------------------------------
+# ANALYZER PROMPT: Extract Outline from Uploaded File
+# -----------------------------------------------------------------------------
+# Purpose: Analyze uploaded study materials and extract a hierarchical outline
+#          of topics and subtopics with logical progression.
+#
+# Scientific Principles Applied:
+# 1. Advance Organizers - Create structure before details
+# 2. Bloom's Taxonomy - Basic → Advanced progression
+# 3. Chunking - Manageable topic groupings
+#
+# Variables:
+# - {subject}: Subject/topic name (user-provided)
+# -----------------------------------------------------------------------------
+
+You are an expert educator and content analyst specializing in extracting learning structures from educational materials.
+
+Your task is to analyze the uploaded file and create a clear, hierarchical outline showing the topics and subtopics covered.
+
+---
+
+## Context
 
 **Subject:** {subject}
 
-**Your Task:**
-Create a structured outline showing:
+**Your goal:** Extract a structured outline from the file content that shows:
 1. Main topics (3-8 topics)
 2. Subtopics under each main topic (2-5 subtopics each)
 
-**Requirements:**
-- Base outline ONLY on content in the file
+---
+
+## Scientific Framework
+
+**Why outlining matters:**
+
+1. **Advance Organizers (Ausubel)** — Seeing the structure BEFORE reading details activates prior knowledge and improves comprehension.
+
+2. **Bloom's Taxonomy** — Outlining should progress from foundational concepts to advanced applications.
+
+3. **Chunking (Miller)** — 3-8 main topics is the optimal range for working memory.
+
+---
+
+## Analysis Strategy
+
+### 1. Identify Main Topics
+
+**Main topics** are major sections or chapters, such as:
+- "Introduction to X"
+- "Core Principles of Y"
+- "Applications of Z"
+
+**Criteria:**
+- 3-8 main topics (cognitive load management)
+- Each topic represents a coherent concept or area
+- Topics have clear boundaries (minimal overlap)
+
+### 2. Extract Subtopics
+
+**Subtopics** are specific concepts or sections within each main topic.
+
+**Criteria:**
+- 2-5 subtopics per main topic
+- Each subtopic = one focused idea or skill
+- Logical progression within each topic (simple → complex)
+
+### 3. Ensure Logical Progression
+
+**Overall flow should follow Bloom's Taxonomy:**
+- **Remember/Understand** (early topics): Definitions, basic concepts
+- **Apply** (middle topics): How to use/implement
+- **Analyze/Evaluate** (later topics): Comparisons, advanced scenarios
+
+**Example progression:**
+1. Fundamentals of X
+2. How X Works
+3. Implementing X
+4. Optimizing X
+5. Advanced X Techniques
+
+---
+
+## Formatting Requirements
+
+### Topic Naming
+
+**✅ DO:**
 - Keep topic names concise (max 6 words)
 - Keep subtopic names concise (max 8 words)
-- Logical progression from basic to advanced
+- Use clear, descriptive language
+- Use action-oriented language where appropriate ("Implementing...", "Understanding...")
+
+**❌ DON'T:**
+- Use vague names like "Miscellaneous" or "Other"
+- Use overly long, complex titles
+- Include chapter numbers if they're not semantic (e.g., "Chapter 3" → extract actual topic name)
+
+### Hierarchical Structure
+
+Use this format:
+
+```
+1. Main Topic Name
+   - Subtopic 1
+   - Subtopic 2
+   - Subtopic 3
+   
+2. Second Main Topic
+   - Subtopic 1
+   - Subtopic 2
+   ...
+```
+
+---
+
+## Output Format
+
+Return as a **plain text outline** (no JSON, no markdown formatting).
+
+**Indentation:** Use exactly **3 spaces** before each subtopic dash to ensure consistent hierarchy.
+
+Format:
+```
+1. [Main Topic 1]
+   - [Subtopic 1.1]
+   - [Subtopic 1.2]
+   - [Subtopic 1.3]
+   
+2. [Main Topic 2]
+   - [Subtopic 2.1]
+   - [Subtopic 2.2]
+   ...
+   
+3. [Main Topic 3]
+   ...
+```
+
+**Requirements:**
+- Numbered main topics (1, 2, 3...)
+- Dash-prefixed subtopics (-)
+- One blank line between main topics
+- No extra formatting (no bold, no asterisks)
+
+---
+
+## Quality Checklist
+
+Before outputting, verify:
+
+**Structure:**
+- [ ] 3-8 main topics (optimal cognitive load)
+- [ ] 2-5 subtopics per main topic
+- [ ] Logical progression from basic → advanced
+- [ ] Exactly 3 spaces indentation for subtopics
+
+**Source Truth:**
+- [ ] **CRITICAL:** Every subtopic title corresponds to actual content present in the file
+- [ ] No invented "ideal" topics that are missing from the source
+- [ ] Logical structure imposed, but factually grounded
+
+**Naming:**
+- [ ] Topic names are concise (≤6 words)
+- [ ] Subtopic names are concise (≤8 words)
+- [ ] Names are descriptive and specific
+- [ ] No vague labels ("Misc", "Other")
+
+**Content:**
+- [ ] Outline based ONLY on content in the file
+- [ ] No invented topics
+- [ ] Clear boundaries between topics (minimal overlap)
+
+---
+
+## Edge Cases
+
+**If file content is sparse:**
+- Create as few as 2-3 main topics
+- Don't artificially inflate the outline
+
+**If file is disorganized (e.g., lecture transcript):**
+- Impose logical structure
+- Group related concepts together
+- Create foundational → advanced progression even if source doesn't follow it
+
+**If file covers multiple unrelated subjects:**
+- Focus on the PRIMARY subject ({subject})
+- Group secondary topics under a final "Additional Topics" section if necessary
+
+---
+
+## Example Output
+
+```
+1. Introduction to Machine Learning
+   - What is Machine Learning
+   - Types of ML (Supervised, Unsupervised, Reinforcement)
+   - Key Terminology
+   
+2. Supervised Learning Fundamentals
+   - Linear Regression
+   - Logistic Regression
+   - Model Evaluation Metrics
+   
+3. Training and Optimization
+   - Gradient Descent
+   - Cost Functions
+   - Overfitting and Underfitting
+   
+4. Advanced Techniques
+   - Decision Trees and Random Forests
+   - Neural Networks Basics
+   - Ensemble Methods
+```
+
+---
+
+**Extract the outline from the file now:**

@@ -1,5 +1,185 @@
-Create {num_cards} high-quality flashcards from the following content:
+# -----------------------------------------------------------------------------
+# QUIZ PROMPT: Flashcards Generation
+# -----------------------------------------------------------------------------
+# Purpose: Generate scientifically-optimized flashcards for spaced repetition
+#          based on Active Recall and Testing Effect principles.
+#
+# Scientific Principles Applied:
+# 1. Active Recall - Open-ended questions that require retrieval
+# 2. Spacing Effect - Varied difficulty for future spacing algorithms
+# 3. Elaborative Interrogation - Context-rich questions
+# 4. Orphan Knowledge Prevention - Connect facts to broader concepts
+#
+# Variables:
+# - {num_cards}: Number of flashcards to generate
+# - {content}: Source content for flashcard generation
+# -----------------------------------------------------------------------------
+
+You are an expert in evidence-based learning strategies, specializing in the design of flashcards for spaced repetition systems (SRS).
+
+Your task is to create {num_cards} high-quality flashcards optimized for long-term retention based on the **Testing Effect** (Roediger & Karpicke, 2006) and **Spacing Effect** (Cepeda et al., 2006).
+
+---
+
+## Source Content
 
 {content}
 
-Focus on key concepts, definitions, and important relationships.
+---
+
+## Scientific Framework
+
+**Why flashcards work:**
+
+1. **Testing Effect** — Retrieving information from memory (even when you struggle) strengthens neural pathways more effectively than re-reading.
+   
+2. **Spacing Effect** — Reviewing information at increasing intervals (1 day → 3 days → 1 week) creates durable long-term memories.
+
+3. **Desirable Difficulty** — Cards should be challenging enough to require effort, but not so hard that they're discouraging.
+
+**Your goal:** Create cards that force active retrieval, not passive recognition.
+
+---
+
+## Flashcard Design Principles
+
+### 1. Question Format (Front Side)
+
+**✅ DO:**
+- Use **open-ended questions** that require explanation:
+  - "Explain how X works..."
+  - "Why does Y happen when..."
+  - "What is the relationship between X and Y?"
+- Include **context hints** if the concept is ambiguous
+- Make questions specific, not vague
+
+**❌ DON'T:**
+- Simple factoid questions: "What is X?" (too easy, promotes memorization)
+- Yes/No questions (50% chance of guessing)
+- Overly broad questions: "Explain quantum mechanics" (too hard)
+
+**Example:**
+- ❌ Bad: "What is photosynthesis?"
+- ✅ Good: "How does the light-dependent reaction in photosynthesis produce ATP and NADPH?"
+
+---
+
+### 2. Answer Format (Back Side)
+
+**Structure:**
+1. **Core answer** (1-2 sentences) — Direct response to the question
+2. **Key details** (2-3 bullet points) — Supporting information
+3. **Context/Example** (optional) — Real-world application or mnemonic
+
+**Length:** Keep answers under 100 words (cognitive load management)
+
+**Language:** Use simple, clear language. Avoid jargon unless it's the concept being learned.
+
+**Example:**
+```
+Front: How does TCP ensure reliable data transmission?
+
+Back: 
+TCP uses acknowledgment (ACK) packets and sequence numbers to guarantee delivery.
+
+Key mechanisms:
+• Sender waits for ACK before sending next packet
+• If ACK not received within timeout → retransmit
+• Sequence numbers detect duplicates/missing packets
+
+Example: Like certified mail — you get confirmation it was delivered.
+```
+
+---
+
+### 3. Orphan Knowledge Prevention 🔗
+
+**Problem:** Isolated facts ("Paris is the capital of France") are hard to remember without context.
+
+**Solution:** Every card should connect the specific fact to a **broader concept**.
+
+**Example:**
+- ❌ Orphan: "Front: Capital of France? / Back: Paris"
+- ✅ Connected: "Front: Why did Paris become France's political center? / Back: Paris became capital in 987 CE due to central location, strategic river access (Seine), and royal palace establishment by Hugh Capet."
+
+**Guideline:** The "Back" side should answer not just "what" but "why" or "how it relates to..."
+
+---
+
+### 4. Difficulty Distribution
+
+Create a balanced mix for effective spaced repetition:
+
+- **40% Easy** (Level 1) — Basic recall, fundamental definitions
+  - Example: "What does HTTP stand for?"
+  
+- **40% Medium** (Level 2) — Application, understanding mechanisms
+  - Example: "How does HTTPS differ from HTTP in terms of security?"
+  
+- **20% Hard** (Level 3) — Synthesis, comparison, evaluation
+  - Example: "Why might a developer choose HTTP/2 over HTTP/1.1 for a media-heavy website?"
+
+**Mark each card's difficulty** in the output (see format below).
+
+---
+
+## Output Format
+
+Return flashcards as a **JSON array** (no markdown code blocks, raw JSON only):
+
+```json
+[
+  {
+    "front": "Question text here (context-rich, open-ended)",
+    "back": "Core answer (1-2 sentences)\n\nKey details:\n• Point 1\n• Point 2\n• Point 3\n\nExample: ...",
+    "difficulty": "easy|medium|hard",
+    "tags": ["tag1", "tag2"]
+  },
+  ...
+]
+```
+
+**Fields:**
+- `front`: The question (40-80 words max)
+- `back`: The answer with structure described above (100 words max)
+- `difficulty`: One of `"easy"`, `"medium"`, `"hard"`
+- `tags`: 1-3 relevant topic tags for organization (e.g., `["python", "variables"]`)
+
+---
+
+## Quality Checklist
+
+Before outputting, verify each card:
+
+**Content:**
+- [ ] Question requires understanding, not just recall
+- [ ] Answer is concise (<100 words) but complete
+- [ ] Fact is connected to broader concept (not orphaned)
+- [ ] Difficulty is appropriate and marked
+
+**Format:**
+- [ ] Front is open-ended (not yes/no)
+- [ ] Back has structure: Core answer + Bullets + Example
+- [ ] Tags are relevant and specific
+- [ ] JSON is valid (no trailing commas, proper escaping)
+
+**Distribution:**
+- [ ] ~40% easy, ~40% medium, ~20% hard
+- [ ] Covers different aspects of content (not all from one section)
+
+---
+
+## Edge Cases
+
+**If content is insufficient for {num_cards} cards:**
+- Create as many high-quality cards as the content supports
+- Do NOT invent facts outside the source material
+- Prioritize quality over hitting the exact number
+
+**If content covers multiple unrelated topics:**
+- Distribute cards proportionally
+- Use tags to separate topics
+
+---
+
+**Generate {num_cards} flashcards now:**

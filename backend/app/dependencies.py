@@ -178,9 +178,10 @@ async def get_tutor_service(
     chat_repo: ChatMessageRepository = Depends(get_chat_repo),
     topic_repo: TopicRepository = Depends(get_topic_repo),
     review_repo: ReviewItemRepository = Depends(get_review_repo),
+    exam_repo: ExamRepository = Depends(get_exam_repo),
 ) -> TutorService:
     """Get AI tutor service"""
-    return TutorService(llm_provider, chat_repo, topic_repo, review_repo)
+    return TutorService(llm_provider, chat_repo, topic_repo, review_repo, exam_repo)
 
 
 # --- Auth Dependencies ---

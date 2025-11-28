@@ -1,6 +1,26 @@
 # AI Prompts Directory
 
-This directory contains all AI prompts used throughout the ExamAI application. Prompts are organized by component and stored as separate text files for easier maintenance and version control.
+This directory contains all AI prompts used throughout the ExamAI application. 
+
+**NEW:** All prompts have been redesigned based on **scientific pedagogical principles** including Cognitive Load Theory (CLT), Generative Learning Theory, and the Testing Effect. See [PRINCIPLES.md](./PRINCIPLES.md) for the complete scientific framework.
+
+Prompts are organized by component and stored as separate text files for easier maintenance and version control.
+
+---
+
+## 📚 Scientific Foundation
+
+Our prompts are grounded in research-backed learning principles:
+
+- **Cognitive Load Theory** (Sweller) — Chunking, signaling, minimizing extraneous load
+- **Generative Learning** (Mayer) — Active recall, summarizing, self-explanation
+- **Testing Effect** (Roediger) — Retrieval practice strengthens memory
+- **Advance Organizers** (Ausubel) — Pre-structure activates prior knowledge
+- **Socratic Method** — Guide to discovery, don't give answers
+
+All prompts include explicit instructions implementing these principles.
+
+---
 
 ## Directory Structure
 
@@ -86,23 +106,46 @@ loader.reload()  # Clear entire cache
 ## Prompt Components
 
 ### Planner Prompts
-- **course_plan.txt**: Generates structured learning plan with blocks and topics
+- **course_plan.txt**: Generates structured learning plan with blocks, topics, and **Learning Outcomes** (Advance Organizers)
+  - **NEW:** Bloom's Taxonomy progression (basic → advanced)
+  - **NEW:** Learning outcomes activate prior knowledge
 
 ### Executor Prompts
 - **topic_content.txt**: Generates detailed study notes for individual topics
+  - **NEW:** Chain-of-Thought planning before generation
+  - **NEW:** 🎯 Key Concepts section (Advance Organizers)
+  - **NEW:** ❓ Self-check questions (Testing Effect)
+  - **NEW:** 📝 Generative summaries (must rephrase, not copy)
+  - **Scientific principles:** All 5 major pedagogical strategies
 
 ### Quiz Prompts
-- **flashcards.txt**: Creates flashcards from content
-- **mcq_questions.txt**: Generates multiple-choice questions
+- **flashcards.txt**: Creates flashcards optimized for spaced repetition
+  - **NEW:** Orphan Knowledge Prevention (connect facts to concepts)
+  - **NEW:** Difficulty distribution (40% easy, 40% medium, 20% hard)
+  - **NEW:** Open-ended questions requiring explanation
+  
+- **mcq_questions.txt**: Generates multiple-choice questions with learning focus
+  - **NEW:** Elaborative explanations (why correct + why distractors wrong)
+  - **NEW:** Misconception-based distractors
+  - **NEW:** Bloom's Taxonomy levels (recall, application, analysis)
 
 ### Tutor Prompts
-- **chat_system.txt**: AI tutor conversation system prompt
+- **chat_system.txt**: AI tutor conversation system with adaptive teaching
+  - **NEW:** 4-Mode Switch (Socratic / Direct / Practice / Tool-Assisted)
+  - **NEW:** Intent detection (deep learning vs. quick answer)
+  - **NEW:** Metacognitive scaffolding
+  - **Scientific basis:** Socratic Method + Zone of Proximal Development
 
 ### Finalizer Prompts
 - **polish_content.txt**: Polishes and formats complete study notes
+  - **NEW:** Generative Summarizing (MUST rephrase, not copy)
+  - **NEW:** Cornell Method glossary (key terms)
+  - **NEW:** Comprehensive self-check questions (10-15)
 
 ### Analyze Prompts
 - **extract_outline.txt**: Analyzes uploaded files for topic structure
+  - **NEW:** Bloom's Taxonomy progression enforcement
+  - **Scientific basis:** Advance Organizers
 
 ## Best Practices
 

@@ -1,45 +1,288 @@
-You are an editor of educational materials. Polish the study notes below into a professional document.
+# -----------------------------------------------------------------------------
+# FINALIZER PROMPT: Polish and Finalize Study Notes
+# -----------------------------------------------------------------------------
+# Purpose: Transform draft study notes into a professional, cohesive document
+#          with Cornell Method structure and Generative Summarizing.
+#
+# Scientific Principles Applied:
+# 1. Generative Summarizing - Rephrase, don't copy
+# 2. Cornell Method - Key terms glossary for quick review
+# 3. Self-Assessment - Comprehensive check questions
+# 4. Consistent Structure - Reduce extraneous cognitive load
+#
+# Variables:
+# - {exam_type}: Type of exam (e.g., "Final Exam", "Midterm")
+# - {level}: Academic level (e.g., "University", "High School")
+# - {section_count}: Number of topics/sections in the notes
+# - {combined_notes}: All topic notes combined (raw markdown)
+# -----------------------------------------------------------------------------
 
-**CRITICAL:** The course title may be generic or misleading - focus on the ACTUAL CONTENT of the materials.
+You are an expert editor of educational materials with training in Cognitive Load Theory and the Cornell Note-Taking Method.
 
-**Your Task:**
-1. Add a professional title page with:
-   - **AI Summary** heading
-   - Subject: Infer from content (ignore generic title)
-   - Exam Type: {exam_type}
-   - Academic Level: {level}
-   - Brief description (2-3 sentences about ACTUAL content)
-2. Create Table of Contents with all {section_count} topics
-3. Polish the formatting:
-   - Ensure consistent heading levels
-   - Add proper spacing between sections
-   - Make sure lists are properly formatted
-   - Verify tables render correctly
-   - Add horizontal rules between major sections
-4. Review content quality:
-   - Remove any placeholder text `[Insert X]`
-   - Remove duplicate information
-   - Ensure terminology is consistent
-   - Add smooth transitions between topics
-5. Add final section with 10-12 self-check questions covering all topics
+Your task is to polish the draft study notes below into a professional, cohesive learning resource.
 
-**FORMATTING GUIDELINES:**
-- Use `###` for topic headings
-- Use `-` for bullet lists
-- Use `1.` for numbered lists
-- Use tables for comparisons
-- Keep paragraphs SHORT (2-4 sentences)
-- Use **bold** for key terms
-- Use `>` blockquotes for important notes
+**CRITICAL:** The course title may be generic or misleading. Focus on the **ACTUAL CONTENT** of the materials to determine the real subject.
 
-**Important:**
-- Do NOT change factual content
-- Do NOT add new topics or remove existing ones
-- Do NOT use placeholder text
-- Make it scannable and easy to review quickly
+---
+
+## Context
+
+**Academic Setting:**
+- Exam Type: {exam_type}
+- Academic Level: {level}
+- Number of Sections: {section_count}
 
 **Draft Study Notes:**
 
 {combined_notes}
 
-**Output:** Complete, professionally formatted study notes in Markdown.
+---
+
+## Your Task: Professional Finalization
+
+### 1. Create Title Page
+
+Add a professional title page at the very beginning with:
+
+```markdown
+# Study Guide: [Real Subject Name]
+
+**AI-Generated Summary**
+
+**Subject:** [Infer from ACTUAL content, ignore generic title]  
+**Exam Type:** {exam_type}  
+**Academic Level:** {level}  
+**Generated:** [Current date]
+
+**About This Guide:**
+[2-3 sentences describing what THIS specific content covers, based on actual topics]
+
+---
+```
+
+**Important:** Determine the REAL subject from the content. If the course is titled "Materials" but covers Python programming, write "Subject: Python Programming Fundamentals".
+
+---
+
+### 2. Table of Contents
+
+Create a comprehensive TOC with all {section_count} topics:
+
+```markdown
+## 📚 Table of Contents
+
+1. [Topic 1 Title](#topic-1-title)
+2. [Topic 2 Title](#topic-2-title)
+...
+{section_count}. [Final Topic](#final-topic)
+
+---
+```
+
+**Technical:** Use GitHub-style anchor links:
+- Lowercase all letters
+- Replace spaces with hyphens
+- Remove punctuation
+- Example: `### My Header!` → `[My Header!](#my-header)`
+
+---
+
+### 3. Polish Formatting
+
+**CRITICAL INSTRUCTION:** Keep the **main body content** of the topics mostly AS IS, unless there are formatting errors or placeholders. 
+
+Your job is to **polish the structure**, not rewrite the content. Focus your creative energy on:
+- Title Page (new)
+- Table of Contents (new)
+- Comprehensive Summary (new, generative)
+- Key Terms Glossary (new)
+- Self-Check Questions (new)
+
+**Review and fix formatting issues only:**
+
+#### Consistency
+- [ ] All topic headings use `###` (level 3)
+- [ ] All subsections use `####` (level 4)
+- [ ] Proper spacing between sections (one blank line before headings, two blank lines between major sections)
+- [ ] Horizontal rules `---` separate major topics
+
+#### Visual Clarity
+- [ ] Bold used ONLY for key terms (not entire sentences)
+- [ ] Lists are properly formatted (`-` for bullets, `1.` for numbers)
+- [ ] Tables render correctly (proper alignment with `|---|---|`)
+- [ ] Code blocks use proper syntax highlighting (```python, ```bash, etc.)
+- [ ] Blockquotes `>` are used consistently for important notes
+
+#### Content Quality
+- [ ] **Remove ALL placeholder text** (`[Insert X]`, `[TBD]`, etc.)
+- [ ] Remove duplicate information (if same concept explained twice)
+- [ ] Ensure terminology is consistent (don't say "function" in one section and "method" in another for same concept)
+- [ ] Add smooth transitions between topics where logical (e.g., "Building on the concept of X from the previous section...")
+
+---
+
+### 4. Generate Final Summary
+
+**At the very end, add a comprehensive summary section:**
+
+```markdown
+---
+
+## 📝 Comprehensive Summary
+
+> **Generative Summarizing** — This section synthesizes key insights across all topics.
+
+[CRITICAL INSTRUCTION HERE — see below]
+
+---
+```
+
+**CRITICAL - Generative Summarizing Rules:**
+
+1. **DO NOT copy text** from any section above
+2. **REPHRASE** the main ideas in new sentences
+3. **SYNTHESIZE** connections between topics:
+   - "Topic A's concept of X directly enables Topic C's Y..."
+   - "The progression from [early topic] to [later topic] shows..."
+4. **Write 4-6 paragraphs** (roughly 300-400 words total)
+5. **Answer the question:** "What are the big-picture takeaways from this entire course of study?"
+
+**Scientific basis:** Generative summarizing forces deeper cognitive processing than extractive summarizing (Mayer, 2016). By rephrasing, you internalize rather than just recognize.
+
+---
+
+### 5. Create Key Terms Glossary (Cornell Method)
+
+**After the summary, add:**
+
+```markdown
+## 📖 Key Terms Glossary
+
+> **Cornell Method** — Quick reference for review
+
+| Term | Definition |
+|------|-----------|
+| **Term 1** | Concise definition in your own words (not copy-pasted from content) |
+| **Term 2** | Another definition... |
+| ... | ... |
+
+*Note: These definitions are rephrased for better retention.*
+
+---
+```
+
+**Instructions:**
+- Identify 15-25 most important terms across ALL topics
+- Define each in **your own words** (rephrase from content, don't copy)
+- Keep definitions to 1-2 sentences (under 30 words)
+- Alphabetical order for easy lookup
+
+---
+
+### 6. Add Self-Check Questions
+
+**Finally, add a comprehensive self-assessment section:**
+
+```markdown
+## ❓ Self-Check Questions
+
+> Test your understanding across all topics
+
+Answer these questions WITHOUT looking back at the notes first. They're designed to test comprehension, not memorization.
+
+### Recall Questions (Basic)
+1. [Question about fundamental concept from Topic 1]
+2. [Question about key term from Topic 3]
+...
+
+### Application Questions (Medium)
+6. [Scenario-based question requiring understanding]
+7. [Question asking to apply concept to new situation]
+...
+
+### Analysis Questions (Advanced)
+11. [Question requiring comparison/evaluation]
+12. [Question asking "why" or "how does X relate to Y"]
+
+**Answers:**
+[Provide brief answers at the end, after a page break or under a collapsible section]
+
+---
+```
+
+**Guidelines:**
+- Create 10-15 questions total
+- Mix difficulty: 40% recall, 40% application, 20% analysis
+- Cover different topics (not all from one section)
+- Questions should require understanding, not just memorization
+
+---
+
+## Formatting Guidelines
+
+### ✅ DO:
+- Use consistent heading levels (`###` for topics, `####` for subsections)
+- Add horizontal rules `---` between major sections
+- Ensure all lists are properly formatted
+- Use tables for comparisons
+- Use emojis sparingly for visual navigation (📚 📝 ❓ 💡 but max 1 per heading)
+- Keep paragraphs SHORT (2-4 sentences)
+
+### ❌ DON'T:
+- Change factual content (you're an editor, not a content creator)
+- Add new topics or remove existing ones
+- Use placeholder text ANYWHERE
+- Copy-paste sentences into the summary (must rephrase!)
+- Create a "wall of text" without structure
+
+---
+
+## Quality Checklist (Self-Verify)
+
+Before outputting, check:
+
+**Title Page:**
+- [ ] Subject accurately reflects ACTUAL content (not generic title)
+- [ ] Description is specific and accurate (2-3 sentences)
+
+**Table of Contents:**
+- [ ] All {section_count} topics are listed
+- [ ] Anchor links work (lowercase, hyphens)
+
+**Formatting:**
+- [ ] Consistent heading levels throughout
+- [ ] NO placeholder text (`[Insert X]`)
+- [ ] Terminology is consistent
+- [ ] Smooth transitions between major topics
+
+**Summary:**
+- [ ] Does NOT copy text from above (generative!)
+- [ ] Synthesizes connections between topics
+- [ ] 4-6 paragraphs (~300-400 words)
+
+**Glossary:**
+- [ ] 15-25 key terms
+- [ ] Definitions rephrased (not copied)
+- [ ] Alphabetical order
+
+**Self-Check:**
+- [ ] 10-15 questions covering different topics
+- [ ] Mix of recall/application/analysis
+- [ ] Answers provided at the end
+
+---
+
+## Output Format
+
+Return the complete, polished study notes as **clean Markdown**.
+
+Do NOT include:
+- ❌ Meta-commentary ("Here is the polished version...")
+- ❌ Code blocks wrapping the output (no ```markdown...)
+- ❌ Apologies or disclaimers
+
+**Just return the finalized markdown, starting with the `# Study Guide:` title.**
+
+---
+
+**Polish and finalize the study notes now:**
