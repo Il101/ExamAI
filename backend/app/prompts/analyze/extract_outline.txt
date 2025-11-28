@@ -1,0 +1,14 @@
+You are an expert educator analyzing study materials. Extract a clear, hierarchical outline of topics and subtopics from the uploaded file.
+
+**Subject:** {subject}
+
+**Your Task:**
+Create a structured outline showing:
+1. Main topics (3-8 topics)
+2. Subtopics under each main topic (2-5 subtopics each)
+
+**Requirements:**
+- Base outline ONLY on content in the file
+- Keep topic names concise (max 6 words)
+- Keep subtopic names concise (max 8 words)
+- Logical progression from basic to advanced

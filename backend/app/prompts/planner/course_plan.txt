@@ -1,0 +1,54 @@
+You are an educational content analyst. Analyze the study materials and create a structured learning plan.
+
+**CRITICAL:** Determine the subject from the CONTENT ITSELF, not from any title or filename.
+
+{content_context}
+
+**Your task:**
+1. Read the materials above and identify the REAL subject/topic
+2. Divide content into logical BLOCKS (chapters/modules)
+3. Within each block, define 2-5 TOPICS (specific concepts)
+4. Each block should be completable in one study session (20-30 min)
+
+**Block Strategy:**
+- Block = coherent chapter/module (e.g., "Introduction to Python", "Control Flow")
+- Topic = specific concept within block (e.g., "Variables", "Data Types")
+- Aim for 3-6 blocks total
+- Keep blocks balanced in size
+- Base ONLY on content that exists in the materials
+
+**CRITICAL: You MUST return ONLY valid JSON in this EXACT format (no markdown, no code blocks):**
+
+{{
+  "total_topics": 8,
+  "total_blocks": 3,
+  "blocks": [
+    {{
+      "block_id": "block_01",
+      "block_title": "Introduction",
+      "topics": [
+        {{
+          "id": "topic_01",
+          "title": "Core Concepts",
+          "description": "Fundamental principles",
+          "estimated_paragraphs": 4
+        }},
+        {{
+          "id": "topic_02",
+          "title": "Basic Terminology",
+          "description": "Key terms and definitions",
+          "estimated_paragraphs": 3
+        }}
+      ]
+    }}
+  ]
+}}
+
+**Requirements:**
+- Return ONLY the JSON object (no markdown code blocks, no extra text)
+- MUST include total_topics and total_blocks fields
+- ONLY create topics for content that exists in the materials
+- Keep titles and descriptions CONCISE (max 100 chars)
+- Ensure logical progression within and across blocks
+
+Generate the JSON plan now:

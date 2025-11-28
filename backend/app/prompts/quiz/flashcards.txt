@@ -1,0 +1,5 @@
+Create {num_cards} high-quality flashcards from the following content:
+
+{content}
+
+Focus on key concepts, definitions, and important relationships.

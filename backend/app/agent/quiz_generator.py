@@ -56,12 +56,15 @@ class QuizGenerator:
             List of FlashcardSchema objects
         """
         
-        # Simplified prompt without schema duplication (as per Google docs)
-        prompt = f"""Create {num_cards} high-quality flashcards from the following content:
+        from app.prompts import load_prompt
+        
+        # Load prompt template
+        prompt = load_prompt(
+            'quiz/flashcards.txt',
+            num_cards=num_cards,
+            content=content[:10000]
+        )
 
-{content[:10000]}
-
-Focus on key concepts, definitions, and important relationships."""
 
         print(f"[QuizGenerator] Generating {num_cards} flashcards...")
         
@@ -115,12 +118,15 @@ Focus on key concepts, definitions, and important relationships."""
             List of MCQQuestion objects
         """
         
-        # Simplified prompt without schema duplication
-        prompt = f"""Create {num_questions} multiple choice questions from the following content:
+        from app.prompts import load_prompt
+        
+        # Load prompt template
+        prompt = load_prompt(
+            'quiz/mcq_questions.txt',
+            num_questions=num_questions,
+            content=content[:10000]
+        )
 
-{content[:10000]}
-
-Each question should test understanding, not just memorization. Include an explanation for the correct answer."""
 
         print(f"[QuizGenerator] Generating {num_questions} MCQ questions...")
         

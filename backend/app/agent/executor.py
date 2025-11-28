@@ -136,6 +136,7 @@ class TopicExecutor:
         self, state: AgentState, step: PlanStep, previous_context: str
     ) -> str:
         """Build prompt for topic content generation"""
+        from app.prompts import load_prompt
 
         # Extract relevant content sections based on step title
         content_section = ""
@@ -189,54 +190,20 @@ class TopicExecutor:
                     + f"[End]\n{end}\n"
                 )
 
-        return f"""You are creating structured study notes from user-provided materials.
+        # Load prompt template and substitute variables
+        prompt = load_prompt(
+            'executor/topic_content.txt',
+            level=state.level,
+            exam_type=state.exam_type,
+            previous_context=previous_context,
+            title=step.title,
+            description=step.description,
+            estimated_paragraphs=step.estimated_paragraphs,
+            content_section=content_section
+        )
 
-**CRITICAL:** Analyze the actual content below, NOT any course title. Determine the subject yourself from the materials.
+        return prompt
 
-**Context:**
-- Academic Level: {state.level}
-- Exam Type: {state.exam_type}
-{previous_context}
-
-**Your task for this section:**
-- Section Title: {step.title}
-- Description: {step.description}
-- Target Length: {step.estimated_paragraphs} well-structured paragraphs
-{content_section}
-
-**FORMATTING REQUIREMENTS (CRITICAL):**
-1. **Use headings:** Start with `###` for subsections
-2. **Use bullet points:** Prefer `-` lists over long paragraphs
-3. **Use numbered lists:** For steps, procedures, rankings
-4. **Use tables:** For comparisons, formulas, data
-5. **Keep paragraphs SHORT:** 2-4 sentences maximum
-**FORMATTING REQUIREMENTS (CRITICAL):**
-1. **Use headings:** Start with `###` for subsections
-2. **Use bullet points:** Prefer `-` lists over long paragraphs
-3. **Use numbered lists:** For steps, procedures, rankings
-4. **Use tables:** For comparisons, formulas, data
-5. **Keep paragraphs SHORT:** 2-4 sentences maximum
-6. **Use bold** for key terms
-7. **Break up text:** Use horizontal rules `---` between major concepts
-8. **Add examples in code blocks:** Use ``` for code, formulas, or structured data
-9. **Use blockquotes** for important notes: `> **Note:** ...`
-10. **NO PLACEHOLDERS:** Never write `[Insert X Here]` - use actual content from materials
-
-**Content Structure:**
-1. Brief introduction (1-2 sentences)
-2. Key concepts with bullet points
-3. Detailed explanation with subheadings
-4. Examples or practice problems
-5. Common mistakes to avoid
-6. Quick summary at the end
-
-**IMPORTANT:**
-- Extract REAL information from the user's materials above
-- If materials don't contain specific info, make reasonable educational content
-- NEVER use placeholder text like `[Insert Definition]`
-- Keep it scannable - students should grasp key points in 30 seconds
-
-Generate structured study notes now:"""
     async def execute_all_steps_with_recovery(
         self, state: AgentState
     ) -> dict[str, StepResult]:

@@ -1,0 +1,5 @@
+Create {num_questions} multiple choice questions from the following content:
+
+{content}
+
+Each question should test understanding, not just memorization. Include an explanation for the correct answer.

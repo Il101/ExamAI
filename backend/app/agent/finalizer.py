@@ -77,52 +77,19 @@ class NoteFinalizer:
 
     def _build_finalization_prompt(self, state: AgentState, combined_notes: str) -> str:
         """Build prompt for final assembly and polish"""
+        from app.prompts import load_prompt
 
         # Count total sections
         section_count = len([s for s in state.plan if s.id in state.results])
 
-        return f"""You are an editor of educational materials. Polish the study notes below into a professional document.
+        # Load prompt template
+        prompt = load_prompt(
+            'finalizer/polish_content.txt',
+            exam_type=state.exam_type,
+            level=state.level,
+            section_count=section_count,
+            combined_notes=combined_notes
+        )
 
-**CRITICAL:** The course title may be generic or misleading - focus on the ACTUAL CONTENT of the materials.
+        return prompt
 
-**Your Task:**
-1. Add a professional title page with:
-   - **AI Summary** heading
-   - Subject: Infer from content (ignore generic title)
-   - Exam Type: {state.exam_type}
-   - Academic Level: {state.level}
-   - Brief description (2-3 sentences about ACTUAL content)
-2. Create Table of Contents with all {section_count} topics
-3. Polish the formatting:
-   - Ensure consistent heading levels
-   - Add proper spacing between sections
-   - Make sure lists are properly formatted
-   - Verify tables render correctly
-   - Add horizontal rules between major sections
-4. Review content quality:
-   - Remove any placeholder text `[Insert X]`
-   - Remove duplicate information
-   - Ensure terminology is consistent
-   - Add smooth transitions between topics
-5. Add final section with 10-12 self-check questions covering all topics
-
-**FORMATTING GUIDELINES:**
-- Use `###` for topic headings
-- Use `-` for bullet lists
-- Use `1.` for numbered lists
-- Use tables for comparisons
-- Keep paragraphs SHORT (2-4 sentences)
-- Use **bold** for key terms
-- Use `>` blockquotes for important notes
-
-**Important:**
-- Do NOT change factual content
-- Do NOT add new topics or remove existing ones
-- Do NOT use placeholder text
-- Make it scannable and easy to review quickly
-
-**Draft Study Notes:**
-
-{combined_notes}
-
-**Output:** Complete, professionally formatted study notes in Markdown."""

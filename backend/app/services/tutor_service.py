@@ -130,20 +130,15 @@ class TutorService:
         
         context = "\n".join(context_messages) if context_messages else ""
         
-        # Prepare prompt
-        prompt = f"""You are an AI tutor helping a student understand their study materials.
+        # Load prompt template
+        from app.prompts import load_prompt
+        
+        prompt = load_prompt(
+            'tutor/chat_system.txt',
+            context=context,
+            message=message
+        )
 
-Previous conversation:
-{context}
-
-Student's question: {message}
-
-Instructions:
-- If the student asks about the topic content, use get_topic_content() to read the lecture notes
-- If the student asks for practice questions or flashcards, use get_flashcards()
-- Provide clear, concise explanations
-- Be encouraging and supportive
-"""
 
         # Define tool functions mapping
         # Note: We pass the actual async methods, not lambdas

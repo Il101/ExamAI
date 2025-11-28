@@ -92,22 +92,14 @@ async def analyze_content(
             # Upload to Gemini
             uploaded_file = client.files.upload(file=tmp_path, config={'mime_type': file.content_type})
             
-            # Create prompt that references the uploaded file
-            prompt = f"""You are an expert educator analyzing study materials. Extract a clear, hierarchical outline of topics and subtopics from the uploaded file.
+            # Load prompt template
+            from app.prompts import load_prompt
+            
+            prompt = load_prompt(
+                'analyze/extract_outline.txt',
+                subject=subject or "General"
+            )
 
-**Subject:** {subject or "General"}
-
-**Your Task:**
-Create a structured outline showing:
-1. Main topics (3-8 topics)
-2. Subtopics under each main topic (2-5 subtopics each)
-
-**Requirements:**
-- Base outline ONLY on content in the file
-- Keep topic names concise (max 6 words)
-- Keep subtopic names concise (max 8 words)
-- Logical progression from basic to advanced
-"""
 
             # Generate with file context and structured output
             response = await client.aio.models.generate_content(
