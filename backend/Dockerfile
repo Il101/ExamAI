@@ -1,5 +1,6 @@
 # backend/Dockerfile
-FROM python:3.11-slim AS base
+# Using ECR Public Gallery to avoid Docker Hub rate limiting
+FROM public.ecr.aws/docker/library/python:3.11-slim AS base
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \
