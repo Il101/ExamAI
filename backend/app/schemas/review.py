@@ -12,9 +12,12 @@ class ReviewItemResponse(BaseModel):
     topic_id: UUID
     question: str
     answer: str
-    easiness_factor: float
-    interval_days: float
-    repetitions: int
+    stability: float  # FSRS: days to 90% retention
+    difficulty: float  # FSRS: 0-10 scale
+    scheduled_days: int  # FSRS: scheduled interval
+    reps: int  # Total review count
+    lapses: int  # Number of failures
+    state: str  # Card state: new, learning, review, relearning
     next_review_date: datetime
 
     class Config:

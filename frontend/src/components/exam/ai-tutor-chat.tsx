@@ -5,6 +5,10 @@ import { Send, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { chatApi, type ChatMessage } from '@/lib/api/chat';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 interface AiTutorChatProps {
     topicId: string;
@@ -112,21 +116,65 @@ export function AiTutorChat({ topicId }: AiTutorChatProps) {
                         <p className="text-xs mt-2">Try: &quot;Explain this topic to me&quot; or &quot;Show me flashcards&quot;</p>
                     </div>
                 ) : (
-                    messages.map((message) => (
-                        <div
-                            key={message.id}
-                            className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                        >
+                    <>
+                        {messages.map((message) => (
                             <div
-                                className={`max-w-[80%] rounded-lg px-4 py-2 ${message.role === 'user'
+                                key={message.id}
+                                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                            >
+                                <div
+                                    className={`max-w-[80%] rounded-lg px-4 py-2 ${message.role === 'user'
                                         ? 'bg-primary text-primary-foreground'
                                         : 'bg-muted'
-                                    }`}
-                            >
-                                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                                        }`}
+                                >
+                                    {message.role === 'user' ? (
+                                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                                    ) : (
+                                        <div className="prose prose-sm dark:prose-invert max-w-none">
+                                            <ReactMarkdown
+                                                remarkPlugins={[remarkGfm]}
+                                                components={{
+                                                    code({ node, inline, className, children, ...props }: any) {
+                                                        const match = /language-(\w+)/.exec(className || '');
+                                                        return !inline && match ? (
+                                                            <SyntaxHighlighter
+                                                                style={oneDark}
+                                                                language={match[1]}
+                                                                PreTag="div"
+                                                                {...props}
+                                                            >
+                                                                {String(children).replace(/\n$/, '')}
+                                                            </SyntaxHighlighter>
+                                                        ) : (
+                                                            <code className={className} {...props}>
+                                                                {children}
+                                                            </code>
+                                                        );
+                                                    },
+                                                }}
+                                            >
+                                                {message.content}
+                                            </ReactMarkdown>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                        </div>
-                    ))
+                        ))}
+
+                        {/* Typing indicator */}
+                        {isLoading && (
+                            <div className="flex justify-start">
+                                <div className="bg-muted rounded-lg px-4 py-3">
+                                    <div className="flex space-x-2">
+                                        <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                                        <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                                        <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </>
                 )}
                 <div ref={messagesEndRef} />
             </div>

@@ -146,9 +146,10 @@ Instructions:
 """
 
         # Define tool functions mapping
+        # Note: We pass the actual async methods, not lambdas
         tool_functions = {
-            "get_topic_content": lambda topic_id: self._get_topic_content(topic_id),
-            "get_flashcards": lambda topic_id, limit=5: self._get_flashcards(topic_id, limit),
+            "get_topic_content": self._get_topic_content,
+            "get_flashcards": self._get_flashcards,
         }
 
         # Call LLM with tools

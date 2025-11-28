@@ -213,19 +213,38 @@ class GeminiProvider(LLMProvider):
         temperature: float = 0.7,
         max_tokens: Optional[int] = None,
         system_prompt: Optional[str] = None,
+        max_iterations: int = 5,
     ) -> LLMResponse:
         """
         Generate text with Function Calling support.
-        Note: This implementation assumes 'tools' are passed in a format compatible with the new SDK
-        or need adaptation. For now, we pass them as-is if they are compatible.
+        
+        Implements a multi-turn conversation loop:
+        1. Send prompt to Gemini with tool declarations
+        2. If Gemini requests function calls, execute them
+        3. Send results back to Gemini
+        4. Repeat until Gemini returns a final text response
+        
+        Args:
+            prompt: User prompt
+            tools: Tool declarations in Gemini format
+            tool_functions: Dict mapping function names to callables
+            temperature: Sampling temperature
+            max_tokens: Max output tokens
+            system_prompt: System instruction
+            max_iterations: Max function calling iterations to prevent infinite loops
+            
+        Returns:
+            LLMResponse with final text response
         """
         start_time = time.time()
+        total_tokens_input = 0
+        total_tokens_output = 0
         
         try:
             config_args = {
                 "temperature": temperature,
                 "max_output_tokens": max_tokens,
-                "tools": tools, # Pass tools directly
+                "tools": tools,
             }
             
             if system_prompt:
@@ -233,67 +252,156 @@ class GeminiProvider(LLMProvider):
 
             config = types.GenerateContentConfig(**config_args)
 
-            print(f"[GeminiProvider] Calling {self.model_name} API with tools...")
-            api_start = time.time()
+            # Build conversation history
+            # Start with user prompt
+            conversation_history = [
+                types.Content(
+                    role="user",
+                    parts=[types.Part(text=prompt)]
+                )
+            ]
             
-            # Generate with automatic tool execution if supported by SDK, 
-            # but here we implement manual loop for control similar to previous version
-            # Actually, new SDK has automatic function calling support via 'tools' config
-            # But let's stick to manual execution for now to match previous logic structure
+            print(f"[GeminiProvider] Starting function calling loop with {self.model_name}...")
             
-            response = await self.client.aio.models.generate_content(
-                model=self.model_name,
-                contents=prompt,
-                config=config,
-            )
-            
-            api_time = time.time() - api_start
-            
-            # Extract usage stats
-            usage = response.usage_metadata
-            tokens_input = usage.prompt_token_count if usage else 0
-            tokens_output = usage.candidates_token_count if usage else 0
-
-            # Check for function calls
-            # In new SDK, we check response.function_calls
-            # Or iterate candidates parts
-            
-            function_calls = []
-            if response.candidates and response.candidates[0].content.parts:
-                for part in response.candidates[0].content.parts:
+            # Multi-turn loop for function calling
+            for iteration in range(max_iterations):
+                print(f"[GeminiProvider] Iteration {iteration + 1}/{max_iterations}")
+                api_start = time.time()
+                
+                # Generate response
+                response = await self.client.aio.models.generate_content(
+                    model=self.model_name,
+                    contents=conversation_history,
+                    config=config,
+                )
+                
+                api_time = time.time() - api_start
+                
+                # Track token usage
+                usage = response.usage_metadata
+                if usage:
+                    total_tokens_input += usage.prompt_token_count
+                    total_tokens_output += usage.candidates_token_count
+                    print(f"[GeminiProvider] API call: {api_time:.2f}s, Tokens: {usage.prompt_token_count}/{usage.candidates_token_count}")
+                
+                # Check if we have a valid response
+                if not response.candidates or not response.candidates[0].content.parts:
+                    raise RuntimeError("Empty response from Gemini")
+                
+                candidate = response.candidates[0]
+                
+                # Extract function calls from response
+                function_calls = []
+                text_parts = []
+                
+                for part in candidate.content.parts:
                     if part.function_call:
                         function_calls.append(part.function_call)
-
-            # Execute function calls if any
-            if function_calls:
-                print(f"[GeminiProvider] Executing {len(function_calls)} function calls...")
+                    elif part.text:
+                        text_parts.append(part.text)
                 
-                # We need to construct the history for the next turn
-                # The new SDK handles chat history better, but here we are in a single-turn-like method
-                # We'll simulate the turn
+                # If no function calls, we have the final response
+                if not function_calls:
+                    final_text = "".join(text_parts) if text_parts else response.text
+                    total_time = time.time() - start_time
+                    cost = self.calculate_cost(total_tokens_input, total_tokens_output)
+                    
+                    print(f"[GeminiProvider] Completed in {iteration + 1} iterations, {total_time:.2f}s total")
+                    
+                    return LLMResponse(
+                        content=final_text,
+                        model=self.model_name,
+                        tokens_input=total_tokens_input,
+                        tokens_output=total_tokens_output,
+                        cost_usd=cost,
+                        finish_reason=candidate.finish_reason.name.lower() if candidate.finish_reason else "stop",
+                    )
                 
-                # TODO: This part requires more robust chat session handling in the new SDK
-                # For now, we'll return the response as is if it has function calls, 
-                # assuming the caller might handle it or we implement a simple loop.
-                # Given the complexity of porting manual tool loop to new SDK without ChatSession,
-                # I will implement a simplified version that just returns the text if no tool calls,
-                # or executes and returns result if tool calls exist.
+                # Execute function calls
+                print(f"[GeminiProvider] Executing {len(function_calls)} function call(s)...")
                 
-                # NOTE: For full tool support, we should use client.chats.create()
-                pass 
-
-            total_time = time.time() - start_time
+                # Add model's response to history (with function calls)
+                conversation_history.append(candidate.content)
+                
+                # Execute each function and collect results
+                function_responses = []
+                
+                for func_call in function_calls:
+                    func_name = func_call.name
+                    func_args = dict(func_call.args) if func_call.args else {}
+                    
+                    print(f"[GeminiProvider]   - Calling {func_name}({func_args})")
+                    
+                    # Get the function
+                    if func_name not in tool_functions:
+                        error_msg = f"Function '{func_name}' not found in tool_functions"
+                        print(f"[GeminiProvider]   ⚠️ {error_msg}")
+                        function_responses.append(
+                            types.Part(
+                                function_response=types.FunctionResponse(
+                                    name=func_name,
+                                    response={"error": error_msg}
+                                )
+                            )
+                        )
+                        continue
+                    
+                    # Execute the function
+                    try:
+                        func = tool_functions[func_name]
+                        
+                        # Call function (handle both sync and async)
+                        if asyncio.iscoroutinefunction(func):
+                            result = await func(**func_args)
+                        else:
+                            result = func(**func_args)
+                        
+                        print(f"[GeminiProvider]   ✓ Result: {str(result)[:100]}...")
+                        
+                        # Add function response
+                        function_responses.append(
+                            types.Part(
+                                function_response=types.FunctionResponse(
+                                    name=func_name,
+                                    response={"result": result}
+                                )
+                            )
+                        )
+                        
+                    except Exception as e:
+                        error_msg = f"Error executing {func_name}: {str(e)}"
+                        print(f"[GeminiProvider]   ✗ {error_msg}")
+                        logger.exception(f"Function execution error: {func_name}")
+                        
+                        function_responses.append(
+                            types.Part(
+                                function_response=types.FunctionResponse(
+                                    name=func_name,
+                                    response={"error": error_msg}
+                                )
+                            )
+                        )
+                
+                # Add function responses to conversation history
+                conversation_history.append(
+                    types.Content(
+                        role="user",
+                        parts=function_responses
+                    )
+                )
             
-            # Calculate cost
-            cost = self.calculate_cost(tokens_input, tokens_output)
-
+            # If we hit max iterations, return what we have
+            print(f"[GeminiProvider] ⚠️ Max iterations ({max_iterations}) reached")
+            total_time = time.time() - start_time
+            cost = self.calculate_cost(total_tokens_input, total_tokens_output)
+            
             return LLMResponse(
-                content=response.text,
+                content="I apologize, but I encountered too many function calls. Please try rephrasing your question.",
                 model=self.model_name,
-                tokens_input=tokens_input,
-                tokens_output=tokens_output,
+                tokens_input=total_tokens_input,
+                tokens_output=total_tokens_output,
                 cost_usd=cost,
-                finish_reason="stop", # Simplified
+                finish_reason="max_iterations",
             )
 
         except Exception as e:
@@ -301,6 +409,7 @@ class GeminiProvider(LLMProvider):
             print(
                 f"[GeminiProvider] ERROR after {elapsed:.2f}s: {type(e).__name__}: {str(e)}"
             )
+            logger.exception("Error in generate_with_tools")
             raise RuntimeError(f"Gemini API error: {str(e)}")
 
     async def count_tokens(self, text: str) -> int:
