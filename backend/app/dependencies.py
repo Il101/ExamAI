@@ -174,14 +174,18 @@ async def get_subscription_service(
 
 
 async def get_tutor_service(
-    llm_provider: GeminiProvider = Depends(get_llm_provider),
     chat_repo: ChatMessageRepository = Depends(get_chat_repo),
     topic_repo: TopicRepository = Depends(get_topic_repo),
     review_repo: ReviewItemRepository = Depends(get_review_repo),
     exam_repo: ExamRepository = Depends(get_exam_repo),
 ) -> TutorService:
-    """Get AI tutor service"""
-    return TutorService(llm_provider, chat_repo, topic_repo, review_repo, exam_repo)
+    """Get AI tutor service with dedicated chat model"""
+    # Use separate model for chat (optimized for speed and cost)
+    chat_llm = GeminiProvider(
+        api_key=settings.GEMINI_API_KEY,
+        model=settings.GEMINI_CHAT_MODEL
+    )
+    return TutorService(chat_llm, chat_repo, topic_repo, review_repo, exam_repo)
 
 
 # --- Auth Dependencies ---

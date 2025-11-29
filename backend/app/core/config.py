@@ -47,7 +47,8 @@ class Settings(BaseSettings):
 
     # AI Configuration
     GEMINI_API_KEY: str
-    GEMINI_MODEL: str = "gemini-2.5-flash-lite"
+    GEMINI_MODEL: str = "gemini-2.5-flash-002"  # For exam generation (quality)
+    GEMINI_CHAT_MODEL: str = "gemini-2.5-flash-lite"  # For chat tutor (speed + economy)
     OPENAI_API_KEY: str = ""
     OPENAI_MODEL: str = "gpt-4o-mini"
     LLM_PROVIDER: Literal["gemini", "openai"] = "gemini"  # Which LLM to use
