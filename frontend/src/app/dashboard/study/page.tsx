@@ -11,8 +11,6 @@ import { Flashcard } from '@/components/study/flashcard';
 import { Brain, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 
-import { TimerWidget } from '@/components/study/timer-widget';
-
 export default function StudyPage() {
     const searchParams = useSearchParams();
     const examId = searchParams.get('exam');
@@ -137,8 +135,6 @@ export default function StudyPage() {
 
     return (
         <div className="max-w-4xl mx-auto space-y-6 relative">
-            <TimerWidget sessionId={sessionId} />
-
             {/* Progress Header */}
             <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm text-gray-600">

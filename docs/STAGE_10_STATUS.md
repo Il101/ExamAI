@@ -223,7 +223,6 @@ log_info(logger, "User logged in", user_id="123", email="user@example.com")
 ```
 - Создает compressed dump (pg_dump + gzip)
 - Сохраняет в `./backups/`
-- Опционально загружает в S3
 - Удаляет backups старше 30 дней
 
 #### 4. `restore-db.sh` - Database restore
@@ -481,10 +480,6 @@ alembic downgrade -1
    - Email features disabled
    - Plan: Configure before enabling user registration
 
-4. **Backups**: S3 upload commented out
-   - Backups stored locally only
-   - Plan: Configure AWS S3 or Supabase Storage
-
 ---
 
 ## Next Steps (Post-MVP)
@@ -492,7 +487,6 @@ alembic downgrade -1
 ### Infrastructure Improvements
 - [ ] Add CloudFlare CDN
 - [ ] Configure custom domain
-- [ ] Set up automated backups to S3
 - [ ] Add read replicas for database
 - [ ] Implement rate limiting with Redis
 

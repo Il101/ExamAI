@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/hooks/use-auth';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
 import { MobileNav } from '@/components/layout/mobile-nav';
+import { TimerWidget } from '@/components/study/timer-widget';
 import { useRouter } from 'next/navigation';
 
 export default function DashboardLayout({
@@ -13,6 +14,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const { user, isLoading } = useAuth();
   const router = useRouter();
 
@@ -66,6 +68,9 @@ export default function DashboardLayout({
           </div>
         </main>
       </div>
+
+      {/* Global Pomodoro Timer */}
+      <TimerWidget sessionId={activeSessionId} />
     </div>
   );
 }

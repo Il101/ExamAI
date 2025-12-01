@@ -45,10 +45,6 @@ PGPASSWORD="$DB_PASSWORD" pg_dump \
 FILE_SIZE=$(du -h "$BACKUP_FILE" | cut -f1)
 echo "✅ Backup completed: $BACKUP_FILE ($FILE_SIZE)"
 
-# Optional: Upload to cloud storage (uncomment and configure as needed)
-# aws s3 cp "$BACKUP_FILE" "s3://examai-backups/database/"
-# echo "☁️  Backup uploaded to S3"
-
 # Keep only last 30 days of backups locally
 echo "🧹 Cleaning old backups (older than 30 days)..."
 find "$BACKUP_DIR" -name "examai_backup_*.sql.gz" -mtime +30 -delete

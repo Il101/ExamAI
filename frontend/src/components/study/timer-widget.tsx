@@ -93,8 +93,6 @@ export function TimerWidget({ sessionId, onCompletePomodoro, className }: TimerW
         return 'text-green-500';
     };
 
-    if (!sessionId) return null;
-
     return (
         <div
             className={cn(
