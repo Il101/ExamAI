@@ -129,12 +129,12 @@ Return flashcards as a **JSON array** (no markdown code blocks, raw JSON only):
 
 ```json
 [
-  {
+  {{
     "front": "Question text here (context-rich, open-ended)",
     "back": "Core answer (1-2 sentences)\n\nKey details:\n• Point 1\n• Point 2\n• Point 3\n\nExample: ...",
     "difficulty": "easy|medium|hard",
     "tags": ["tag1", "tag2"]
-  },
+  }},
   ...
 ]
 ```

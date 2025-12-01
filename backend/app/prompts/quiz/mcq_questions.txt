@@ -149,25 +149,25 @@ Return as **JSON array** (no markdown code blocks, raw JSON only):
 
 ```json
 [
-  {
+  {{
     "question": "Question stem here",
-    "options": {
+    "options": {{
       "A": "First option",
       "B": "Second option",
       "C": "Third option",
       "D": "Fourth option"
-    },
+    }},
     "correct": "B",
-    "explanation": {
+    "explanation": {{
       "correct": "Why B is the right answer (2-3 sentences)",
-      "distractors": {
+      "distractors": {{
         "A": "Why A is wrong (common misconception)",
         "C": "Why C is wrong (if it's a tempting distractor)"
-      }
-    },
+      }}
+    }},
     "difficulty": "recall|application|analysis",
     "tags": ["tag1", "tag2"]
-  },
+  }},
   ...
 ]
 ```
@@ -222,26 +222,26 @@ Before outputting, verify EACH question:
 
 ```json
 [
-  {
+  {{
     "question": "A web application needs to hash user passwords before storing them. Which algorithm should be used?",
-    "options": {
+    "options": {{
       "A": "MD5 with salt",
       "B": "SHA-256",
       "C": "bcrypt",
       "D": "Base64 encoding"
-    },
+    }},
     "correct": "C",
-    "explanation": {
+    "explanation": {{
       "correct": "bcrypt is specifically designed for password hashing. It includes a work factor that makes brute-force attacks computationally expensive, and it automatically handles salting. Unlike general-purpose hash functions (MD5, SHA-256), bcrypt is intentionally slow, which is a feature for password security.",
-      "distractors": {
+      "distractors": {{
         "A": "MD5 is cryptographically broken and fast, making it vulnerable to brute-force attacks even with salt.",
         "B": "SHA-256 is a cryptographic hash but too fast for passwords — attackers can try billions of combinations per second.",
         "D": "Base64 is encoding (reversible), not hashing. Passwords would be stored in plain text equivalent."
-      }
-    },
+      }}
+    }},
     "difficulty": "application",
     "tags": ["security", "cryptography", "passwords"]
-  }
+  }}
 ]
 ```
 
