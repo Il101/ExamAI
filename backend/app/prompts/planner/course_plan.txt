@@ -91,7 +91,7 @@ Before creating blocks/topics, identify **3-6 high-level Learning Outcomes** tha
 ### Schema
 
 ```json
-{
+{{
   "subject": "Actual subject name inferred from content",
   "level": "Beginner|Intermediate|Advanced",
   "learning_outcomes": [
@@ -102,33 +102,33 @@ Before creating blocks/topics, identify **3-6 high-level Learning Outcomes** tha
   "total_topics": 8,
   "total_blocks": 3,
   "blocks": [
-    {
+    {{
       "block_id": "block_01",
       "block_title": "Introduction to [Subject]",
       "block_description": "Brief overview (1 sentence)",
       "topics": [
-        {
+        {{
           "id": "topic_01",
           "title": "Core Concept Name",
           "description": "What this topic covers (1 sentence)",
           "estimated_paragraphs": 4
-        },
-        {
+        }},
+        {{
           "id": "topic_02",
           "title": "Another Concept",
           "description": "Explanation",
           "estimated_paragraphs": 3
-        }
+        }}
       ]
-    },
-    {
+    }},
+    {{
       "block_id": "block_02",
       "block_title": "Intermediate Concepts",
       "block_description": "Building on fundamentals...",
       "topics": [...]
-    }
+    }}
   ]
-}
+}}
 ```
 
 ### Field Guidelines
@@ -231,7 +231,7 @@ Before outputting JSON, verify:
 ## Example Output
 
 ```json
-{
+{{
   "subject": "Python Programming Fundamentals",
   "level": "Beginner",
   "learning_outcomes": [
@@ -243,83 +243,83 @@ Before outputting JSON, verify:
   "total_topics": 9,
   "total_blocks": 3,
   "blocks": [
-    {
+    {{
       "block_id": "block_01",
       "block_title": "Python Basics",
       "block_description": "Core concepts and syntax fundamentals",
       "topics": [
-        {
+        {{
           "id": "topic_01",
           "title": "Variables and Assignment",
           "description": "How to create and use variables in Python",
           "estimated_paragraphs": 4
-        },
-        {
+        }},
+        {{
           "id": "topic_02",
           "title": "Data Types",
           "description": "Integers, strings, booleans, and type checking",
           "estimated_paragraphs": 5
-        },
-        {
+        }},
+        {{
           "id": "topic_03",
           "title": "Basic Operators",
           "description": "Arithmetic, comparison, and logical operators",
           "estimated_paragraphs": 4
-        }
+        }}
       ]
-    },
-    {
+    }},
+    {{
       "block_id": "block_02",
       "block_title": "Control Flow",
       "block_description": "Conditional statements and iteration",
       "topics": [
-        {
+        {{
           "id": "topic_04",
           "title": "If-Else Statements",
           "description": "Making decisions with conditional logic",
           "estimated_paragraphs": 4
-        },
-        {
+        }},
+        {{
           "id": "topic_05",
           "title": "For Loops",
           "description": "Iterating over sequences and ranges",
           "estimated_paragraphs": 5
-        },
-        {
+        }},
+        {{
           "id": "topic_06",
           "title": "While Loops",
           "description": "Conditional iteration and loop control",
           "estimated_paragraphs": 3
-        }
+        }}
       ]
-    },
-    {
+    }},
+    {{
       "block_id": "block_03",
       "block_title": "Functions",
       "block_description": "Creating reusable code blocks",
       "topics": [
-        {
+        {{
           "id": "topic_07",
           "title": "Defining Functions",
           "description": "Function syntax, parameters, and calling",
           "estimated_paragraphs": 4
-        },
-        {
+        }},
+        {{
           "id": "topic_08",
           "title": "Return Values",
           "description": "How functions output data",
           "estimated_paragraphs": 3
-        },
-        {
+        }},
+        {{
           "id": "topic_09",
           "title": "Scope and Lifetime",
           "description": "Variable visibility and memory management",
           "estimated_paragraphs": 4
-        }
+        }}
       ]
-    }
+    }}
   ]
-}
+}}
 ```
 
 ---
