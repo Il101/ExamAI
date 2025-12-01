@@ -19,12 +19,19 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    # Check if columns already exist before adding them
+    conn = op.get_bind()
+    
     # Add media support fields to exams table
-    op.add_column('exams', sa.Column('original_file_url', sa.String(), nullable=True))
-    op.add_column('exams', sa.Column('original_file_mime_type', sa.String(), nullable=True))
+    if not column_exists(conn, 'exams', 'original_file_url'):
+        op.add_column('exams', sa.Column('original_file_url', sa.String(), nullable=True))
+    
+    if not column_exists(conn, 'exams', 'original_file_mime_type'):
+        op.add_column('exams', sa.Column('original_file_mime_type', sa.String(), nullable=True))
     
     # Add media references to topics table
-    op.add_column('topics', sa.Column('media_references', sa.Text(), nullable=True))
+    if not column_exists(conn, 'topics', 'media_references'):
+        op.add_column('topics', sa.Column('media_references', sa.Text(), nullable=True))
 
 
 def downgrade() -> None:
@@ -32,3 +39,12 @@ def downgrade() -> None:
     op.drop_column('topics', 'media_references')
     op.drop_column('exams', 'original_file_mime_type')
     op.drop_column('exams', 'original_file_url')
+
+
+def column_exists(conn, table_name, column_name):
+    """Check if a column exists in a table"""
+    result = conn.execute(sa.text(
+        f"SELECT column_name FROM information_schema.columns "
+        f"WHERE table_name='{table_name}' AND column_name='{column_name}'"
+    ))
+    return result.fetchone() is not None
