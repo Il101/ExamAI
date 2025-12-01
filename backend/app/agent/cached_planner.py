@@ -81,7 +81,7 @@ class CachedCoursePlanner(CoursePlanner):
                 response = await self.llm.generate(
                     prompt=prompt,
                     temperature=0.3,
-                    max_tokens=4000,
+                    max_tokens=16000,
                     response_mime_type="application/json",
                     response_schema=ExamPlan,
                 )

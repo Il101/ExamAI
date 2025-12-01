@@ -59,7 +59,7 @@ class CoursePlanner:
                 response = await self.llm.generate(
                     prompt=prompt,
                     temperature=0.3,
-                    max_tokens=4000,
+                    max_tokens=16000,
                     response_mime_type="application/json",
                     system_prompt="You are an expert educator creating study plans.",
                     response_schema=ExamPlan,  # Use new ExamPlan schema
