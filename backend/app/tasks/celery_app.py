@@ -33,6 +33,7 @@ celery_app.conf.update(
 )
 
 # Configure Celery Beat schedule
+celery_app.conf.beat_schedule = {
     "send-daily-reminders": {
         "task": "send_daily_review_reminders",
         "schedule": crontab(hour=9, minute=0),  # 9 AM every day
