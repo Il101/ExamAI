@@ -27,7 +27,9 @@ run_migrations() {
 }
 
 # Run the migration function
-run_migrations
+# TEMPORARILY DISABLED - migrations applied manually via Supabase
+echo "Skipping migrations (already applied manually)"
+# run_migrations
 
 # Start Celery worker in the background
 echo "Starting Celery worker..."
