@@ -36,6 +36,8 @@ class ExamModel(Base):
     # Content
     original_content: Mapped[str] = mapped_column(Text, nullable=False)
     ai_summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    original_file_url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    original_file_mime_type: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     
     # V3.0 Cache fields
     cache_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)

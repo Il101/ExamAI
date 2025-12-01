@@ -163,6 +163,52 @@ If this is a study material, textbook, or educational content, extract everythin
         cache_manager = get_cache_manager()
         generation_service = get_generation_service()
         
+        # Handle original file storage for media extraction
+        original_file_url = None
+        original_file_mime_type = None
+        
+        # Supported types for media extraction
+        media_supported_types = [
+            "application/pdf",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+        ]
+        
+        if file.content_type in media_supported_types:
+            try:
+                from app.utils.pdf_converter import ensure_pdf
+                import uuid
+                
+                # Convert to PDF if needed
+                # We use the temp file we already created
+                pdf_path = ensure_pdf(tmp_path, file.content_type)
+                
+                # Upload to Supabase
+                # Generate a unique path: original_files/{uuid}.pdf
+                # We use a flat structure to make cleanup easier
+                file_ext = ".pdf"
+                storage_path = f"original_files/{uuid.uuid4()}{file_ext}"
+                
+                with open(pdf_path, "rb") as f:
+                    pdf_content = f.read()
+                    
+                await storage.upload_file(
+                    file_content=pdf_content,
+                    file_path=storage_path,
+                    content_type="application/pdf"
+                )
+                
+                original_file_url = storage_path
+                original_file_mime_type = "application/pdf"
+                
+                # Clean up converted file if it's different from tmp_path
+                if pdf_path != tmp_path and os.path.exists(pdf_path):
+                    os.unlink(pdf_path)
+                    
+            except Exception as e:
+                # Log error but don't fail the request, just skip media extraction
+                print(f"Failed to process original file for media extraction: {e}")
+        
         # Create exam with plan
         exam, plan = await create_exam_with_plan(
             exam_service=exam_service,
@@ -175,7 +221,9 @@ If this is a study material, textbook, or educational content, extract everythin
             planner=planner,
             storage=storage,
             cache_manager=cache_manager,
-            generation_service=generation_service
+            generation_service=generation_service,
+            original_file_url=original_file_url,
+            original_file_mime_type=original_file_mime_type
         )
         
         return {

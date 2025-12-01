@@ -32,7 +32,9 @@ async def create_exam_with_plan(
     planner: CachedCoursePlanner,
     storage: SupabaseStorage,
     cache_manager: ContextCacheManager,
-    generation_service: GenerationService
+    generation_service: GenerationService,
+    original_file_url: str = None,
+    original_file_mime_type: str = None
 ) -> Tuple[Exam, ExamPlan]:
     """
     Create exam with automatic plan generation and caching (v3.0)
@@ -49,6 +51,8 @@ async def create_exam_with_plan(
         storage: Storage service
         cache_manager: Cache manager
         generation_service: Generation service for prefetch
+        original_file_url: URL of the original file in storage
+        original_file_mime_type: MIME type of the original file
     
     Returns:
         Tuple of (Exam, ExamPlan)
@@ -89,6 +93,8 @@ async def create_exam_with_plan(
         "status": "planned",
         "plan_ready_at": datetime.now(timezone.utc),
         "topic_count": plan.total_topics,
+        "original_file_url": original_file_url,
+        "original_file_mime_type": original_file_mime_type,
     }
     
     if cache_name:

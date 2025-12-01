@@ -31,13 +31,14 @@ class SupabaseStorage:
         except Exception as e:
             logger.warning(f"Bucket check failed: {e}")
     
-    async def upload_file(self, file_content: bytes, file_path: str) -> str:
+    async def upload_file(self, file_content: bytes, file_path: str, content_type: str = "application/octet-stream") -> str:
         """
         Upload file to storage
         
         Args:
             file_content: File bytes
             file_path: Path in bucket (e.g., "exams/uuid/file.txt")
+            content_type: MIME type of the file
         
         Returns:
             Public URL or signed URL
@@ -46,7 +47,7 @@ class SupabaseStorage:
             self.client.storage.from_(self.bucket).upload(
                 file_path, 
                 file_content,
-                file_options={"content-type": "text/plain"}
+                file_options={"content-type": content_type}
             )
             logger.info(f"Uploaded file: {file_path}")
             return file_path
@@ -97,3 +98,24 @@ class SupabaseStorage:
             return True
         except:
             return False
+
+    async def list_files(self, path: str = "", limit: int = 100, offset: int = 0) -> list:
+        """
+        List files in a directory
+        
+        Args:
+            path: Directory path (e.g., "original_files")
+            limit: Max number of files
+            offset: Offset for pagination
+            
+        Returns:
+            List of file objects with metadata
+        """
+        try:
+            return self.client.storage.from_(self.bucket).list(
+                path, 
+                {"limit": limit, "offset": offset, "sortBy": {"column": "created_at", "order": "desc"}}
+            )
+        except Exception as e:
+            logger.error(f"List failed for {path}: {e}")
+            return []

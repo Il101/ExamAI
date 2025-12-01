@@ -38,6 +38,7 @@ class TopicModel(Base):
     topic_name: Mapped[str] = mapped_column(String(500), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False, default="")
     file_context: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    media_references: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     # Metadata
     status: Mapped[str] = mapped_column(

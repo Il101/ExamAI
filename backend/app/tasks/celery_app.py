@@ -8,7 +8,7 @@ celery_app = Celery(
     "examai",
     broker=settings.CELERY_BROKER_URL,
     backend=settings.CELERY_RESULT_BACKEND,
-    include=["app.tasks.exam_tasks", "app.tasks.email_tasks", "app.tasks.periodic"],
+    include=["app.tasks.exam_tasks", "app.tasks.email_tasks", "app.tasks.periodic", "app.tasks.cleanup_tasks"],
 )
 
 # Configure Celery
@@ -33,15 +33,14 @@ celery_app.conf.update(
 )
 
 # Configure Celery Beat schedule
-celery_app.conf.beat_schedule = {
     "send-daily-reminders": {
         "task": "send_daily_review_reminders",
         "schedule": crontab(hour=9, minute=0),  # 9 AM every day
     },
-    # "cleanup-old-tasks": {
-    #     "task": "cleanup_old_task_results",
-    #     "schedule": crontab(hour=2, minute=0),  # 2 AM every day
-    # }
+    "cleanup-old-pdfs": {
+        "task": "cleanup_old_pdfs",
+        "schedule": crontab(hour=3, minute=0),  # 3 AM every day
+    }
 }
 
 

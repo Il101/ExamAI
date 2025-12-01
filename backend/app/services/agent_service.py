@@ -164,6 +164,38 @@ class AgentService:
                     topic.estimate_study_time()
                     created_topic = await self.topic_repo.create(topic)
                 
+                # Enrich content with media (images)
+                if exam.original_file_url and "[[MEDIA_REF" in content:
+                    try:
+                        from app.utils.content_enricher import ContentEnricher
+                        from app.integrations.storage.supabase_storage import SupabaseStorage
+                        from app.core.config import settings
+                        import json
+                        
+                        # Initialize enricher (lazy init to avoid circular deps or heavy init)
+                        storage = SupabaseStorage(
+                            url=settings.SUPABASE_URL,
+                            key=settings.SUPABASE_KEY,
+                            bucket=settings.SUPABASE_BUCKET
+                        )
+                        enricher = ContentEnricher(storage)
+                        
+                        enriched_content, media_refs = await enricher.enrich_content(
+                            content=content,
+                            exam_id=exam.id,
+                            topic_id=created_topic.id,
+                            original_file_url=exam.original_file_url
+                        )
+                        
+                        if media_refs:
+                            created_topic.content = enriched_content
+                            created_topic.media_references = json.dumps(media_refs)
+                            await self.topic_repo.update(created_topic)
+                            
+                    except Exception as e:
+                        print(f"Failed to enrich content for topic {created_topic.id}: {e}")
+                        # Continue without enrichment
+                
                 # Generate Flashcards for this topic
                 # Only if content is meaningful
                 if content and len(content) > 100:
