@@ -471,7 +471,11 @@ def extract_exam_content(self, exam_id: str):
         raise
 
 async def _extract_exam_content_async(exam_id: UUID):
-    """Async implementation of content extraction"""
+    """
+    Async implementation of content extraction.
+    NOTE: This task is deprecated. Content extraction now happens during exam creation (v3 endpoint).
+    Keeping this function to avoid breaking old tasks in the queue.
+    """
     async with AsyncSessionLocal() as session:
         exam_repo = ExamRepository(session)
         exam = await exam_repo.get_by_id(exam_id)
@@ -479,38 +483,13 @@ async def _extract_exam_content_async(exam_id: UUID):
         if not exam or not exam.original_file_url:
             print(f"Exam {exam_id} not found or has no file URL")
             return
-            
-        # Download file from storage
-        from app.dependencies import get_storage
-        storage = get_storage()
         
-        try:
-            # Check if content is already real (not placeholder)
-            if exam.original_content and len(exam.original_content) > 200 and "Content processed directly" not in exam.original_content:
-                return # Already extracted
-            
-            print(f"Starting background extraction for exam {exam_id}...")
-            file_data = await storage.download_file(exam.original_file_url)
-            
-            # Extract text
-            from app.utils.extraction import extract_text_generic
-            mime_type = exam.original_file_mime_type or "application/pdf"
-            extracted_text = extract_text_generic(file_data, mime_type)
-            
-            if extracted_text and len(extracted_text) > 100:
-                # Update DB
-                exam.original_content = extracted_text
-                await exam_repo.update(exam)
-                
-                # Upload text to storage (for cache recovery compatibility)
-                text_path = f"exams/{exam.id}/original_content.txt"
-                await storage.upload_file(extracted_text.encode('utf-8'), text_path)
-                
-                await session.commit()
-                print(f"Successfully extracted and updated content for exam {exam.id} ({len(extracted_text)} chars)")
-            else:
-                print(f"Extraction yielded too little text for exam {exam_id}")
-                
-        except Exception as e:
-            print(f"Failed to process file for exam {exam_id}: {e}")
-            raise
+        # Check if content is already extracted
+        if exam.original_content and len(exam.original_content) > 200:
+            print(f"Exam {exam_id} already has content extracted")
+            return
+        
+        print(f"WARNING: extract_exam_content task is deprecated. Content should be extracted during creation.")
+        print(f"Exam {exam_id} may need manual content extraction.")
+        # Do nothing - content extraction now happens in v3 endpoint
+```

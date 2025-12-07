@@ -219,12 +219,28 @@ class CachedCoursePlanner(CoursePlanner):
         """Build minimal prompt when using cache (content already in cache)"""
         from app.prompts import load_prompt
         
-        # When using cache, replace content_context with instruction to use cached content
+        # When using cache, replace content_context with VERY EXPLICIT instruction
         # The actual PDF content is already in the cache
         cache_instruction = """
-**IMPORTANT:** The study materials (PDF, documents, or text) have already been loaded into the context cache.
-You MUST analyze and extract information from these cached materials to create the study plan.
-DO NOT make up topics or content - use only what's in the cached source materials.
+---
+🔴 **CRITICAL - READ THIS FIRST** 🔴
+
+The user's study materials (PDF document, text file, or other content) have been pre-loaded into your context.
+These materials are ALREADY AVAILABLE TO YOU in the conversation context above.
+
+**YOU MUST:**
+1. READ and ANALYZE the materials that are already in your context
+2. EXTRACT the actual subject/topic from those materials
+3. CREATE a plan based ONLY on what you find in those materials
+4. DO NOT make up generic topics about programming, data science, or any other subject
+
+**YOU MUST NOT:**
+- Ignore the materials and create a generic plan
+- Assume the subject based on a filename or title
+- Invent topics that don't exist in the materials
+
+**The materials are RIGHT THERE in your context. Look at them NOW before creating the plan.**
+---
 """
         
         prompt = load_prompt(

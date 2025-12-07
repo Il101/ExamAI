@@ -137,7 +137,7 @@ async def create_exam_v3(
         # 1. Upload to Gemini (for Context Caching)
         uploaded_file = client.files.upload(file=tmp_path, config={'mime_type': file.content_type})
         gemini_file_uri = uploaded_file.uri
-        logger.info(f"Uploaded file to Gemini: {gemini_file_uri}")
+        logger.info(f"Uploaded file '{file.filename}' ({file.content_type}) to Gemini: {gemini_file_uri}")
         
         # 2. Upload to Supabase Storage (Source of Truth)
         storage_path = None
