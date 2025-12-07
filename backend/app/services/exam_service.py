@@ -79,13 +79,16 @@ class ExamService:
             raise ValueError(f"Failed to clean content: {str(e)}")
         
         # Validate cleaned content length
-        cleaned_length = len(cleaned_content.strip())
-        if cleaned_length < 50:
-            raise ValueError(
-                f"Content must be at least 50 characters after cleaning. "
-                f"Got {cleaned_length} characters. "
-                f"Original length: {len(original_content)}"
-            )
+        # NOTE: Skip validation if original_content is empty (file upload path)
+        # For file uploads, content is in Gemini Files API, not in original_content
+        if original_content:  # Only validate if content provided
+            cleaned_length = len(cleaned_content.strip())
+            if cleaned_length < 50:
+                raise ValueError(
+                    f"Content must be at least 50 characters after cleaning. "
+                    f"Got {cleaned_length} characters. "
+                    f"Original length: {len(original_content)}"
+                )
 
         # Estimate cost
         estimated_tokens = len(cleaned_content) // 4
