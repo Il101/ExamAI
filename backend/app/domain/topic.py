@@ -23,6 +23,7 @@ class Topic:
     topic_name: str = ""
     content: str = ""  # Generated AI content
     file_context: Optional[str] = None  # Relevant file chunk for this topic
+    quiz_data: Optional[dict] = None  # Cached MCQ quiz questions
 
     # Metadata
     status: TopicStatus = "pending"  # Generation status

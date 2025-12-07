@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -39,6 +39,7 @@ class TopicModel(Base):
     content: Mapped[str] = mapped_column(Text, nullable=False, default="")
     file_context: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     media_references: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    quiz_data: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
 
     # Metadata
     status: Mapped[str] = mapped_column(

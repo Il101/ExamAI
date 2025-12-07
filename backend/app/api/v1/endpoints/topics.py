@@ -189,9 +189,9 @@ async def get_topic_quiz(
     session: AsyncSession = Depends(get_db),
 ):
     """
-    Generate a multiple-choice quiz for a topic.
+    Get or generate a multiple-choice quiz for a topic.
     
-    Returns 5 MCQ questions based on the topic content.
+    Returns cached quiz if available, otherwise generates new quiz and caches it.
     Used for "Check Yourself" interactive learning blocks.
     """
     from app.dependencies import get_llm_provider
@@ -209,8 +209,19 @@ async def get_topic_quiz(
             detail="Topic has no content yet. Cannot generate quiz."
         )
     
+    # Check if quiz is already cached
+    if topic.quiz_data and isinstance(topic.quiz_data, dict):
+        cached_questions = topic.quiz_data.get("questions", [])
+        if cached_questions:
+            return {
+                "topic_id": str(topic_id),
+                "topic_name": topic.topic_name,
+                "questions": cached_questions,
+                "cached": True
+            }
+    
+    # Generate new quiz if not cached
     try:
-        # Generate quiz using AI
         llm_provider = get_llm_provider()
         quiz_gen = QuizGenerator(llm_provider)
         
@@ -220,25 +231,33 @@ async def get_topic_quiz(
         )
         
         # Convert to dict for JSON response
+        questions_data = [
+            {
+                "id": idx,
+                "question": q.question,
+                "options": [
+                    {
+                        "id": opt_idx,
+                        "text": opt.text,
+                        "is_correct": opt.is_correct
+                    }
+                    for opt_idx, opt in enumerate(q.options)
+                ],
+                "explanation": q.explanation
+            }
+            for idx, q in enumerate(questions)
+        ]
+        
+        # Cache the quiz in database
+        topic.quiz_data = {"questions": questions_data}
+        await topic_repo.update(topic)
+        await session.commit()
+        
         return {
             "topic_id": str(topic_id),
             "topic_name": topic.topic_name,
-            "questions": [
-                {
-                    "id": idx,
-                    "question": q.question,
-                    "options": [
-                        {
-                            "id": opt_idx,
-                            "text": opt.text,
-                            "is_correct": opt.is_correct
-                        }
-                        for opt_idx, opt in enumerate(q.options)
-                    ],
-                    "explanation": q.explanation
-                }
-                for idx, q in enumerate(questions)
-            ]
+            "questions": questions_data,
+            "cached": False
         }
     
     except Exception as e:
@@ -246,4 +265,79 @@ async def get_topic_quiz(
             status_code=500,
             detail=f"Failed to generate quiz: {str(e)}"
         )
+
+
+@router.post("/{topic_id}/quiz/regenerate")
+async def regenerate_topic_quiz(
+    topic_id: UUID,
+    num_questions: int = Query(5, ge=1, le=10, description="Number of questions"),
+    current_user: User = Depends(get_current_active_user),
+    session: AsyncSession = Depends(get_db),
+):
+    """
+    Force regenerate quiz for a topic.
+    
+    Clears cached quiz and generates fresh questions.
+    Useful for students who want variety in their practice.
+    """
+    from app.dependencies import get_llm_provider
+    from app.agent.quiz_generator import QuizGenerator
+    
+    topic_repo = TopicRepository(session)
+    topic = await topic_repo.get_by_id(topic_id)
+    
+    if not topic or topic.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Topic not found")
+    
+    if not topic.content:
+        raise HTTPException(
+            status_code=400,
+            detail="Topic has no content yet. Cannot generate quiz."
+        )
+    
+    try:
+        llm_provider = get_llm_provider()
+        quiz_gen = QuizGenerator(llm_provider)
+        
+        questions = await quiz_gen.generate_mcq_quiz(
+            content=topic.content,
+            num_questions=num_questions
+        )
+        
+        # Convert to dict for JSON response
+        questions_data = [
+            {
+                "id": idx,
+                "question": q.question,
+                "options": [
+                    {
+                        "id": opt_idx,
+                        "text": opt.text,
+                        "is_correct": opt.is_correct
+                    }
+                    for opt_idx, opt in enumerate(q.options)
+                ],
+                "explanation": q.explanation
+            }
+            for idx, q in enumerate(questions)
+        ]
+        
+        # Update cached quiz in database
+        topic.quiz_data = {"questions": questions_data}
+        await topic_repo.update(topic)
+        await session.commit()
+        
+        return {
+            "topic_id": str(topic_id),
+            "topic_name": topic.topic_name,
+            "questions": questions_data,
+            "regenerated": True
+        }
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to regenerate quiz: {str(e)}"
+        )
+
 

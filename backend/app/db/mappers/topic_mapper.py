@@ -17,6 +17,7 @@ class TopicMapper:
             topic_name=model.topic_name,
             content=model.content,
             file_context=model.file_context,
+            quiz_data=model.quiz_data,
             status=cast(TopicStatus, model.status),
             order_index=model.order_index,
             generation_priority=model.generation_priority,
@@ -36,6 +37,7 @@ class TopicMapper:
             topic_name=entity.topic_name,
             content=entity.content,
             file_context=entity.file_context,
+            quiz_data=entity.quiz_data,
             status=entity.status,
             order_index=entity.order_index,
             generation_priority=entity.generation_priority,
@@ -51,6 +53,7 @@ class TopicMapper:
         model.topic_name = entity.topic_name
         model.content = entity.content
         model.file_context = entity.file_context
+        model.quiz_data = entity.quiz_data
         model.status = entity.status
         model.order_index = entity.order_index
         model.generation_priority = entity.generation_priority
