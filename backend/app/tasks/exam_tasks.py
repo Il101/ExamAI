@@ -168,12 +168,14 @@ async def _generate_exam_content_async(
     print(f"[CELERY ASYNC] Starting async generation for exam {exam_id}")
     
     async with AsyncSessionLocal() as session:
+        print(f"[CELERY ASYNC] Session created, initializing repositories...")
         # Initialize repositories
         exam_repo = ExamRepository(session)
         topic_repo = TopicRepository(session)
         user_repo = UserRepository(session)
         review_repo = ReviewItemRepository(session)
 
+        print(f"[CELERY ASYNC] Fetching user and exam from database...")
         # Get user and exam
         user = await user_repo.get_by_id(user_id)
         exam = await exam_repo.get_by_id(exam_id)
@@ -181,6 +183,7 @@ async def _generate_exam_content_async(
         if not user or not exam:
             raise ValueError("User or exam not found")
 
+        print(f"[CELERY ASYNC] User and exam found. Initializing AI services...")
         # Initialize services
         llm = GeminiProvider(
             api_key=settings.GEMINI_API_KEY, model=settings.GEMINI_MODEL
@@ -203,6 +206,7 @@ async def _generate_exam_content_async(
                 meta={"current": int(progress * 100), "total": 100, "status": message},
             )
 
+        print(f"[CELERY ASYNC] Starting agent_service.generate_exam_content...")
         # Generate content (Execute phase)
         # We need to adapt agent_service.generate_exam_content to support
         # resuming from PLANNED state or just use the executor directly.
@@ -210,6 +214,7 @@ async def _generate_exam_content_async(
         updated_exam = await agent_service.generate_exam_content(
             user=user, exam_id=exam_id, progress_callback=progress_callback
         )
+        print(f"[CELERY ASYNC] Agent service completed successfully!")
 
         await session.commit()
 
