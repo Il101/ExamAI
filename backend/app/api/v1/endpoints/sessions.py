@@ -20,10 +20,10 @@ async def start_session(
     study_service: StudyService = Depends(get_study_service),
 ):
     """Start a new study session"""
-    session = await study_service.start_session(
+    session = await study_service.start_study_session(
         user_id=current_user.id,
         exam_id=request.exam_id,
-        duration_minutes=request.duration_minutes,
+        pomodoro_duration=request.duration_minutes,
     )
     return StudySessionResponse.from_orm(session)
 
@@ -35,7 +35,7 @@ async def end_session(
     study_service: StudyService = Depends(get_study_service),
 ):
     """End a study session"""
-    session = await study_service.end_session(
+    session = await study_service.end_study_session(
         user_id=current_user.id, session_id=session_id
     )
     if not session:
