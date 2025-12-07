@@ -68,14 +68,19 @@ def generate_exam_content(self, exam_id: str, user_id: str):
     3. Finalizes the exam
     """
 
+    print(f\"[CELERY] Starting generate_exam_content task for exam_id={exam_id}, user_id={user_id}")
+    print(f\"[CELERY] Task ID: {self.request.id}")
+    
     try:
+        print(f\"[CELERY] Running async generation...")
         # Run async code in sync Celery task
         result = asyncio.run(
             _generate_exam_content_async(
                 exam_id=UUID(exam_id), user_id=UUID(user_id), task=self
             )
         )
-
+        
+        print(f\"[CELERY] Generation completed successfully for exam {exam_id}")
         return result
 
     except Exception as e:
@@ -160,7 +165,8 @@ async def _generate_exam_content_async(
     """
     Async implementation of exam content generation.
     """
-
+    print(f"[CELERY ASYNC] Starting async generation for exam {exam_id}")
+    
     async with AsyncSessionLocal() as session:
         # Initialize repositories
         exam_repo = ExamRepository(session)
