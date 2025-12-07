@@ -77,8 +77,12 @@ class QuizGenerator:
                 )
                 
                 # Call with cache
+                from app.core.config import settings
                 response = await self.llm.client.aio.models.generate_content(
-                    model=cache_name,
+                    model=settings.GEMINI_MODEL,
+                    config={
+                        "cached_content": cache_name,
+                    },
                     contents=[{"role": "user", "parts": [{"text": prompt}]}]
                 )
                 
@@ -113,7 +117,10 @@ class QuizGenerator:
                             )
                             
                             response = await self.llm.client.aio.models.generate_content(
-                                model=new_cache_name,
+                                model=settings.GEMINI_MODEL,
+                                config={
+                                    "cached_content": new_cache_name,
+                                },
                                 contents=[{"role": "user", "parts": [{"text": prompt}]}]
                             )
                             
@@ -240,8 +247,12 @@ class QuizGenerator:
                 )
                 
                 # Call with cache
+                from app.core.config import settings
                 response = await self.llm.client.aio.models.generate_content(
-                    model=cache_name,
+                    model=settings.GEMINI_MODEL,
+                    config={
+                        "cached_content": cache_name,
+                    },
                     contents=[{"role": "user", "parts": [{"text": prompt}]}]
                 )
                 
@@ -276,7 +287,10 @@ class QuizGenerator:
                             )
                             
                             response = await self.llm.client.aio.models.generate_content(
-                                model=new_cache_name,
+                                model=settings.GEMINI_MODEL,
+                                config={
+                                    "cached_content": new_cache_name,
+                                },
                                 contents=[{"role": "user", "parts": [{"text": prompt}]}]
                             )
                             
