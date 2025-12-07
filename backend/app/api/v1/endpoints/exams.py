@@ -166,9 +166,10 @@ async def create_exam_v3(
                 logger.error(f"Source file upload failed: {e}", exc_info=True)
                 warnings.append("Failed to backup source file.")
 
-        # 3. No Text Extraction (Avoid 504 Timeout)
-        # We use a placeholder note. The actual content is in the file/cache.
-        original_content = "Content processed directly from file upload. Text extraction skipped for performance."
+        # 3. Extract text from file for AI processing
+        # NOTE: We don't extract text anymore - file is processed via Gemini Files API
+        # Setting original_content to empty when file is uploaded
+        original_content = ""  # Content is in gemini_file_uri, not extracted text
         
         # Initialize services
         llm = GeminiProvider(api_key=settings.GEMINI_API_KEY, model=settings.GEMINI_MODEL)

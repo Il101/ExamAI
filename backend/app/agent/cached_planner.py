@@ -54,7 +54,7 @@ class CachedCoursePlanner(CoursePlanner):
         # 2. Create cache
         cache_name = None
         
-        # Strategy A: Direct File Cache (Best for PDFs/Docs)
+        # Strategy A: Direct File Cache (Required for file uploads)
         if file_uri:
             try:
                 logger.info(f"Creating cache from file URI: {file_uri}")
@@ -64,29 +64,31 @@ class CachedCoursePlanner(CoursePlanner):
                     mime_type,
                     ttl_seconds=3600
                 )
-                logger.info(f"✅ Successfully created cache from file: {cache_name}")
+                logger.info(f"✅ Successfully created file cache: {cache_name}")
             except Exception as e:
                 logger.error(f"❌ Failed to create cache from file {file_uri}: {e}", exc_info=True)
-                # Don't silently fall back - log the issue prominently
-                logger.warning(f"⚠️  Cache creation failed! Will attempt fallback to text content if available.")
+                # Don't fall back to placeholder - raise error for user visibility
+                raise ValueError(
+                    f"Failed to create cache from uploaded file. The file may be corrupted or "
+                    f"the AI service is temporarily unavailable. Please try again."
+                ) from e
         
-        # Strategy B: Text Content Cache (Fallback or for Text input)
-        # Only if cache wasn't created by Strategy A
-        if not cache_name and state.original_content:
+        # Strategy B: Text Content Cache (Only for text-only input, no file upload)
+        elif state.original_content and len(state.original_content) > 4000:
+            # This path is ONLY for when user pastes text directly (no file)
             token_count = len(state.original_content) // 4
-            
-            if token_count > 1000:
-                try:
-                    cache_name = await cache_manager.create_cache(
-                        exam_id,
-                        state.original_content,
-                        ttl_seconds=3600  # 1 hour
-                    )
-                    logger.info(f"Created cache for exam {exam_id}: {cache_name}")
-                except Exception as e:
-                    logger.warning(f"Failed to create cache: {e}. Continuing without cache.")
-            else:
-                logger.info(f"Content too small ({token_count} tokens) and no file URI, skipping cache")
+            logger.info(f"Creating cache from text content ({token_count} tokens)")
+            try:
+                cache_name = await cache_manager.create_cache(
+                    exam_id,
+                    state.original_content,
+                    ttl_seconds=3600
+                )
+                logger.info(f"✅ Created text cache for exam {exam_id}: {cache_name}")
+            except Exception as e:
+                logger.warning(f"Failed to create text cache: {e}. Continuing without cache.")
+        else:
+            logger.info(f"Content too small ({len(state.original_content)} chars) for caching, generating plan without cache")
         
         # 3. Generate plan (call internal method that returns ExamPlan, not adapter version)
         plan = await self._make_plan_internal(state, cache_name)
