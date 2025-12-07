@@ -196,16 +196,17 @@ async def create_exam_v3(
             gemini_file_uri=gemini_file_uri
         )
         
-        # Cleanup Gemini file?
-        # If we delete it now, does the cache (created inside create_exam -> make_plan) stay valid?
-        # Yes, Context Caching ingests the content. The File API file is temporary.
-        # But to be super safe and avoid "File not found" errors during async operations if they haven't finished (unlikely as we await plan),
-        # we will delete it.
-        if uploaded_file:
-            try:
-                client.files.delete(name=uploaded_file.name)
-            except Exception as e:
-                logger.warning(f"Failed to delete Gemini file {uploaded_file.name}: {e}")
+        # DO NOT delete Gemini file - it's needed for cache creation and potential recreation
+        # Gemini files auto-expire after 48 hours, so no manual cleanup needed
+        # Keeping the file ensures:
+        # 1. Cache can be created successfully during plan generation
+        # 2. Cache can be recreated if it expires during long-running operations
+        # 3. No "File not found" errors during async cache operations
+        # if uploaded_file:
+        #     try:
+        #         client.files.delete(name=uploaded_file.name)
+        #     except Exception as e:
+        #         logger.warning(f"Failed to delete Gemini file {uploaded_file.name}: {e}")
 
         # Trigger Async Text Extraction
         try:

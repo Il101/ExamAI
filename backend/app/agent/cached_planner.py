@@ -57,16 +57,18 @@ class CachedCoursePlanner(CoursePlanner):
         # Strategy A: Direct File Cache (Best for PDFs/Docs)
         if file_uri:
             try:
+                logger.info(f"Creating cache from file URI: {file_uri}")
                 cache_name = await cache_manager.create_cache_from_file(
                     exam_id,
                     file_uri,
                     mime_type,
                     ttl_seconds=3600
                 )
-                logger.info(f"Created cache from file URI: {cache_name}")
+                logger.info(f"✅ Successfully created cache from file: {cache_name}")
             except Exception as e:
-                logger.error(f"Failed to create cache from file: {e}")
-                # Fallback to content strategy below if content exists
+                logger.error(f"❌ Failed to create cache from file {file_uri}: {e}", exc_info=True)
+                # Don't silently fall back - log the issue prominently
+                logger.warning(f"⚠️  Cache creation failed! Will attempt fallback to text content if available.")
         
         # Strategy B: Text Content Cache (Fallback or for Text input)
         # Only if cache wasn't created by Strategy A

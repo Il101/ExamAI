@@ -84,6 +84,9 @@ class ContextCacheManager:
         try:
             from app.core.config import settings
             
+            logger.info(f"[CacheManager] Creating cache from file for exam {exam_id}")
+            logger.info(f"[CacheManager] File URI: {file_uri}, MIME: {mime_type}, TTL: {ttl_seconds}s")
+            
             # Create cache with file data
             cache = await self.client.aio.caches.create(
                 model=settings.GEMINI_MODEL,
@@ -104,11 +107,11 @@ class ContextCacheManager:
                     "expires_at": datetime.now() + timedelta(seconds=ttl_seconds)
                 }
             
-            logger.info(f"Created file cache {cache.name} for exam {exam_id}")
+            logger.info(f"[CacheManager] ✅ Successfully created file cache: {cache.name}")
             return cache.name
             
         except Exception as e:
-            logger.error(f"Failed to create file cache for exam {exam_id}: {e}")
+            logger.error(f"[CacheManager] ❌ Failed to create file cache for exam {exam_id}: {e}", exc_info=True)
             raise
     
     async def refresh_cache(self, cache_name: str, ttl_seconds: int = 3600) -> None:
