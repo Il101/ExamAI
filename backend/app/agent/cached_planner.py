@@ -78,17 +78,39 @@ class CachedCoursePlanner(CoursePlanner):
             try:
                 # If we have a cache, use it instead of including full content
                 if cache_name:
-                    # Use cache - minimal prompt without content
-                    prompt = self._build_planning_prompt_with_cache(state)
+                    try:
+                        # Use cache - minimal prompt without content
+                        prompt = self._build_planning_prompt_with_cache(state)
+                        
+                        # Call with cache
+                        response = await self.llm.client.aio.models.generate_content(
+                            model=cache_name,  # Cache name as model
+                            contents=[{"role": "user", "parts": [{"text": prompt}]}]
+                        )
+                        
+                        # Parse response
+                        plan_text = response.text
                     
-                    # Call with cache
-                    response = await self.llm.client.aio.models.generate_content(
-                        model=cache_name,  # Cache name as model
-                        contents=[{"role": "user", "parts": [{"text": prompt}]}]
-                    )
-                    
-                    # Parse response
-                    plan_text = response.text
+                    except Exception as cache_error:
+                        # Check if cache expired
+                        error_str = str(cache_error).lower()
+                        if "cache" in error_str and ("not found" in error_str or "expired" in error_str or "404" in error_str):
+                            logger.warning(f"Cache expired during plan generation, falling back to full content")
+                            # Fallback to generation without cache
+                            prompt = self._build_planning_prompt(state)
+                            
+                            response = await self.llm.generate(
+                                prompt=prompt,
+                                temperature=0.3,
+                                max_tokens=16000,
+                                response_mime_type="application/json",
+                                response_schema=ExamPlan,
+                            )
+                            
+                            plan_text = response.content
+                        else:
+                            # Not a cache error, re-raise
+                            raise
                 else:
                     # No cache - use full prompt with content
                     prompt = self._build_planning_prompt(state)

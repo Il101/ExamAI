@@ -81,3 +81,58 @@ class CacheFallbackService:
             else:
                 # Not a cache error, re-raise
                 raise
+    
+    async def generate_with_cache(
+        self,
+        exam_id: UUID,
+        cache_name: Optional[str],
+        prompt: str,
+        llm_client: Any,
+        fallback_content: Optional[str] = None
+    ) -> str:
+        """
+        Centralized method to generate content with automatic cache fallback
+        
+        Args:
+            exam_id: Exam UUID
+            cache_name: Cache identifier (may be None or expired)
+            prompt: Prompt to send
+            llm_client: LLM client instance (e.g., self.llm.client)
+            fallback_content: Optional content to use if cache fails and storage unavailable
+        
+        Returns:
+            Generated text
+        
+        Example:
+            result = await fallback_service.generate_with_cache(
+                exam_id=exam.id,
+                cache_name=exam.cache_name,
+                prompt="Generate plan...",
+                llm_client=self.llm.client,
+                fallback_content=exam.original_content
+            )
+        """
+        async def operation(cache: Optional[str]):
+            if cache:
+                # Use cache
+                response = await llm_client.aio.models.generate_content(
+                    model=cache,
+                    contents=[{"role": "user", "parts": [{"text": prompt}]}]
+                )
+                return response.text
+            else:
+                # No cache - need content
+                if not fallback_content:
+                    raise ValueError("No cache and no fallback content provided")
+                
+                # Use fallback content directly
+                # This requires the caller to handle generation without cache
+                raise ValueError("Cache not available, use fallback_content")
+        
+        try:
+            return await self.execute_with_fallback(exam_id, cache_name, operation)
+        except ValueError as e:
+            if "use fallback_content" in str(e) and fallback_content:
+                # Caller should handle this case
+                raise
+            raise

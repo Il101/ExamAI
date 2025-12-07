@@ -67,20 +67,46 @@ class QuizGenerator:
         
         # Use cache if available, otherwise use content directly
         if cache_name:
-            # Use cache - no content truncation needed
-            prompt = load_prompt(
-                'quiz/flashcards.txt',
-                num_cards=num_cards,
-                content="[Content is available in cache context]"
-            )
+            try:
+                # Use cache - no content truncation needed
+                prompt = load_prompt(
+                    'quiz/flashcards.txt',
+                    num_cards=num_cards,
+                    content="[Content is available in cache context]"
+                )
+                
+                # Call with cache
+                response = await self.llm.client.aio.models.generate_content(
+                    model=cache_name,
+                    contents=[{"role": "user", "parts": [{"text": prompt}]}]
+                )
+                
+                json_text = response.text
             
-            # Call with cache
-            response = await self.llm.client.aio.models.generate_content(
-                model=cache_name,
-                contents=[{"role": "user", "parts": [{"text": prompt}]}]
-            )
-            
-            json_text = response.text
+            except Exception as cache_error:
+                # Check if cache expired
+                error_str = str(cache_error).lower()
+                if "cache" in error_str and ("not found" in error_str or "expired" in error_str or "404" in error_str):
+                    print(f"[QuizGenerator] Cache expired, falling back to full content")
+                    # Fallback to generation without cache
+                    prompt = load_prompt(
+                        'quiz/flashcards.txt',
+                        num_cards=num_cards,
+                        content=content
+                    )
+                    
+                    response = await self.llm.generate(
+                        prompt=prompt,
+                        temperature=0.3,
+                        system_prompt="You are an expert tutor creating study materials.",
+                        response_schema=FlashcardSetSchema,
+                        timeout=60.0
+                    )
+                    
+                    json_text = response.content
+                else:
+                    # Not a cache error, re-raise
+                    raise
         else:
             # No cache - use full content (no truncation)
             prompt = load_prompt(
@@ -152,20 +178,46 @@ class QuizGenerator:
         
         # Use cache if available, otherwise use content directly
         if cache_name:
-            # Use cache - no content truncation needed
-            prompt = load_prompt(
-                'quiz/mcq_questions.txt',
-                num_questions=num_questions,
-                content="[Content is available in cache context]"
-            )
+            try:
+                # Use cache - no content truncation needed
+                prompt = load_prompt(
+                    'quiz/mcq_questions.txt',
+                    num_questions=num_questions,
+                    content="[Content is available in cache context]"
+                )
+                
+                # Call with cache
+                response = await self.llm.client.aio.models.generate_content(
+                    model=cache_name,
+                    contents=[{"role": "user", "parts": [{"text": prompt}]}]
+                )
+                
+                json_text = response.text
             
-            # Call with cache
-            response = await self.llm.client.aio.models.generate_content(
-                model=cache_name,
-                contents=[{"role": "user", "parts": [{"text": prompt}]}]
-            )
-            
-            json_text = response.text
+            except Exception as cache_error:
+                # Check if cache expired
+                error_str = str(cache_error).lower()
+                if "cache" in error_str and ("not found" in error_str or "expired" in error_str or "404" in error_str):
+                    print(f"[QuizGenerator] Cache expired, falling back to full content")
+                    # Fallback to generation without cache
+                    prompt = load_prompt(
+                        'quiz/mcq_questions.txt',
+                        num_questions=num_questions,
+                        content=content
+                    )
+                    
+                    response = await self.llm.generate(
+                        prompt=prompt,
+                        temperature=0.4,
+                        system_prompt="You are an expert tutor creating educational assessments.",
+                        response_schema=MCQQuizSchema,
+                        timeout=60.0
+                    )
+                    
+                    json_text = response.content
+                else:
+                    # Not a cache error, re-raise
+                    raise
         else:
             # No cache - use full content (no truncation)
             prompt = load_prompt(
