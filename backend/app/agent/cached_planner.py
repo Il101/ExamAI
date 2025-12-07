@@ -105,8 +105,12 @@ class CachedCoursePlanner(CoursePlanner):
                         prompt = self._build_planning_prompt_with_cache(state)
                         
                         # Call with cache
+                        from app.core.config import settings
                         response = await self.llm.client.aio.models.generate_content(
-                            model=cache_name,  # Cache name as model
+                            model=settings.GEMINI_MODEL,  # Use base model
+                            config={
+                                "cached_content": cache_name,
+                            },
                             contents=[{"role": "user", "parts": [{"text": prompt}]}]
                         )
                         
@@ -152,7 +156,10 @@ class CachedCoursePlanner(CoursePlanner):
                                     # Retry with new cache
                                     prompt = self._build_planning_prompt_with_cache(state)
                                     response = await self.llm.client.aio.models.generate_content(
-                                        model=new_cache_name,
+                                        model=settings.GEMINI_MODEL,
+                                        config={
+                                            "cached_content": new_cache_name,
+                                        },
                                         contents=[{"role": "user", "parts": [{"text": prompt}]}]
                                     )
                                     plan_text = response.text
