@@ -65,7 +65,7 @@ class CachedTopicExecutor(TopicExecutor):
         Returns:
             Generated markdown content
         """
-        prompt = self._build_topic_prompt(topic, context)
+        prompt = self._build_topic_prompt(topic, context, cache_name)
         
         async def generate_op(cache: Optional[str]):
             """Operation to execute with cache"""
@@ -94,10 +94,21 @@ class CachedTopicExecutor(TopicExecutor):
         else:
             return await generate_op(cache_name)
     
-    def _build_topic_prompt(self, topic: TopicPlan, context: str = "") -> str:
+    def _build_topic_prompt(self, topic: TopicPlan, context: str = "", cache_name: Optional[str] = None) -> str:
         """Build prompt for topic generation"""
         
-        return f"""Generate structured study notes for this topic.
+        # Add explicit cache instruction if using cache
+        cache_instruction = ""
+        if cache_name:
+            cache_instruction = """
+**SOURCE MATERIALS:**
+The user's study materials (PDF, documents, or text) are already loaded in the context cache.
+You MUST analyze and extract information from these cached materials to create the study notes.
+DO NOT make up information - use only what's in the cached source materials.
+
+"""
+        
+        return f"""{cache_instruction}Generate structured study notes for this topic.
 
 **Topic:** {topic.title}
 **Description:** {topic.description}
@@ -126,8 +137,8 @@ class CachedTopicExecutor(TopicExecutor):
 6. Quick summary at the end
 
 **IMPORTANT:**
-- Extract REAL information from the user's materials (already in cache)
-- If materials don't contain specific info, make reasonable educational content
+- Extract REAL information from the source materials in cache
+- If materials don't contain specific info for this topic, make reasonable educational content
 - NEVER use placeholder text like `[Insert Definition]`
 - Keep it scannable - students should grasp key points in 30 seconds
 
