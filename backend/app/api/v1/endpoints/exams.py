@@ -210,12 +210,14 @@ async def create_exam_v3(
         #         logger.warning(f"Failed to delete Gemini file {uploaded_file.name}: {e}")
 
         # Trigger Async Text Extraction
+        # Trigger Async Content Generation (instead of deprecated extraction)
         try:
-            from app.tasks.exam_tasks import extract_exam_content
-            extract_exam_content.delay(str(exam.id))
-            logger.info(f"Triggered background text extraction for exam {exam.id}")
+            from app.tasks.exam_tasks import generate_exam_content
+            # Start generation immediately
+            generate_exam_content.delay(str(exam.id), str(current_user.id))
+            logger.info(f"Triggered background content generation for exam {exam.id}")
         except Exception as e:
-            logger.error(f"Failed to trigger extraction task: {e}")
+            logger.error(f"Failed to trigger generation task: {e}")
             
         # Save Metadata for File-Based Cache Recovery
         if storage_path:
