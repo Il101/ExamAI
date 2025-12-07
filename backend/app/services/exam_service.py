@@ -80,9 +80,9 @@ class ExamService:
         
         # Validate cleaned content length
         cleaned_length = len(cleaned_content.strip())
-        if cleaned_length < 100:
+        if cleaned_length < 50:
             raise ValueError(
-                f"Content must be at least 100 characters after cleaning. "
+                f"Content must be at least 50 characters after cleaning. "
                 f"Got {cleaned_length} characters. "
                 f"Original length: {len(original_content)}"
             )
