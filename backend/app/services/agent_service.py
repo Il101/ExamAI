@@ -198,12 +198,14 @@ class AgentService:
                 
                 # Generate Flashcards for this topic
                 # Only if content is meaningful
-                if content and len(content) > 100:
+                if content and len(content) > 50:  # Lowered from 100 to 50
                     try:
                         if progress_callback:
                             await progress_callback(f"Generating flashcards for {plan_step.title}...", 0.9)
-                            
+                        
+                        print(f"Attempting to generate flashcards for topic: {plan_step.title} (content length: {len(content)})")
                         flashcards = await self.quiz_generator.generate_flashcards(content, num_cards=3)
+                        print(f"Generated {len(flashcards)} flashcards for topic: {plan_step.title}")
                         
                         for card in flashcards:
                             review_item = ReviewItem(
@@ -212,11 +214,19 @@ class AgentService:
                                 question=card.front,
                                 answer=card.back
                             )
-                            await self.review_repo.create(review_item)
+                            created_item = await self.review_repo.create(review_item)
+                            print(f"Created review item {created_item.id} for topic {created_topic.id}")
+                        
+                        print(f"Successfully created {len(flashcards)} flashcards for topic: {plan_step.title}")
                             
                     except Exception as e:
-                        print(f"Failed to generate flashcards for topic {plan_step.title}: {e}")
+                        print(f"ERROR: Failed to generate flashcards for topic {plan_step.title}: {type(e).__name__}: {e}")
+                        import traceback
+                        traceback.print_exc()
                         # Don't fail the whole exam generation if quiz fails
+                else:
+                    print(f"Skipping flashcard generation for topic {plan_step.title}: content too short ({len(content) if content else 0} chars)")
+
 
             exam.update_topic_count(len(state.plan))
 
