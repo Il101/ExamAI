@@ -27,6 +27,9 @@ from app.services.agent_service import AgentService
 from app.services.exam_service import ExamService
 from app.integrations.llm.base import LLMProvider
 from app.tasks.exam_tasks import generate_exam_content
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
