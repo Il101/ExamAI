@@ -36,18 +36,31 @@ class StudyService:
 
     # Review Items
 
-    async def get_due_reviews(self, user_id: UUID, limit: int = 20) -> List[ReviewItem]:
+    async def get_due_reviews(
+        self, 
+        user_id: UUID, 
+        limit: int = 20,
+        exam_id: UUID | None = None,
+        topic_id: UUID | None = None
+    ) -> List[ReviewItem]:
         """
         Get review items due for study.
 
         Args:
             user_id: User ID
             limit: Max items to return
+            exam_id: Optional filter by Exam
+            topic_id: Optional filter by Topic
 
         Returns:
             List of due review items, ordered by priority
         """
-        return await self.review_repo.list_due_by_user(user_id, limit)
+        return await self.review_repo.list_due_by_user(
+            user_id=user_id, 
+            limit=limit,
+            exam_id=exam_id,
+            topic_id=topic_id
+        )
 
     async def submit_review(
         self, user_id: UUID, review_item_id: UUID, quality: Rating

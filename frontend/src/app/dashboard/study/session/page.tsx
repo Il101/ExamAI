@@ -14,6 +14,7 @@ export default function StudySessionPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const examId = searchParams.get('examId');
+    const topicId = searchParams.get('topicId');
 
     const [isLoading, setIsLoading] = useState(true);
     const [items, setItems] = useState<ReviewItem[]>([]);
@@ -26,7 +27,11 @@ export default function StudySessionPage() {
             try {
                 // In a real app, we might start a session on the backend here
                 // For now, we just fetch due reviews
-                const dueItems = await studyApi.getDueReviews(20);
+                const dueItems = await studyApi.getDueReviews(
+                    20,
+                    examId || undefined,
+                    topicId || undefined
+                );
                 setItems(dueItems);
             } catch (error) {
                 console.error('Failed to load reviews:', error);
@@ -37,7 +42,7 @@ export default function StudySessionPage() {
         };
 
         loadSession();
-    }, [examId]);
+    }, [examId, topicId]);
 
     const handleReviewResult = async (quality: number) => {
         const currentItem = items[currentIndex];

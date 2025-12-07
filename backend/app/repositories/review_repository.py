@@ -18,18 +18,35 @@ class ReviewItemRepository(BaseRepository[ReviewItem, ReviewItemModel]):
         super().__init__(session, ReviewItemModel, ReviewItemMapper)
 
     async def list_due_by_user(
-        self, user_id: UUID, limit: int = 100
+        self, 
+        user_id: UUID, 
+        limit: int = 100, 
+        exam_id: UUID | None = None,
+        topic_id: UUID | None = None
     ) -> List[ReviewItem]:
         """Get review items due for review"""
         from datetime import timezone
+        from app.db.models.topic import TopicModel
+
         now = datetime.now(timezone.utc)
 
         stmt = (
             select(ReviewItemModel)
+            .join(TopicModel, ReviewItemModel.topic_id == TopicModel.id)
             .where(
                 ReviewItemModel.user_id == user_id,
                 ReviewItemModel.next_review_date <= now,
             )
+        )
+
+        if topic_id:
+            stmt = stmt.where(ReviewItemModel.topic_id == topic_id)
+        
+        if exam_id:
+            stmt = stmt.where(TopicModel.exam_id == exam_id)
+
+        stmt = (
+            stmt
             .order_by(ReviewItemModel.next_review_date.asc())
             .limit(limit)
         )

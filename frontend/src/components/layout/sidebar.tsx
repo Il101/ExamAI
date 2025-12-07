@@ -16,7 +16,7 @@ import {
 const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Exams', href: '/dashboard/exams', icon: BookOpen },
-    { name: 'Study', href: '/dashboard/study', icon: Brain },
+    { name: 'Flashcards', href: '/dashboard/flashcards', icon: Brain },
     { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
     { name: 'Settings', href: '/dashboard/settings', icon: Settings },
     { name: 'Pricing', href: '/dashboard/pricing', icon: CreditCard },

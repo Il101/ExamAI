@@ -48,9 +48,13 @@ export const studyApi = {
         return response.data;
     },
 
-    getDueReviews: async (limit: number = 20) => {
+    getDueReviews: async (limit: number = 20, examId?: string, topicId?: string) => {
         const response = await api.get<ReviewItem[]>('/reviews/due', {
-            params: { limit },
+            params: {
+                limit,
+                exam_id: examId,
+                topic_id: topicId
+            },
         });
         return response.data;
     },

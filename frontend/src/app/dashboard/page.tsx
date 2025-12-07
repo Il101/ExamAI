@@ -140,16 +140,16 @@ export default function DashboardPage() {
             </Card>
           </Link>
 
-          <Link href="/dashboard/study">
+          <Link href="/dashboard/flashcards">
             <Card className="p-8 border-border bg-gradient-to-br from-green-500/10 to-green-600/5 backdrop-blur-xl hover:from-green-500/20 hover:to-green-600/10 transition-all duration-300 cursor-pointer group hover:shadow-lg hover:shadow-green-500/20 hover:scale-[1.02]">
               <div className="flex flex-col items-center text-center space-y-4">
                 <div className="h-16 w-16 rounded-full bg-green-500/20 flex items-center justify-center group-hover:bg-green-500/30 transition-colors">
                   <Brain className="h-8 w-8 text-green-400 group-hover:text-green-300" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold text-foreground mb-2">Start Study Session</h3>
+                  <h3 className="text-xl font-semibold text-foreground mb-2">Review Flashcards</h3>
                   <p className="text-sm text-muted-foreground">
-                    Begin learning with spaced repetition
+                    Study your cards by exam or topic
                   </p>
                 </div>
               </div>

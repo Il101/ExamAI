@@ -19,6 +19,8 @@ router = APIRouter()
 @router.get("/due", response_model=List[ReviewItemResponse])
 async def get_due_reviews(
     limit: int = Query(20, ge=1, le=100),
+    exam_id: UUID | None = Query(None),
+    topic_id: UUID | None = Query(None),
     current_user: User = Depends(get_current_active_user),
     study_service: StudyService = Depends(get_study_service),
 ):
@@ -28,7 +30,12 @@ async def get_due_reviews(
     Returns items scheduled for review today, ordered by priority.
     """
 
-    items = await study_service.get_due_reviews(current_user.id, limit)
+    items = await study_service.get_due_reviews(
+        user_id=current_user.id, 
+        limit=limit,
+        exam_id=exam_id,
+        topic_id=topic_id
+    )
 
     return [ReviewItemResponse.from_orm(item) for item in items]
 
