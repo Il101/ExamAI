@@ -17,7 +17,7 @@ export default function ExamDetailPage() {
     const params = useParams();
     const examId = params.id as string;
 
-    const { exam, isLoading, isError, error } = useExamDetail(examId);
+    const { exam, isLoading, isError, error, refetch } = useExamDetail(examId);
 
     if (isLoading) {
         return (
@@ -38,9 +38,12 @@ export default function ExamDetailPage() {
                         <div className="text-center">
                             <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
                             <h2 className="text-xl font-semibold mb-2">Error Loading Exam</h2>
-                            <p className="text-muted-foreground">
+                            <p className="text-muted-foreground mb-4">
                                 {error instanceof Error ? error.message : 'Failed to load exam details'}
                             </p>
+                            <Button onClick={() => refetch()} variant="outline">
+                                Try Again
+                            </Button>
                         </div>
                     </CardContent>
                 </Card>

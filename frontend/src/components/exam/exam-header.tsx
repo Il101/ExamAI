@@ -50,7 +50,7 @@ export function ExamHeader({
                                 <Download className="h-4 w-4 mr-2" />
                                 Export
                             </Button>
-                            <Link href={`/study/session?examId=${examId}`}>
+                            <Link href={`/dashboard/study/session?examId=${examId}`}>
                                 <Button size="sm">
                                     <Play className="h-4 w-4 mr-2" />
                                     Study Now
