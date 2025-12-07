@@ -19,6 +19,8 @@ class ExamMapper:
             level=cast(ExamLevel, model.level),
             original_content=model.original_content,
             ai_summary=model.ai_summary,
+            original_file_url=model.original_file_url,
+            original_file_mime_type=model.original_file_mime_type,
             status=cast(ExamStatus, model.status),
             plan_ready_at=model.plan_ready_at,
             created_at=model.created_at,
@@ -46,6 +48,8 @@ class ExamMapper:
             level=domain.level,
             original_content=domain.original_content,
             ai_summary=domain.ai_summary,
+            original_file_url=domain.original_file_url,
+            original_file_mime_type=domain.original_file_mime_type,
             status=domain.status,
             plan_ready_at=domain.plan_ready_at,
             created_at=domain.created_at,
@@ -70,6 +74,8 @@ class ExamMapper:
         model.level = domain.level
         model.original_content = domain.original_content
         model.ai_summary = domain.ai_summary
+        model.original_file_url = domain.original_file_url
+        model.original_file_mime_type = domain.original_file_mime_type
         model.status = domain.status
         model.plan_ready_at = domain.plan_ready_at
         model.token_count_input = domain.token_count_input

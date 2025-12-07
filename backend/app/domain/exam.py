@@ -28,6 +28,8 @@ class Exam:
     # Content
     original_content: str = ""  # User-provided material
     ai_summary: Optional[str] = None  # Generated summary
+    original_file_url: Optional[str] = None  # URL of uploaded file in storage
+    original_file_mime_type: Optional[str] = None  # MIME type of uploaded file
     
     # V3.0 Cache fields
     cache_name: Optional[str] = None  # Gemini cache identifier

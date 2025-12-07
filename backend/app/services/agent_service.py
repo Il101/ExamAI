@@ -276,10 +276,12 @@ class AgentService:
 
             return updated
 
-        except Exception:
-            # Mark as failed
-            exam.mark_as_failed()
-            await self.exam_repo.update(exam)
+        except Exception as e:
+            # Only mark as failed if not already in a terminal state (ready/archived)
+            # This prevents state machine violations when errors occur during post-generation steps
+            if exam.status not in ["ready", "archived"]:
+                exam.mark_as_failed()
+                await self.exam_repo.update(exam)
             raise
 
     async def get_status(self, user_id: UUID, exam_id: UUID) -> Optional[dict]:
