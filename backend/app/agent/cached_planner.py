@@ -217,10 +217,22 @@ class CachedCoursePlanner(CoursePlanner):
         """Build minimal prompt when using cache (content already in cache)"""
         from app.prompts import load_prompt
         
-        # Use minimal prompt - content is in cache
+        # When using cache, DON'T include content_context placeholder
+        # The actual PDF content is already in the cache
+        # Including a placeholder causes AI to ignore the cached content
         prompt = load_prompt(
-            'planner/course_plan.txt',
-            content_context="[Study materials are already loaded in context]"
+            'planner/course_plan.txt'
+        )
+        
+        # Remove the content_context section from prompt
+        # since it's already in cache
+        import re
+        # Remove the "## Study Materials" section entirely
+        prompt = re.sub(
+            r'## Study Materials\s+\{content_context\}\s+---',
+            '**IMPORTANT:** The study materials have already been loaded into the context. Analyze them to create the plan.\n\n---',
+            prompt,
+            flags=re.DOTALL
         )
         
         return prompt
