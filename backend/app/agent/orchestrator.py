@@ -56,7 +56,6 @@ class PlanAndExecuteAgent:
             subject=subject,
             exam_type=exam_type,
             level=level,
-            level=level,
             original_content=original_content,
             cache_name=cache_name,
             exam_id=exam_id,
