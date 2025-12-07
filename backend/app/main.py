@@ -39,22 +39,26 @@ async def lifespan(app: FastAPI):
         await init_db()
         print("✅ Database initialized")
         
-        # Cleanup stale generating exams
+        # Cleanup stale generating exams (only those stuck for > 10 minutes)
         try:
-            from sqlalchemy import select, update
+            from sqlalchemy import select
             from app.db.models.exam import ExamModel
             from app.db.session import AsyncSessionLocal
+            from datetime import timedelta
             
             async with AsyncSessionLocal() as session:
-                # Find exams stuck in generating for > 1 hour
-                # For simplicity in this fix, we'll just mark ALL 'generating' exams as failed on startup
-                # because if the server is restarting, any in-memory generation tasks are lost anyway.
-                stmt = select(ExamModel).where(ExamModel.status == "generating")
+                # Find exams stuck in generating for > 10 minutes
+                # This prevents marking newly-started Celery tasks as failed
+                cutoff_time = datetime.now(timezone.utc) - timedelta(minutes=10)
+                stmt = select(ExamModel).where(
+                    ExamModel.status == "generating",
+                    ExamModel.updated_at < cutoff_time
+                )
                 result = await session.execute(stmt)
                 stale_exams = result.scalars().all()
                 
                 if stale_exams:
-                    print(f"🧹 Found {len(stale_exams)} stale generating exams. Marking as failed...")
+                    print(f"🧹 Found {len(stale_exams)} stale generating exams (>10min). Marking as failed...")
                     for exam in stale_exams:
                         exam.status = "failed"
                         exam.error_message = "Generation interrupted by system restart"
