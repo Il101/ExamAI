@@ -47,31 +47,83 @@ class CacheFallbackService:
             error_str = str(e).lower()
             
             # Check if cache expired
+            # Check if cache expired
             if "cache" in error_str and ("not found" in error_str or "expired" in error_str):
-                logger.warning(f"Cache expired for exam {exam_id}, recreating...")
+                logger.warning(f"Cache expired for exam {exam_id}, attempting recreation...")
                 
-                # 1. Download file from storage
-                file_path = f"exams/{exam_id}/original_content.txt"
+                new_cache_name = None
+                
+                # STRATEGY 1: File-Based Recovery (Preferred - Preserves Images/Format)
                 try:
-                    content_bytes = await self.storage.download_file(file_path)
-                    content = content_bytes.decode('utf-8')
-                    logger.info(f"Downloaded content from storage: {file_path}")
-                except Exception as download_error:
-                    logger.error(f"Failed to download from storage: {download_error}")
-                    raise ValueError(f"Cache expired and content not found in storage") from download_error
+                    meta_path = f"exams/{exam_id}/source_meta.json"
+                    meta_bytes = await self.storage.download_file(meta_path)
+                    import json
+                    meta = json.loads(meta_bytes)
+                    file_url = meta.get("url")
+                    mime_type = meta.get("mime_type", "application/pdf")
+                    
+                    if file_url:
+                        logger.info(f"Recovering cache from source file: {file_url}")
+                        file_data = await self.storage.download_file(file_url)
+                        
+                        import tempfile
+                        import os
+                        
+                        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+                            tmp.write(file_data)
+                            temp_path = tmp.name
+                            
+                        gemini_file = None
+                        try:
+                            # Upload to Gemini (using sync client method inside async flow - acceptable for now or use run_in_executor if blocking)
+                            # cache_manager.client is genai.Client
+                            gemini_file = self.cache.client.files.upload(
+                                path=temp_path,
+                                config={'mime_type': mime_type}
+                            )
+                            logger.info(f"Uploaded recovery file to Gemini: {gemini_file.uri}")
+                            
+                            # Create Cache from File
+                            new_cache_name = await self.cache.create_cache_from_file(
+                                exam_id=exam_id,
+                                file_uri=gemini_file.uri,
+                                mime_type=mime_type,
+                                ttl_seconds=3600
+                            )
+                            
+                        finally:
+                            if temp_path and os.path.exists(temp_path):
+                                os.unlink(temp_path)
+                            # Attempts to clean up Gemini file 
+                            if gemini_file:
+                                try:
+                                    self.cache.client.files.delete(name=gemini_file.name)
+                                except: pass
+
+                except Exception as file_error:
+                    logger.warning(f"File-based recovery failed: {file_error}. Falling back to text.")
+
+                # STRATEGY 2: Text-Based Recovery (Fallback)
+                if not new_cache_name:
+                    try:
+                        # 1. Download file from storage
+                        file_path = f"exams/{exam_id}/original_content.txt"
+                        content_bytes = await self.storage.download_file(file_path)
+                        content = content_bytes.decode('utf-8')
+                        logger.info(f"Downloaded text content from storage: {file_path}")
+                        
+                        # 2. Recreate cache
+                        new_cache_name = await self.cache.create_cache(
+                            exam_id,
+                            content,
+                            ttl_seconds=3600
+                        )
+                    except Exception as text_error:
+                        logger.error(f"Text-based recovery failed: {text_error}")
+                        raise ValueError(f"Cache expired and recovery failed") from text_error
                 
-                # 2. Recreate cache
-                try:
-                    new_cache_name = await self.cache.create_cache(
-                        exam_id,
-                        content,
-                        ttl_seconds=3600
-                    )
-                    logger.info(f"Recreated cache: {new_cache_name}")
-                except Exception as cache_error:
-                    logger.error(f"Failed to recreate cache: {cache_error}")
-                    raise ValueError(f"Failed to recreate cache") from cache_error
-                
+                logger.info(f"Successfully recreated cache: {new_cache_name}")
+
                 # 3. Retry operation with new cache
                 try:
                     return await operation(new_cache_name)

@@ -204,10 +204,34 @@ async def create_exam_v3(
             except Exception as e:
                 logger.warning(f"Failed to delete Gemini file {uploaded_file.name}: {e}")
 
+        # Trigger Async Text Extraction
+        try:
+            from app.tasks.exam_tasks import extract_exam_content
+            extract_exam_content.delay(str(exam.id))
+            logger.info(f"Triggered background text extraction for exam {exam.id}")
+        except Exception as e:
+            logger.error(f"Failed to trigger extraction task: {e}")
+            
+        # Save Metadata for File-Based Cache Recovery
+        if storage_path:
+            try:
+                import json
+                meta = {
+                    "url": storage_path,
+                    "mime_type": "application/pdf" if file.content_type in media_supported_types else file.content_type
+                }
+                await store.upload_file(
+                    json.dumps(meta).encode('utf-8'),
+                    f"exams/{exam.id}/source_meta.json"
+                )
+                logger.info(f"Saved recovery metadata for exam {exam.id}")
+            except Exception as e:
+                logger.warning(f"Failed to save recovery metadata: {e}")
+
         response_data = {
             "exam": ExamResponse.model_validate(exam).model_dump(),
             "plan": plan.model_dump(),
-            "message": "Exam created with plan. Content processed from file."
+            "message": "Exam created with plan. Content will be indexed in background."
         }
         
         if warnings:
