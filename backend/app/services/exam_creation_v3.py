@@ -34,7 +34,8 @@ async def create_exam_with_plan(
     cache_manager: ContextCacheManager,
     generation_service: GenerationService,
     original_file_url: str = None,
-    original_file_mime_type: str = None
+    original_file_mime_type: str = None,
+    gemini_file_uri: str = None  # URI for direct Gemini caching (optional)
 ) -> Tuple[Exam, ExamPlan]:
     """
     Create exam with automatic plan generation and caching (v3.0)
@@ -53,6 +54,7 @@ async def create_exam_with_plan(
         generation_service: Generation service for prefetch
         original_file_url: URL of the original file in storage
         original_file_mime_type: MIME type of the original file
+        gemini_file_uri: URI of file in Gemini Files API
     
     Returns:
         Tuple of (Exam, ExamPlan)
@@ -82,7 +84,9 @@ async def create_exam_with_plan(
         state=state,
         cache_manager=cache_manager,
         storage=storage,
-        exam_id=exam.id
+        exam_id=exam.id,
+        file_uri=gemini_file_uri,
+        mime_type=original_file_mime_type or "application/pdf"
     )
     
     # Prepare updates dictionary

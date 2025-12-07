@@ -20,7 +20,9 @@ class CachedCoursePlanner(CoursePlanner):
         state: AgentState,
         cache_manager: ContextCacheManager,
         storage: SupabaseStorage,
-        exam_id: UUID
+        exam_id: UUID,
+        file_uri: Optional[str] = None,
+        mime_type: str = "application/pdf"
     ) -> Tuple[ExamPlan, Optional[str]]:
         """
         Generate plan and create cache simultaneously
@@ -30,11 +32,13 @@ class CachedCoursePlanner(CoursePlanner):
             cache_manager: Cache manager instance
             storage: Storage service
             exam_id: Exam UUID
+            file_uri: Optional URI of file uploaded to Gemini for direct caching
+            mime_type: MIME type of the file
         
         Returns:
             Tuple of (ExamPlan, cache_name or None)
         """
-        # 1. Upload file to storage
+        # 1. Upload file to storage (archival)
         if state.original_content:
             file_path = f"exams/{exam_id}/original_content.txt"
             try:
@@ -45,24 +49,42 @@ class CachedCoursePlanner(CoursePlanner):
                 logger.info(f"Uploaded content to storage: {file_path}")
             except Exception as e:
                 logger.error(f"Failed to upload to storage: {e}")
-                # Continue anyway, cache can still work
+                # Continue anyway
         
-        # 2. Create cache if content is large enough
-        token_count = len(state.original_content) // 4 if state.original_content else 0
+        # 2. Create cache
         cache_name = None
         
-        if token_count > 1000:
+        # Strategy A: Direct File Cache (Best for PDFs/Docs)
+        if file_uri:
             try:
-                cache_name = await cache_manager.create_cache(
+                cache_name = await cache_manager.create_cache_from_file(
                     exam_id,
-                    state.original_content,
-                    ttl_seconds=3600  # 1 hour
+                    file_uri,
+                    mime_type,
+                    ttl_seconds=3600
                 )
-                logger.info(f"Created cache for exam {exam_id}: {cache_name}")
+                logger.info(f"Created cache from file URI: {cache_name}")
             except Exception as e:
-                logger.warning(f"Failed to create cache: {e}. Continuing without cache.")
-        else:
-            logger.info(f"Content too small ({token_count} tokens), skipping cache")
+                logger.error(f"Failed to create cache from file: {e}")
+                # Fallback to content strategy below if content exists
+        
+        # Strategy B: Text Content Cache (Fallback or for Text input)
+        # Only if cache wasn't created by Strategy A
+        if not cache_name and state.original_content:
+            token_count = len(state.original_content) // 4
+            
+            if token_count > 1000:
+                try:
+                    cache_name = await cache_manager.create_cache(
+                        exam_id,
+                        state.original_content,
+                        ttl_seconds=3600  # 1 hour
+                    )
+                    logger.info(f"Created cache for exam {exam_id}: {cache_name}")
+                except Exception as e:
+                    logger.warning(f"Failed to create cache: {e}. Continuing without cache.")
+            else:
+                logger.info(f"Content too small ({token_count} tokens) and no file URI, skipping cache")
         
         # 3. Generate plan (call internal method that returns ExamPlan, not adapter version)
         plan = await self._make_plan_internal(state, cache_name)

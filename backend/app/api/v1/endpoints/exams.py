@@ -131,94 +131,51 @@ async def create_exam_v3(
         # Get Gemini client
         client = llm_provider.client
         
-        # Upload to Gemini
+        # 1. Upload to Gemini (for Context Caching)
         uploaded_file = client.files.upload(file=tmp_path, config={'mime_type': file.content_type})
+        gemini_file_uri = uploaded_file.uri
+        logger.info(f"Uploaded file to Gemini: {gemini_file_uri}")
         
-        # Extract content with Gemini
-        prompt = f"""Extract all text content from this file. Return ONLY the raw text content, no formatting, no analysis, no summary.
+        # 2. Upload to Supabase Storage (Source of Truth)
+        storage_path = None
+        media_supported_types = ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"]
+        
+        # We process all supported media types by uploading separate copy to storage
+        if file.content_type in media_supported_types:
+            try:
+                # Ensure we have a PDF (or keep docx if supported by storage viewer, but PDF is safer)
+                # For now, let's just upload the raw file as is or convert if needed
+                # The 'ensure_pdf' utility is good for standardizing
+                from app.utils.pdf_converter import ensure_pdf
+                pdf_path = ensure_pdf(tmp_path, file.content_type)
+                
+                # Upload PDF to storage
+                filename = f"{uuid4()}.pdf"
+                storage_path = f"exams/source/{filename}"
+                
+                with open(pdf_path, "rb") as f:
+                    file_data = f.read()
+                    await get_storage().upload_file(file_data, storage_path)
+                    
+                logger.info(f"Successfully processed and stored source file: {storage_path}")
+                
+            except Exception as e:
+                logger.error(f"Source file upload failed: {e}", exc_info=True)
+                warnings.append("Failed to backup source file.")
 
-If this is a study material, textbook, or educational content, extract everything as-is."""
-
-        response = await client.aio.models.generate_content(
-            model=llm_provider.model_name,
-            contents=[uploaded_file, prompt],
-            config=types.GenerateContentConfig(
-                temperature=0.0,
-            )
-        )
-        
-        original_content = response.text.strip()
-        
-        # Validate extracted content
-        if not original_content:
-            raise ValidationException(
-                "Failed to extract text from file. File may be empty or corrupted."
-            )
-        
-        if len(original_content) < 100:
-            raise ValidationException(
-                f"Extracted text too short ({len(original_content)} chars). "
-                "File may not contain readable content."
-            )
-        
-        logger.info(f"Successfully extracted {len(original_content)} characters from file")
-        
-        # Delete uploaded file from Gemini
-        try:
-            client.files.delete(name=uploaded_file.name)
-        except:
-            pass  # Ignore cleanup errors
+        # 3. No Text Extraction (Avoid 504 Timeout)
+        # We use a placeholder note. The actual content is in the file/cache.
+        original_content = "Content processed directly from file upload. Text extraction skipped for performance."
         
         # Initialize services
         llm = GeminiProvider(api_key=settings.GEMINI_API_KEY, model=settings.GEMINI_MODEL)
-        planner = CachedCoursePlanner(llm)
-        storage = get_storage()
+        planner = CachedCoursePlanner(llm=llm)
+        store = get_storage()
         cache_manager = get_cache_manager()
-        generation_service = get_generation_service()
-        
-        # Handle original file storage for media extraction
-        original_file_url = None
-        original_file_mime_type = None
-        
-        # Supported types for media extraction
-        media_supported_types = [
-            "application/pdf",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            "application/vnd.openxmlformats-officedocument.presentationml.presentation"
-        ]
-        
-        # Process media BEFORE deleting tmp_path
-        if file.content_type in media_supported_types:
-            try:
-                from app.utils.pdf_converter import ensure_pdf
-                import uuid
-                
-                # Convert to PDF if needed
-                pdf_path = ensure_pdf(tmp_path, file.content_type)
-                
-                # Upload to Supabase
-                file_ext = ".pdf"
-                storage_path = f"original_files/{uuid.uuid4()}{file_ext}"
-                
-                with open(pdf_path, "rb") as f:
-                    pdf_content = f.read()
-                    
-                await storage.upload_file(
-                    file_content=pdf_content,
-                    file_path=storage_path,
-                    content_type="application/pdf"
-                )
-                
-                original_file_url = storage_path
-                original_file_mime_type = "application/pdf"
-                
-                logger.info(f"Successfully processed media file: {storage_path}")
-                
-            except Exception as e:
-                logger.error(f"Media extraction failed: {e}", exc_info=True)
-                warnings.append("Image extraction unavailable for this file")
+        gen_service = get_generation_service()
         
         # Create exam with plan
+        # Note: 'gemini_file_uri' is passed so Planner will create cache from it directly
         exam, plan = await create_exam_with_plan(
             exam_service=exam_service,
             user=current_user,
@@ -228,24 +185,36 @@ If this is a study material, textbook, or educational content, extract everythin
             level=level,
             original_content=original_content,
             planner=planner,
-            storage=storage,
+            storage=store,
             cache_manager=cache_manager,
-            generation_service=generation_service,
-            original_file_url=original_file_url,
-            original_file_mime_type=original_file_mime_type
+            generation_service=gen_service,
+            original_file_url=storage_path,
+            original_file_mime_type="application/pdf" if file.content_type in media_supported_types else file.content_type,
+            gemini_file_uri=gemini_file_uri
         )
         
+        # Cleanup Gemini file?
+        # If we delete it now, does the cache (created inside create_exam -> make_plan) stay valid?
+        # Yes, Context Caching ingests the content. The File API file is temporary.
+        # But to be super safe and avoid "File not found" errors during async operations if they haven't finished (unlikely as we await plan),
+        # we will delete it.
+        if uploaded_file:
+            try:
+                client.files.delete(name=uploaded_file.name)
+            except Exception as e:
+                logger.warning(f"Failed to delete Gemini file {uploaded_file.name}: {e}")
+
         response_data = {
             "exam": ExamResponse.model_validate(exam).model_dump(),
             "plan": plan.model_dump(),
-            "message": "Exam created with plan. First 2 topics are being generated."
+            "message": "Exam created with plan. Content processed from file."
         }
         
         if warnings:
             response_data["warnings"] = warnings
-        
+            
         return response_data
-    
+
     except ValueError as e:
         raise ValidationException(str(e))
     
@@ -258,7 +227,7 @@ If this is a study material, textbook, or educational content, extract everythin
             except Exception as e:
                 logger.warning(f"Failed to cleanup temp file {tmp_path}: {e}")
         
-        if pdf_path and pdf_path != tmp_path and os.path.exists(pdf_path):
+        if 'pdf_path' in locals() and pdf_path and pdf_path != tmp_path and os.path.exists(pdf_path):
             try:
                 os.unlink(pdf_path)
                 logger.debug(f"Cleaned up PDF file: {pdf_path}")

@@ -17,7 +17,7 @@ class ContextCacheManager:
     
     async def create_cache(
         self, 
-        exam_id: UUID, 
+        exam_id: Optional[UUID], 
         content: str,
         ttl_seconds: int = 3600
     ) -> str:
@@ -25,7 +25,7 @@ class ContextCacheManager:
         Create context cache for exam content
         
         Args:
-            exam_id: Exam UUID
+            exam_id: Exam UUID or None
             content: Full exam content to cache
             ttl_seconds: Time to live in seconds (default 1 hour)
         
@@ -33,30 +33,82 @@ class ContextCacheManager:
             Cache name for future reference
         """
         try:
-            # Create cache with model as direct parameter
+            from app.core.config import settings
+            
+            # Create cache with model from settings
             cache = await self.client.aio.caches.create(
-                model="gemini-2.5-flash-lite",
+                model=settings.GEMINI_MODEL,
                 config={
                     "contents": [{
                         "role": "user",
                         "parts": [{"text": content}]
                     }],
                     "ttl": f"{ttl_seconds}s",
-                    "display_name": f"exam_{exam_id}"
+                    "display_name": f"exam_{exam_id}" if exam_id else None
                 }
             )
             
-            self.caches[str(exam_id)] = {
-                "name": cache.name,
-                "created_at": datetime.now(),
-                "expires_at": datetime.now() + timedelta(seconds=ttl_seconds)
-            }
+            if exam_id:
+                self.caches[str(exam_id)] = {
+                    "name": cache.name,
+                    "created_at": datetime.now(),
+                    "expires_at": datetime.now() + timedelta(seconds=ttl_seconds)
+                }
             
-            logger.info(f"Created cache for exam {exam_id}: {cache.name}")
+            logger.info(f"Created cache {cache.name} for exam {exam_id}")
             return cache.name
             
         except Exception as e:
             logger.error(f"Failed to create cache for exam {exam_id}: {e}")
+            raise
+
+    async def create_cache_from_file(
+        self, 
+        exam_id: Optional[UUID], 
+        file_uri: str,
+        mime_type: str = "application/pdf",
+        ttl_seconds: int = 3600
+    ) -> str:
+        """
+        Create context cache directly from file URI (avoids extraction timeout)
+        
+        Args:
+            exam_id: Exam UUID or None
+            file_uri: URI of the file uploaded to Gemini Files API
+            mime_type: MIME type of the file
+            ttl_seconds: Time to live in seconds
+            
+        Returns:
+            Cache name
+        """
+        try:
+            from app.core.config import settings
+            
+            # Create cache with file data
+            cache = await self.client.aio.caches.create(
+                model=settings.GEMINI_MODEL,
+                config={
+                    "contents": [{
+                        "role": "user",
+                        "parts": [{"file_data": {"file_uri": file_uri, "mime_type": mime_type}}]
+                    }],
+                    "ttl": f"{ttl_seconds}s",
+                    "display_name": f"exam_{exam_id}" if exam_id else None
+                }
+            )
+            
+            if exam_id:
+                self.caches[str(exam_id)] = {
+                    "name": cache.name,
+                    "created_at": datetime.now(),
+                    "expires_at": datetime.now() + timedelta(seconds=ttl_seconds)
+                }
+            
+            logger.info(f"Created file cache {cache.name} for exam {exam_id}")
+            return cache.name
+            
+        except Exception as e:
+            logger.error(f"Failed to create file cache for exam {exam_id}: {e}")
             raise
     
     async def refresh_cache(self, cache_name: str, ttl_seconds: int = 3600) -> None:
