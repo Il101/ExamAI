@@ -13,6 +13,11 @@ logger = logging.getLogger(__name__)
 
 class CachedTopicExecutor(TopicExecutor):
     """Executor with cache support and automatic fallback"""
+
+    def __init__(self, llm_provider, fallback_service: Optional[CacheFallbackService] = None):
+        super().__init__(llm_provider)
+        self.fallback_service = fallback_service
+
     
     async def execute_step(self, state: AgentState) -> str:
         """
@@ -40,7 +45,7 @@ class CachedTopicExecutor(TopicExecutor):
             topic=current_step,
             cache_name=state.cache_name,
             exam_id=UUID(state.exam_id) if state.exam_id else None,
-            fallback_service=None, # Central fallback service not yet wired via state
+            fallback_service=self.fallback_service,
             context=context
         )
 

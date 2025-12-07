@@ -14,8 +14,13 @@ from app.repositories.user_repository import UserRepository
 from app.repositories.review_repository import ReviewItemRepository
 from app.domain.topic import Topic
 from app.services.agent_service import AgentService
+from app.services.agent_service import AgentService
 from app.services.cost_guard_service import CostGuardService
+from app.services.cache_fallback import CacheFallbackService
+from app.integrations.storage.supabase_storage import SupabaseStorage
+from app.integrations.llm.cache_manager import ContextCacheManager
 from app.tasks.celery_app import celery_app
+from google import genai
 
 
 def get_llm_provider():
@@ -188,7 +193,20 @@ async def _generate_exam_content_async(
         llm = GeminiProvider(
             api_key=settings.GEMINI_API_KEY, model=settings.GEMINI_MODEL
         )
-        agent = PlanAndExecuteAgent(llm)
+        
+        # Initialize fallback service
+        storage = SupabaseStorage(
+            url=settings.SUPABASE_URL,
+            key=settings.SUPABASE_KEY,
+            bucket=settings.SUPABASE_BUCKET
+        )
+        
+        genai_client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        cache_manager = ContextCacheManager(genai_client)
+        fallback_service = CacheFallbackService(storage, cache_manager)
+        
+        # Pass fallback service to agent
+        agent = PlanAndExecuteAgent(llm, fallback_service=fallback_service)
         cost_guard = CostGuardService(session)
 
         agent_service = AgentService(

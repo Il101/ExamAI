@@ -6,6 +6,7 @@ from app.agent.finalizer import NoteFinalizer
 from app.agent.planner import CoursePlanner
 from app.agent.state import AgentState, ExecutionStatus, StepResult, PlanStep
 from app.integrations.llm.base import LLMProvider
+from app.services.cache_fallback import CacheFallbackService
 
 ProgressCallback = Callable[[str, float], Awaitable[None]]
 
@@ -16,10 +17,15 @@ class PlanAndExecuteAgent:
     Manages entire workflow: Plan → Execute → Finalize
     """
 
-    def __init__(self, llm_provider: LLMProvider, max_topics: int | None = None):
+    def __init__(
+        self, 
+        llm_provider: LLMProvider, 
+        max_topics: int | None = None,
+        fallback_service: Optional[CacheFallbackService] = None
+    ):
         self.llm = llm_provider
         self.planner = CoursePlanner(llm_provider, max_topics=max_topics)
-        self.executor = CachedTopicExecutor(llm_provider)
+        self.executor = CachedTopicExecutor(llm_provider, fallback_service=fallback_service)
         self.finalizer = NoteFinalizer(llm_provider)
 
     async def run(

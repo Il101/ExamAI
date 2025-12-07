@@ -30,7 +30,7 @@ realtime==2.24.0
 storage3==2.24.0
 
 # Google AI
-google-genai==1.52.00
+google-genai==1.53.0
 
 
 # OpenAI
