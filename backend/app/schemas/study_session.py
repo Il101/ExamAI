@@ -14,10 +14,11 @@ class StudySessionResponse(BaseModel):
     id: UUID
     user_id: UUID
     exam_id: UUID
-    start_time: datetime
-    end_time: Optional[datetime]
-    duration_minutes: int
-    status: str
+    started_at: datetime
+    ended_at: Optional[datetime]
+    pomodoro_duration_minutes: int
+    pomodoros_completed: int
+    is_active: bool
 
     class Config:
         from_attributes = True

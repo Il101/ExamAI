@@ -4,11 +4,11 @@ export interface StudySession {
     id: string;
     user_id: string;
     exam_id: string;
-    start_time: string;
-    end_time?: string;
-    duration_minutes: number;
-    status: 'active' | 'completed' | 'abandoned';
+    started_at: string;
+    ended_at?: string;
+    pomodoro_duration_minutes: number;
     pomodoros_completed: number;
+    is_active: boolean;
 }
 
 export interface ReviewItem {
