@@ -74,6 +74,8 @@ class AgentState:
     exam_type: str  # oral, written, test
     level: str  # school, bachelor, master, phd
     original_content: str = ""  # User-provided study materials (optional)
+    cache_name: Optional[str] = None  # Gemini cache name (optional)
+    exam_id: Optional[str] = None  # Exam ID for fallback (optional)
 
     # Execution state
     plan: List[PlanStep] = field(default_factory=list)

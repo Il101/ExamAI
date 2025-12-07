@@ -109,6 +109,8 @@ class AgentService:
                 original_content=exam.original_content,
                 existing_plan=existing_plan,
                 progress_callback=progress_callback,
+                cache_name=exam.cache_name,
+                exam_id=str(exam.id),
             )
 
             # Save results

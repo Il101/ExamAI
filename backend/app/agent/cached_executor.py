@@ -3,6 +3,7 @@ from typing import Optional
 from uuid import UUID
 
 from app.agent.executor import TopicExecutor
+from app.agent.state import AgentState
 from app.agent.schemas import TopicPlan
 from app.services.cache_fallback import CacheFallbackService
 import logging
@@ -13,6 +14,36 @@ logger = logging.getLogger(__name__)
 class CachedTopicExecutor(TopicExecutor):
     """Executor with cache support and automatic fallback"""
     
+    async def execute_step(self, state: AgentState) -> str:
+        """
+        Execute step using Gemini Cache if available.
+        Overrides base TopicExecutor.execute_step.
+        """
+        current_step = state.get_current_step()
+        if not current_step:
+            raise ValueError("No current step to execute")
+            
+        print(f"[CachedExecutor] Generating topic {current_step.id} using cache: {state.cache_name}")
+        
+        # Build context from previous results
+        # We access private method from base class - this is fine in Python
+        context = self._build_previous_context(state, current_step)
+        
+        # Determine fallback service
+        # For now, we don't injecting fallback service here, 
+        # but we could add it to AgentState in future.
+        # CachedTopicExecutor checks for fallback service passed in execute_topic_with_cache.
+        # But we are calling execute_step which doesn't take fallback service.
+        # That's okay, execute_topic_with_cache handles None fallback service (simple cache usage).
+        
+        return await self.execute_topic_with_cache(
+            topic=current_step,
+            cache_name=state.cache_name,
+            exam_id=UUID(state.exam_id) if state.exam_id else None,
+            fallback_service=None, # Central fallback service not yet wired via state
+            context=context
+        )
+
     async def execute_topic_with_cache(
         self,
         topic: TopicPlan,

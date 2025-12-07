@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Awaitable, Callable, Optional, List
 
-from app.agent.executor import TopicExecutor
+from app.agent.cached_executor import CachedTopicExecutor
 from app.agent.finalizer import NoteFinalizer
 from app.agent.planner import CoursePlanner
 from app.agent.state import AgentState, ExecutionStatus, StepResult, PlanStep
@@ -19,7 +19,7 @@ class PlanAndExecuteAgent:
     def __init__(self, llm_provider: LLMProvider, max_topics: int | None = None):
         self.llm = llm_provider
         self.planner = CoursePlanner(llm_provider, max_topics=max_topics)
-        self.executor = TopicExecutor(llm_provider)
+        self.executor = CachedTopicExecutor(llm_provider)
         self.finalizer = NoteFinalizer(llm_provider)
 
     async def run(
@@ -31,6 +31,8 @@ class PlanAndExecuteAgent:
         original_content: str = "",
         existing_plan: Optional[List["PlanStep"]] = None,
         progress_callback: Optional[ProgressCallback] = None,
+        cache_name: Optional[str] = None,
+        exam_id: Optional[str] = None,
     ) -> AgentState:
         """
         Execute complete agent workflow.
@@ -54,7 +56,10 @@ class PlanAndExecuteAgent:
             subject=subject,
             exam_type=exam_type,
             level=level,
+            level=level,
             original_content=original_content,
+            cache_name=cache_name,
+            exam_id=exam_id,
         )
 
         try:
