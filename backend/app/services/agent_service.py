@@ -207,7 +207,8 @@ class AgentService:
                         flashcards = await self.quiz_generator.generate_flashcards(
                             content, 
                             num_cards=3,
-                            cache_name=exam.cache_name  # Use cache if available
+                            cache_name=exam.cache_name,  # Use cache if available
+                            exam_id=exam.id  # Pass exam_id for cache recreation
                         )
                         print(f"Generated {len(flashcards)} flashcards for topic: {plan_step.title}")
                         

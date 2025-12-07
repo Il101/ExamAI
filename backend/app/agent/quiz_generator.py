@@ -48,7 +48,8 @@ class QuizGenerator:
         self, 
         content: str, 
         num_cards: int = 5,
-        cache_name: str = None
+        cache_name: str = None,
+        exam_id: "UUID" = None
     ) -> List[FlashcardSchema]:
         """
         Generate flashcards from the provided content.
@@ -87,23 +88,74 @@ class QuizGenerator:
                 # Check if cache expired
                 error_str = str(cache_error).lower()
                 if "cache" in error_str and ("not found" in error_str or "expired" in error_str or "404" in error_str):
-                    print(f"[QuizGenerator] Cache expired, falling back to full content")
-                    # Fallback to generation without cache
-                    prompt = load_prompt(
-                        'quiz/flashcards.txt',
-                        num_cards=num_cards,
-                        content=content
-                    )
+                    print(f"[QuizGenerator] Cache expired, attempting to recreate...")
                     
-                    response = await self.llm.generate(
-                        prompt=prompt,
-                        temperature=0.3,
-                        system_prompt="You are an expert tutor creating study materials.",
-                        response_schema=FlashcardSetSchema,
-                        timeout=60.0
-                    )
-                    
-                    json_text = response.content
+                    # Try to recreate cache if we have exam_id and content
+                    if exam_id and content:
+                        try:
+                            from app.integrations.llm.cache_manager import ContextCacheManager
+                            
+                            cache_manager = ContextCacheManager(self.llm)
+                            print(f"[QuizGenerator] Recreating cache for exam {exam_id}...")
+                            
+                            new_cache_name = await cache_manager.create_cache(
+                                exam_id=exam_id,
+                                content=content,
+                                ttl_seconds=3600
+                            )
+                            print(f"[QuizGenerator] Successfully recreated cache: {new_cache_name}")
+                            
+                            # Retry with new cache
+                            prompt = load_prompt(
+                                'quiz/flashcards.txt',
+                                num_cards=num_cards,
+                                content="[Content is available in cache context]"
+                            )
+                            
+                            response = await self.llm.client.aio.models.generate_content(
+                                model=new_cache_name,
+                                contents=[{"role": "user", "parts": [{"text": prompt}]}]
+                            )
+                            
+                            json_text = response.text
+                            
+                        except Exception as recreate_error:
+                            print(f"[QuizGenerator] Failed to recreate cache: {recreate_error}")
+                            # Final fallback: use full content
+                            print(f"[QuizGenerator] Falling back to full content")
+                            prompt = load_prompt(
+                                'quiz/flashcards.txt',
+                                num_cards=num_cards,
+                                content=content
+                            )
+                            
+                            response = await self.llm.generate(
+                                prompt=prompt,
+                                temperature=0.3,
+                                system_prompt="You are an expert tutor creating study materials.",
+                                response_schema=FlashcardSetSchema,
+                                timeout=60.0
+                            )
+                            
+                            json_text = response.content
+                    else:
+                        # No exam_id - can't recreate cache, use full content
+                        print(f"[QuizGenerator] No exam_id, falling back to full content")
+                        prompt = load_prompt(
+                            'quiz/flashcards.txt',
+                            num_cards=num_cards,
+                            content=content
+                        )
+                        
+                        response = await self.llm.generate(
+                            prompt=prompt,
+                            temperature=0.3,
+                            system_prompt="You are an expert tutor creating study materials.",
+                            response_schema=FlashcardSetSchema,
+                            timeout=60.0
+                        )
+                        
+                        json_text = response.content
                 else:
                     # Not a cache error, re-raise
                     raise
@@ -159,7 +211,8 @@ class QuizGenerator:
         self, 
         content: str, 
         num_questions: int = 5,
-        cache_name: str = None
+        cache_name: str = None,
+        exam_id: "UUID" = None
     ) -> List[MCQQuestion]:
         """
         Generate multiple choice questions from the provided content.
@@ -198,23 +251,74 @@ class QuizGenerator:
                 # Check if cache expired
                 error_str = str(cache_error).lower()
                 if "cache" in error_str and ("not found" in error_str or "expired" in error_str or "404" in error_str):
-                    print(f"[QuizGenerator] Cache expired, falling back to full content")
-                    # Fallback to generation without cache
-                    prompt = load_prompt(
-                        'quiz/mcq_questions.txt',
-                        num_questions=num_questions,
-                        content=content
-                    )
+                    print(f"[QuizGenerator] Cache expired, attempting to recreate...")
                     
-                    response = await self.llm.generate(
-                        prompt=prompt,
-                        temperature=0.4,
-                        system_prompt="You are an expert tutor creating educational assessments.",
-                        response_schema=MCQQuizSchema,
-                        timeout=60.0
-                    )
-                    
-                    json_text = response.content
+                    # Try to recreate cache if we have exam_id and content
+                    if exam_id and content:
+                        try:
+                            from app.integrations.llm.cache_manager import ContextCacheManager
+                            
+                            cache_manager = ContextCacheManager(self.llm)
+                            print(f"[QuizGenerator] Recreating cache for exam {exam_id}...")
+                            
+                            new_cache_name = await cache_manager.create_cache(
+                                exam_id=exam_id,
+                                content=content,
+                                ttl_seconds=3600
+                            )
+                            print(f"[QuizGenerator] Successfully recreated cache: {new_cache_name}")
+                            
+                            # Retry with new cache
+                            prompt = load_prompt(
+                                'quiz/mcq_questions.txt',
+                                num_questions=num_questions,
+                                content="[Content is available in cache context]"
+                            )
+                            
+                            response = await self.llm.client.aio.models.generate_content(
+                                model=new_cache_name,
+                                contents=[{"role": "user", "parts": [{"text": prompt}]}]
+                            )
+                            
+                            json_text = response.text
+                            
+                        except Exception as recreate_error:
+                            print(f"[QuizGenerator] Failed to recreate cache: {recreate_error}")
+                            # Final fallback: use full content
+                            print(f"[QuizGenerator] Falling back to full content")
+                            prompt = load_prompt(
+                                'quiz/mcq_questions.txt',
+                                num_questions=num_questions,
+                                content=content
+                            )
+                            
+                            response = await self.llm.generate(
+                                prompt=prompt,
+                                temperature=0.4,
+                                system_prompt="You are an expert tutor creating educational assessments.",
+                                response_schema=MCQQuizSchema,
+                                timeout=60.0
+                            )
+                            
+                            json_text = response.content
+                    else:
+                        # No exam_id - can't recreate cache, use full content
+                        print(f"[QuizGenerator] No exam_id, falling back to full content")
+                        prompt = load_prompt(
+                            'quiz/mcq_questions.txt',
+                            num_questions=num_questions,
+                            content=content
+                        )
+                        
+                        response = await self.llm.generate(
+                            prompt=prompt,
+                            temperature=0.4,
+                            system_prompt="You are an expert tutor creating educational assessments.",
+                            response_schema=MCQQuizSchema,
+                            timeout=60.0
+                        )
+                        
+                        json_text = response.content
                 else:
                     # Not a cache error, re-raise
                     raise

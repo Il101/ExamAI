@@ -95,19 +95,63 @@ class CachedCoursePlanner(CoursePlanner):
                         # Check if cache expired
                         error_str = str(cache_error).lower()
                         if "cache" in error_str and ("not found" in error_str or "expired" in error_str or "404" in error_str):
-                            logger.warning(f"Cache expired during plan generation, falling back to full content")
-                            # Fallback to generation without cache
-                            prompt = self._build_planning_prompt(state)
+                            logger.warning(f"Cache expired during plan generation, attempting to recreate...")
                             
-                            response = await self.llm.generate(
-                                prompt=prompt,
-                                temperature=0.3,
-                                max_tokens=16000,
-                                response_mime_type="application/json",
-                                response_schema=ExamPlan,
-                            )
-                            
-                            plan_text = response.content
+                            # Try to recreate cache from storage
+                            try:
+                                # Import here to avoid circular dependency
+                                from app.integrations.storage.supabase_storage import SupabaseStorage
+                                from app.integrations.llm.cache_manager import ContextCacheManager
+                                from app.core.config import settings
+                                
+                                # Initialize services
+                                storage = SupabaseStorage(
+                                    url=settings.SUPABASE_URL,
+                                    key=settings.SUPABASE_KEY,
+                                    bucket=settings.SUPABASE_BUCKET
+                                )
+                                cache_manager = ContextCacheManager(self.llm)
+                                
+                                # Download content from storage
+                                # We need exam_id - it should be in state or passed separately
+                                # For now, try to get from state.original_content
+                                if state.original_content:
+                                    # Recreate cache
+                                    # Note: We don't have exam_id here, so we'll use a temporary approach
+                                    # Better solution: pass exam_id to this method
+                                    logger.info("Recreating cache from state content...")
+                                    new_cache_name = await cache_manager.create_cache(
+                                        exam_id=None,  # TODO: Pass exam_id properly
+                                        content=state.original_content,
+                                        ttl_seconds=3600
+                                    )
+                                    logger.info(f"Successfully recreated cache: {new_cache_name}")
+                                    
+                                    # Retry with new cache
+                                    prompt = self._build_planning_prompt_with_cache(state)
+                                    response = await self.llm.client.aio.models.generate_content(
+                                        model=new_cache_name,
+                                        contents=[{"role": "user", "parts": [{"text": prompt}]}]
+                                    )
+                                    plan_text = response.text
+                                else:
+                                    raise ValueError("No content available to recreate cache")
+                                    
+                            except Exception as recreate_error:
+                                logger.error(f"Failed to recreate cache: {recreate_error}")
+                                # Final fallback: use full content
+                                logger.warning("Falling back to full content generation")
+                                prompt = self._build_planning_prompt(state)
+                                
+                                response = await self.llm.generate(
+                                    prompt=prompt,
+                                    temperature=0.3,
+                                    max_tokens=16000,
+                                    response_mime_type="application/json",
+                                    response_schema=ExamPlan,
+                                )
+                                
+                                plan_text = response.content
                         else:
                             # Not a cache error, re-raise
                             raise
