@@ -73,14 +73,28 @@ class CachedTopicExecutor(TopicExecutor):
                 # Use cached content by passing cache name in config
                 # This is the correct API for Gemini context caching
                 from app.core.config import settings
-                response = await self.llm.client.aio.models.generate_content(
-                    model=settings.GEMINI_MODEL,  # Use base model
-                    config={
-                        "cached_content": cache,
-                    },
-                    contents=[{"role": "user", "parts": [{"text": prompt}]}]
-                )
-                return response.text
+                try:
+                    response = await self.llm.client.aio.models.generate_content(
+                        model=settings.GEMINI_MODEL,  # Use base model
+                        config={
+                            "cached_content": cache,
+                        },
+                        contents=[{"role": "user", "parts": [{"text": prompt}]}]
+                    )
+                    return response.text
+                except Exception as e:
+                    logger.error(f"[CachedExecutor] API Error: {type(e).__name__}: {str(e)}")
+                    logger.error(f"[CachedExecutor] Cache name: {cache}")
+                    logger.error(f"[CachedExecutor] Model: {settings.GEMINI_MODEL}")
+                    # Check if it's a 403 error
+                    error_str = str(e).lower()
+                    if "403" in error_str or "forbidden" in error_str:
+                        logger.error("[CachedExecutor] 403 Forbidden - possible causes:")
+                        logger.error("  1. API key invalid or expired")
+                        logger.error("  2. Billing not enabled")
+                        logger.error("  3. Rate limit exceeded")
+                        logger.error("  4. Cache expired or invalid")
+                    raise
             else:
                 # Fallback: regular generation without max_tokens limit
                 response = await self.llm.generate(prompt)
