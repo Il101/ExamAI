@@ -31,6 +31,7 @@ class PlanAndExecuteAgent:
         original_content: str = "",
         existing_plan: Optional[List["PlanStep"]] = None,
         progress_callback: Optional[ProgressCallback] = None,
+        on_step_complete: Optional[Callable[[StepResult], Awaitable[None]]] = None,
         cache_name: Optional[str] = None,
         exam_id: Optional[str] = None,
     ) -> AgentState:
@@ -113,6 +114,11 @@ class PlanAndExecuteAgent:
                             timestamp=step_start_time.isoformat(),
                         )
                         state.results[current_step.id] = result
+                        
+                        # Notify completion
+                        if on_step_complete:
+                            await on_step_complete(result)
+
                         success = True
                         break # Success, exit retry loop
 

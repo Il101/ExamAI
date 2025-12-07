@@ -437,5 +437,69 @@ async def _mark_topic_failed(topic_id: UUID, error_message: str):
         topic = await topic_repo.get_by_id(topic_id)
         if topic:
             topic.mark_as_failed(error_message)
-            await topic_repo.update(topic)
-            await session.commit()
+
+@celery_app.task(
+    bind=True,
+    name="extract_exam_content",
+    base=ExamGenerationTask,
+    max_retries=3,
+    default_retry_delay=60,
+)
+def extract_exam_content(self, exam_id: str):
+    """
+    Background task to extract text from exam source file and update DB.
+    This replaces the 'placeholder' content set during creation.
+    """
+    try:
+        asyncio.run(_extract_exam_content_async(UUID(exam_id)))
+        return {"status": "success", "exam_id": exam_id}
+    except Exception as e:
+        print(f"Extraction task failed for exam {exam_id}: {e}")
+        if self.request.retries < self.max_retries:
+            raise self.retry(exc=e)
+        raise
+
+async def _extract_exam_content_async(exam_id: UUID):
+    """Async implementation of content extraction"""
+    async with AsyncSessionLocal() as session:
+        exam_repo = ExamRepository(session)
+        exam = await exam_repo.get_by_id(exam_id)
+        
+        if not exam or not exam.original_file_url:
+            print(f"Exam {exam_id} not found or has no file URL")
+            return
+            
+        # Download file from storage
+        from app.dependencies import get_storage
+        storage = get_storage()
+        
+        try:
+            # Check if content is already real (not placeholder)
+            if exam.original_content and len(exam.original_content) > 200 and "Content processed directly" not in exam.original_content:
+                return # Already extracted
+            
+            print(f"Starting background extraction for exam {exam_id}...")
+            file_data = await storage.download_file(exam.original_file_url)
+            
+            # Extract text
+            from app.utils.extraction import extract_text_generic
+            mime_type = exam.original_file_mime_type or "application/pdf"
+            extracted_text = extract_text_generic(file_data, mime_type)
+            
+            if extracted_text and len(extracted_text) > 100:
+                # Update DB
+                exam.original_content = extracted_text
+                await exam_repo.update(exam)
+                
+                # Upload text to storage (for cache recovery compatibility)
+                text_path = f"exams/{exam.id}/original_content.txt"
+                await storage.upload_file(extracted_text.encode('utf-8'), text_path)
+                
+                await session.commit()
+                print(f"Successfully extracted and updated content for exam {exam.id} ({len(extracted_text)} chars)")
+            else:
+                print(f"Extraction yielded too little text for exam {exam_id}")
+                
+        except Exception as e:
+            print(f"Failed to process file for exam {exam_id}: {e}")
+            raise

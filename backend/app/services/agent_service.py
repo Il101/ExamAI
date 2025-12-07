@@ -100,6 +100,22 @@ class AgentService:
                 )
 
         try:
+            # Define step completion callback for incremental DB updates
+            async def on_step_complete(result):
+                if existing_topics:
+                    # Step IDs are 1-based, list is 0-based
+                    idx = int(result.step_id) - 1
+                    if 0 <= idx < len(existing_topics):
+                        topic = existing_topics[idx]
+                        topic.content = strip_thinking_tags(result.content)
+                        topic.status = "ready"
+                        await self.topic_repo.update(topic)
+                        try:
+                            # Verify if session is active
+                            await self.topic_repo.session.commit()
+                        except Exception as e:
+                            print(f"[AgentService] Failed to commit incremental topic update: {e}")
+
             # Run agent
             state = await self.agent.run(
                 user_request=f"Create study notes for {exam.title}",
@@ -109,6 +125,7 @@ class AgentService:
                 original_content=exam.original_content,
                 existing_plan=existing_plan,
                 progress_callback=progress_callback,
+                on_step_complete=on_step_complete,
                 cache_name=exam.cache_name,
                 exam_id=str(exam.id),
             )
