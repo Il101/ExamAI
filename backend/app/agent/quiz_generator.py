@@ -44,7 +44,12 @@ class QuizGenerator:
     def __init__(self, llm_provider: LLMProvider):
         self.llm = llm_provider
 
-    async def generate_flashcards(self, content: str, num_cards: int = 5) -> List[FlashcardSchema]:
+    async def generate_flashcards(
+        self, 
+        content: str, 
+        num_cards: int = 5,
+        cache_name: str = None
+    ) -> List[FlashcardSchema]:
         """
         Generate flashcards from the provided content.
 
@@ -58,28 +63,46 @@ class QuizGenerator:
         
         from app.prompts import load_prompt
         
-        # Load prompt template
-        prompt = load_prompt(
-            'quiz/flashcards.txt',
-            num_cards=num_cards,
-            content=content[:10000]
-        )
-
-
         print(f"[QuizGenerator] Generating {num_cards} flashcards...")
         
-        response = await self.llm.generate(
-            prompt=prompt,
-            temperature=0.3,
-            system_prompt="You are an expert tutor creating study materials.",
-            response_schema=FlashcardSetSchema,
-            timeout=60.0  # 60 seconds timeout for flashcards
-        )
+        # Use cache if available, otherwise use content directly
+        if cache_name:
+            # Use cache - no content truncation needed
+            prompt = load_prompt(
+                'quiz/flashcards.txt',
+                num_cards=num_cards,
+                content="[Content is available in cache context]"
+            )
+            
+            # Call with cache
+            response = await self.llm.client.aio.models.generate_content(
+                model=cache_name,
+                contents=[{"role": "user", "parts": [{"text": prompt}]}]
+            )
+            
+            json_text = response.text
+        else:
+            # No cache - use full content (no truncation)
+            prompt = load_prompt(
+                'quiz/flashcards.txt',
+                num_cards=num_cards,
+                content=content  # Full content, no [:10000] truncation
+            )
+            
+            response = await self.llm.generate(
+                prompt=prompt,
+                temperature=0.3,
+                system_prompt="You are an expert tutor creating study materials.",
+                response_schema=FlashcardSetSchema,
+                timeout=60.0
+            )
+            
+            json_text = response.content
 
         # Parse response
         try:
-            # Clean response if needed (though response_schema usually handles it)
-            json_text = response.content.strip()
+            # Clean response
+            json_text = json_text.strip()
             if json_text.startswith("```json"):
                 json_text = json_text[7:-3].strip()
             elif json_text.startswith("```"):
@@ -106,7 +129,12 @@ class QuizGenerator:
             # Fallback or re-raise? For now re-raise to see errors
             raise ValueError(f"Failed to generate flashcards: {str(e)}")
 
-    async def generate_mcq_quiz(self, content: str, num_questions: int = 5) -> List[MCQQuestion]:
+    async def generate_mcq_quiz(
+        self, 
+        content: str, 
+        num_questions: int = 5,
+        cache_name: str = None
+    ) -> List[MCQQuestion]:
         """
         Generate multiple choice questions from the provided content.
 
@@ -120,27 +148,45 @@ class QuizGenerator:
         
         from app.prompts import load_prompt
         
-        # Load prompt template
-        prompt = load_prompt(
-            'quiz/mcq_questions.txt',
-            num_questions=num_questions,
-            content=content[:10000]
-        )
-
-
         print(f"[QuizGenerator] Generating {num_questions} MCQ questions...")
         
-        response = await self.llm.generate(
-            prompt=prompt,
-            temperature=0.4,
-            system_prompt="You are an expert tutor creating educational assessments.",
-            response_schema=MCQQuizSchema,
-            timeout=60.0  # 60 seconds timeout for quiz generation
-        )
+        # Use cache if available, otherwise use content directly
+        if cache_name:
+            # Use cache - no content truncation needed
+            prompt = load_prompt(
+                'quiz/mcq_questions.txt',
+                num_questions=num_questions,
+                content="[Content is available in cache context]"
+            )
+            
+            # Call with cache
+            response = await self.llm.client.aio.models.generate_content(
+                model=cache_name,
+                contents=[{"role": "user", "parts": [{"text": prompt}]}]
+            )
+            
+            json_text = response.text
+        else:
+            # No cache - use full content (no truncation)
+            prompt = load_prompt(
+                'quiz/mcq_questions.txt',
+                num_questions=num_questions,
+                content=content  # Full content, no [:10000] truncation
+            )
+            
+            response = await self.llm.generate(
+                prompt=prompt,
+                temperature=0.4,
+                system_prompt="You are an expert tutor creating educational assessments.",
+                response_schema=MCQQuizSchema,
+                timeout=60.0
+            )
+            
+            json_text = response.content
 
         # Parse response
         try:
-            json_text = response.content.strip()
+            json_text = json_text.strip()
             if json_text.startswith("```json"):
                 json_text = json_text[7:-3].strip()
             elif json_text.startswith("```"):

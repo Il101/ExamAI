@@ -204,7 +204,11 @@ class AgentService:
                             await progress_callback(f"Generating flashcards for {plan_step.title}...", 0.9)
                         
                         print(f"Attempting to generate flashcards for topic: {plan_step.title} (content length: {len(content)})")
-                        flashcards = await self.quiz_generator.generate_flashcards(content, num_cards=3)
+                        flashcards = await self.quiz_generator.generate_flashcards(
+                            content, 
+                            num_cards=3,
+                            cache_name=exam.cache_name  # Use cache if available
+                        )
                         print(f"Generated {len(flashcards)} flashcards for topic: {plan_step.title}")
                         
                         for card in flashcards:
