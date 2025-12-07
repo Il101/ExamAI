@@ -39,10 +39,14 @@ class CachedTopicExecutor(TopicExecutor):
         async def generate_op(cache: Optional[str]):
             """Operation to execute with cache"""
             if cache:
-                # Use cached content by passing cache name as model
+                # Use cached content by passing cache name in config
                 # This is the correct API for Gemini context caching
+                from app.core.config import settings
                 response = await self.llm.client.aio.models.generate_content(
-                    model=cache,  # Cache name is used as model parameter
+                    model=settings.GEMINI_MODEL,  # Use base model
+                    config={
+                        "cached_content": cache,
+                    },
                     contents=[{"role": "user", "parts": [{"text": prompt}]}]
                 )
                 return response.text
