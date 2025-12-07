@@ -47,8 +47,8 @@ class CachedTopicExecutor(TopicExecutor):
                 )
                 return response.text
             else:
-                # Fallback: regular generation
-                response = await self.llm.generate(prompt, max_tokens=2000)
+                # Fallback: regular generation without max_tokens limit
+                response = await self.llm.generate(prompt)
                 return response.content
         
         # Execute with fallback if available

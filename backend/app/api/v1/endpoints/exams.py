@@ -96,6 +96,10 @@ async def create_exam_v3(
     import tempfile
     import os
     
+    tmp_path = None
+    pdf_path = None
+    warnings = []
+    
     try:
         # Validate file size (10MB limit)
         MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
@@ -119,42 +123,51 @@ async def create_exam_v3(
                 "Supported types: PDF, DOCX, TXT, MP3, MP4"
             )
         
-        # Upload file to Gemini File API and extract content
+        # Create temp file
         with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1]) as tmp:
             tmp.write(content_bytes)
             tmp_path = tmp.name
         
-        try:
-            # Get Gemini client
-            client = llm_provider.client
-            
-            # Upload to Gemini
-            uploaded_file = client.files.upload(file=tmp_path, config={'mime_type': file.content_type})
-            
-            # Extract content with Gemini
-            prompt = f"""Extract all text content from this file. Return ONLY the raw text content, no formatting, no analysis, no summary.
+        # Get Gemini client
+        client = llm_provider.client
+        
+        # Upload to Gemini
+        uploaded_file = client.files.upload(file=tmp_path, config={'mime_type': file.content_type})
+        
+        # Extract content with Gemini
+        prompt = f"""Extract all text content from this file. Return ONLY the raw text content, no formatting, no analysis, no summary.
 
 If this is a study material, textbook, or educational content, extract everything as-is."""
 
-            response = await client.aio.models.generate_content(
-                model=llm_provider.model_name,
-                contents=[uploaded_file, prompt],
-                config=types.GenerateContentConfig(
-                    temperature=0.0,
-                )
+        response = await client.aio.models.generate_content(
+            model=llm_provider.model_name,
+            contents=[uploaded_file, prompt],
+            config=types.GenerateContentConfig(
+                temperature=0.0,
             )
-            
-            original_content = response.text.strip()
-            
-            # Delete uploaded file from Gemini
-            try:
-                client.files.delete(name=uploaded_file.name)
-            except:
-                pass  # Ignore cleanup errors
-                
-        finally:
-            # Clean up temp file
-            os.unlink(tmp_path)
+        )
+        
+        original_content = response.text.strip()
+        
+        # Validate extracted content
+        if not original_content:
+            raise ValidationException(
+                "Failed to extract text from file. File may be empty or corrupted."
+            )
+        
+        if len(original_content) < 100:
+            raise ValidationException(
+                f"Extracted text too short ({len(original_content)} chars). "
+                "File may not contain readable content."
+            )
+        
+        logger.info(f"Successfully extracted {len(original_content)} characters from file")
+        
+        # Delete uploaded file from Gemini
+        try:
+            client.files.delete(name=uploaded_file.name)
+        except:
+            pass  # Ignore cleanup errors
         
         # Initialize services
         llm = GeminiProvider(api_key=settings.GEMINI_API_KEY, model=settings.GEMINI_MODEL)
@@ -174,18 +187,16 @@ If this is a study material, textbook, or educational content, extract everythin
             "application/vnd.openxmlformats-officedocument.presentationml.presentation"
         ]
         
+        # Process media BEFORE deleting tmp_path
         if file.content_type in media_supported_types:
             try:
                 from app.utils.pdf_converter import ensure_pdf
                 import uuid
                 
                 # Convert to PDF if needed
-                # We use the temp file we already created
                 pdf_path = ensure_pdf(tmp_path, file.content_type)
                 
                 # Upload to Supabase
-                # Generate a unique path: original_files/{uuid}.pdf
-                # We use a flat structure to make cleanup easier
                 file_ext = ".pdf"
                 storage_path = f"original_files/{uuid.uuid4()}{file_ext}"
                 
@@ -201,13 +212,11 @@ If this is a study material, textbook, or educational content, extract everythin
                 original_file_url = storage_path
                 original_file_mime_type = "application/pdf"
                 
-                # Clean up converted file if it's different from tmp_path
-                if pdf_path != tmp_path and os.path.exists(pdf_path):
-                    os.unlink(pdf_path)
-                    
+                logger.info(f"Successfully processed media file: {storage_path}")
+                
             except Exception as e:
-                # Log error but don't fail the request, just skip media extraction
-                print(f"Failed to process original file for media extraction: {e}")
+                logger.error(f"Media extraction failed: {e}", exc_info=True)
+                warnings.append("Image extraction unavailable for this file")
         
         # Create exam with plan
         exam, plan = await create_exam_with_plan(
@@ -226,14 +235,35 @@ If this is a study material, textbook, or educational content, extract everythin
             original_file_mime_type=original_file_mime_type
         )
         
-        return {
+        response_data = {
             "exam": ExamResponse.model_validate(exam).model_dump(),
             "plan": plan.model_dump(),
             "message": "Exam created with plan. First 2 topics are being generated."
         }
+        
+        if warnings:
+            response_data["warnings"] = warnings
+        
+        return response_data
     
     except ValueError as e:
         raise ValidationException(str(e))
+    
+    finally:
+        # Guaranteed cleanup of all temp files
+        if tmp_path and os.path.exists(tmp_path):
+            try:
+                os.unlink(tmp_path)
+                logger.debug(f"Cleaned up temp file: {tmp_path}")
+            except Exception as e:
+                logger.warning(f"Failed to cleanup temp file {tmp_path}: {e}")
+        
+        if pdf_path and pdf_path != tmp_path and os.path.exists(pdf_path):
+            try:
+                os.unlink(pdf_path)
+                logger.debug(f"Cleaned up PDF file: {pdf_path}")
+            except Exception as e:
+                logger.warning(f"Failed to cleanup PDF file {pdf_path}: {e}")
 
 
 
