@@ -234,6 +234,12 @@ class AgentService:
 
 
             exam.update_topic_count(len(state.plan))
+            
+            # Commit topic progress to DB so it's visible to status polling
+            try:
+                await self.topic_repo.session.commit()
+            except Exception as e:
+                print(f"Failed to commit intermediate progress: {e}")
 
             # Log usage
             await self.cost_guard.log_usage(
