@@ -69,11 +69,15 @@ class QuizGenerator:
         # Use cache if available, otherwise use content directly
         if cache_name:
             try:
-                # Use cache - no content truncation needed
-                prompt = load_prompt(
-                    'quiz/flashcards.txt',
-                    num_cards=num_cards,
-                    content="[Content is available in cache context]"
+                # Use cache - remove content placeholder from prompt
+                import re
+                prompt_template = load_prompt('quiz/flashcards.txt', num_cards=num_cards, content="")
+                # Remove the content section since it's in cache
+                prompt = re.sub(
+                    r'## Source Content\s+\{content\}\s+---',
+                    '**IMPORTANT:** The source content is already loaded in the context cache. Analyze it to create flashcards.\n\n---',
+                    prompt_template,
+                    flags=re.DOTALL
                 )
                 
                 # Call with cache
@@ -110,10 +114,12 @@ class QuizGenerator:
                             print(f"[QuizGenerator] Successfully recreated cache: {new_cache_name}")
                             
                             # Retry with new cache
-                            prompt = load_prompt(
-                                'quiz/flashcards.txt',
-                                num_cards=num_cards,
-                                content="[Content is available in cache context]"
+                            prompt_template = load_prompt('quiz/flashcards.txt', num_cards=num_cards, content="")
+                            prompt = re.sub(
+                                r'## Source Content\s+\{content\}\s+---',
+                                '**IMPORTANT:** The source content is already loaded in the context cache. Analyze it to create flashcards.\n\n---',
+                                prompt_template,
+                                flags=re.DOTALL
                             )
                             
                             response = await self.llm.client.aio.models.generate_content(
@@ -239,11 +245,15 @@ class QuizGenerator:
         # Use cache if available, otherwise use content directly
         if cache_name:
             try:
-                # Use cache - no content truncation needed
-                prompt = load_prompt(
-                    'quiz/mcq_questions.txt',
-                    num_questions=num_questions,
-                    content="[Content is available in cache context]"
+                # Use cache - remove content placeholder from prompt
+                import re
+                prompt_template = load_prompt('quiz/mcq_questions.txt', num_questions=num_questions, content="")
+                # Remove the content section since it's in cache
+                prompt = re.sub(
+                    r'## Source Content\s+\{content\}\s+---',
+                    '**IMPORTANT:** The source content is already loaded in the context cache. Analyze it to create questions.\n\n---',
+                    prompt_template,
+                    flags=re.DOTALL
                 )
                 
                 # Call with cache
@@ -280,10 +290,12 @@ class QuizGenerator:
                             print(f"[QuizGenerator] Successfully recreated cache: {new_cache_name}")
                             
                             # Retry with new cache
-                            prompt = load_prompt(
-                                'quiz/mcq_questions.txt',
-                                num_questions=num_questions,
-                                content="[Content is available in cache context]"
+                            prompt_template = load_prompt('quiz/mcq_questions.txt', num_questions=num_questions, content="")
+                            prompt = re.sub(
+                                r'## Source Content\s+\{content\}\s+---',
+                                '**IMPORTANT:** The source content is already loaded in the context cache. Analyze it to create questions.\n\n---',
+                                prompt_template,
+                                flags=re.DOTALL
                             )
                             
                             response = await self.llm.client.aio.models.generate_content(
