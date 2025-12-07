@@ -67,6 +67,10 @@ class CachedTopicExecutor(TopicExecutor):
         """
         prompt = self._build_topic_prompt(topic, context, cache_name)
         
+        # Log the prompt for debugging
+        logger.info(f"[CachedExecutor] Topic prompt (first 500 chars): {prompt[:500]}...")
+        logger.info(f"[CachedExecutor] Using cache: {cache_name is not None}, Cache name: {cache_name}")
+        
         async def generate_op(cache: Optional[str]):
             """Operation to execute with cache"""
             if cache:
