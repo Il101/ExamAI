@@ -492,4 +492,3 @@ async def _extract_exam_content_async(exam_id: UUID):
         print(f"WARNING: extract_exam_content task is deprecated. Content should be extracted during creation.")
         print(f"Exam {exam_id} may need manual content extraction.")
         # Do nothing - content extraction now happens in v3 endpoint
-```
