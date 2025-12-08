@@ -108,11 +108,22 @@ def generate_exam_content(self, exam_id: str, user_id: str):
         print(f"Error category: {error_category}")
 
         # Mark exam as failed with descriptive error message
-        asyncio.run(
-            _mark_exam_failed(
-                UUID(exam_id), error_category=error_category, error_message=user_message
+        # Use existing event loop if available, otherwise create new one
+        try:
+            loop = asyncio.get_running_loop()
+            # We're in an event loop, schedule as task
+            loop.create_task(
+                _mark_exam_failed(
+                    UUID(exam_id), error_category=error_category, error_message=user_message
+                )
             )
-        )
+        except RuntimeError:
+            # No event loop running, safe to use asyncio.run()
+            asyncio.run(
+                _mark_exam_failed(
+                    UUID(exam_id), error_category=error_category, error_message=user_message
+                )
+            )
 
         # Retry task if retries remaining (only for transient errors)
         if self.request.retries < self.max_retries and error_category in [
