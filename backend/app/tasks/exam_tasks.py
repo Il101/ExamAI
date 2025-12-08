@@ -14,7 +14,6 @@ from app.repositories.user_repository import UserRepository
 from app.repositories.review_repository import ReviewItemRepository
 from app.domain.topic import Topic
 from app.services.agent_service import AgentService
-from app.services.agent_service import AgentService
 from app.services.cost_guard_service import CostGuardService
 from app.services.cache_fallback import CacheFallbackService
 from app.integrations.storage.supabase_storage import SupabaseStorage
@@ -47,8 +46,20 @@ class ExamGenerationTask(Task):
     def after_return(self, *args, **kwargs):
         """Close database session after task completes"""
         if self._db_session is not None:
-            asyncio.run(self._db_session.close())
-            self._db_session = None
+            try:
+                # Try to get existing event loop
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    # If loop is running, schedule coroutine
+                    loop.create_task(self._db_session.close())
+                else:
+                    # If loop is not running, use asyncio.run
+                    asyncio.run(self._db_session.close())
+            except RuntimeError:
+                # Event loop is closed, ignore
+                pass
+            finally:
+                self._db_session = None
 
 
 @celery_app.task(
@@ -466,4 +477,6 @@ async def _mark_topic_failed(topic_id: UUID, error_message: str):
         topic = await topic_repo.get_by_id(topic_id)
         if topic:
             topic.mark_as_failed(error_message)
+            await topic_repo.update(topic)
+            await session.commit()
 

@@ -34,32 +34,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.post("", response_model=ExamResponse, status_code=status.HTTP_201_CREATED)
-async def create_exam(
-    request: ExamCreate,
-    current_user: User = Depends(get_current_active_user),
-    exam_service: ExamService = Depends(get_exam_service),
-):
-    """
-    Create a new exam (legacy endpoint).
-    
-    Note: This endpoint is deprecated. Use POST /v3 instead.
-    """
-    try:
-        exam = await exam_service.create_exam(
-            user=current_user,
-            title=request.title,
-            subject=request.subject,
-            exam_type=request.exam_type,
-            level=request.level,
-            original_content=request.original_content,
-        )
-
-        return ExamResponse.model_validate(exam)
-
-    except ValueError as e:
-        raise ValidationException(str(e))
-
 
 @router.post("/v3", response_model=dict, status_code=status.HTTP_201_CREATED)
 async def create_exam_v3(
@@ -197,19 +171,7 @@ async def create_exam_v3(
             gemini_file_uri=gemini_file_uri
         )
         
-        # DO NOT delete Gemini file - it's needed for cache creation and potential recreation
-        # Gemini files auto-expire after 48 hours, so no manual cleanup needed
-        # Keeping the file ensures:
-        # 1. Cache can be created successfully during plan generation
-        # 2. Cache can be recreated if it expires during long-running operations
-        # 3. No "File not found" errors during async cache operations
-        # if uploaded_file:
-        #     try:
-        #         client.files.delete(name=uploaded_file.name)
-        #     except Exception as e:
-        #         logger.warning(f"Failed to delete Gemini file {uploaded_file.name}: {e}")
-
-        # Trigger Async Text Extraction
+        
         # Trigger Async Content Generation (instead of deprecated extraction)
         try:
             from app.tasks.exam_tasks import generate_exam_content

@@ -126,12 +126,16 @@ class CachedCoursePlanner(CoursePlanner):
                         
                         # Call with cache
                         from app.core.config import settings
-                        response = await self.llm.client.aio.models.generate_content(
-                            model=settings.GEMINI_MODEL,  # Use base model
-                            config={
-                                "cached_content": cache_name,
-                            },
-                            contents=[{"role": "user", "parts": [{"text": prompt}]}]
+                        import asyncio
+                        response = await asyncio.wait_for(
+                            self.llm.client.aio.models.generate_content(
+                                model=settings.GEMINI_MODEL,  # Use base model
+                                config={
+                                    "cached_content": cache_name,
+                                },
+                                contents=[{"role": "user", "parts": [{"text": prompt}]}]
+                            ),
+                            timeout=120.0  # 2 minute timeout
                         )
                         
                         # Parse response
@@ -163,11 +167,11 @@ class CachedCoursePlanner(CoursePlanner):
                                 # For now, try to get from state.original_content
                                 if state.original_content:
                                     # Recreate cache
-                                    # Note: We don't have exam_id here, so we'll use a temporary approach
-                                    # Better solution: pass exam_id to this method
                                     logger.info("Recreating cache from state content...")
+                                    # Use exam_id from state if available
+                                    cache_exam_id = UUID(state.exam_id) if state.exam_id else None
                                     new_cache_name = await cache_manager.create_cache(
-                                        exam_id=None,  # TODO: Pass exam_id properly
+                                        exam_id=cache_exam_id,
                                         content=state.original_content,
                                         ttl_seconds=3600
                                     )
@@ -175,12 +179,15 @@ class CachedCoursePlanner(CoursePlanner):
                                     
                                     # Retry with new cache
                                     prompt = self._build_planning_prompt_with_cache(state)
-                                    response = await self.llm.client.aio.models.generate_content(
-                                        model=settings.GEMINI_MODEL,
-                                        config={
-                                            "cached_content": new_cache_name,
-                                        },
-                                        contents=[{"role": "user", "parts": [{"text": prompt}]}]
+                                    response = await asyncio.wait_for(
+                                        self.llm.client.aio.models.generate_content(
+                                            model=settings.GEMINI_MODEL,
+                                            config={
+                                                "cached_content": new_cache_name,
+                                            },
+                                            contents=[{"role": "user", "parts": [{"text": prompt}]}]
+                                        ),
+                                        timeout=120.0  # 2 minute timeout
                                     )
                                     plan_text = response.text
                                 else:

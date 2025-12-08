@@ -69,21 +69,20 @@ class PlanAndExecuteAgent:
         )
 
         try:
-            # Stage 1: Planning (or Loading Plan)
+            # Stage 1: Load existing plan (V3 always creates plan upfront)
             state.status = ExecutionStatus.PLANNING
             
-            if existing_plan:
-                 await self._notify_progress(progress_callback, "Loading existing plan...", 0.1)
-                 state.plan = existing_plan
-                 await self._notify_progress(
-                    progress_callback, f"Plan loaded: {len(state.plan)} topics", 0.2
+            if not existing_plan:
+                raise ValueError(
+                    "No plan provided. Plan must be created before content generation. "
+                    "This should not happen in V3 flow."
                 )
-            else:
-                await self._notify_progress(progress_callback, "Planning structure...", 0.1)
-                state.plan = await self.planner.make_plan(state)
-                await self._notify_progress(
-                    progress_callback, f"Plan created: {len(state.plan)} topics", 0.2
-                )
+            
+            await self._notify_progress(progress_callback, "Loading plan...", 0.1)
+            state.plan = existing_plan
+            await self._notify_progress(
+                progress_callback, f"Plan loaded: {len(state.plan)} topics", 0.2
+            )
 
             # Stage 2: Execution
             state.status = ExecutionStatus.EXECUTING
@@ -130,7 +129,18 @@ class PlanAndExecuteAgent:
 
                     except Exception as e:
                         error_msg = str(e)
-                        is_transient = "503" in error_msg or "429" in error_msg or "overloaded" in error_msg.lower()
+                        
+                        # Check if error is transient using exception types
+                        from google.genai import errors as genai_errors
+                        is_transient = isinstance(e, (
+                            genai_errors.ResourceExhausted,  # 429 rate limit
+                            genai_errors.ServiceUnavailable,  # 503 service unavailable
+                            genai_errors.DeadlineExceeded,   # timeout
+                        ))
+                        
+                        # Fallback to string matching for non-genai errors
+                        if not is_transient:
+                            is_transient = "503" in error_msg or "429" in error_msg or "overloaded" in error_msg.lower()
                         
                         if attempt < max_retries and is_transient:
                             wait_time = retry_delay * (2 ** attempt) # Exponential backoff: 2, 4, 8

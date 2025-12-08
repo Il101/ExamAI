@@ -80,6 +80,12 @@ class AgentService:
         if exam.status != "generating":
             exam.start_generation()
             await self.exam_repo.update(exam)
+            # Commit immediately to release lock on exam row
+            # This prevents timeouts if API tries to update status while generation is running
+            try:
+                await self.exam_repo.session.commit()
+            except Exception as e:
+                print(f"[AgentService] Failed to commit initial status update: {e}")
 
         # Check for existing topics (Progressive Generation)
         existing_topics = await self.topic_repo.get_by_exam_id(exam.id)
@@ -94,7 +100,7 @@ class AgentService:
                         id=topic.order_index + 1, # PlanStep IDs are usually 1-based
                         title=topic.topic_name,
                         description=f"Generate content for {topic.topic_name}", # Description might be lost, reconstruct generic one
-                        priority=Priority(topic.difficulty_level) if topic.difficulty_level in [1,2,3] else Priority.MEDIUM,
+                        priority=Priority(topic.generation_priority) if topic.generation_priority in [1,2,3] else Priority.MEDIUM,
                         estimated_paragraphs=5
                     )
                 )
@@ -178,7 +184,8 @@ class AgentService:
                         topic_name=plan_step.title,
                         content=content,
                         order_index=i,
-                        difficulty_level=plan_step.priority.value,
+                        generation_priority=plan_step.priority.value,
+                        difficulty_level=3,  # Default difficulty
                     )
                     topic.estimate_study_time()
                     created_topic = await self.topic_repo.create(topic)
