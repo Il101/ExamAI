@@ -32,6 +32,31 @@ class NoteFinalizer:
         prompt = self._build_finalization_prompt(state, combined_notes)
 
         # Call LLM for final polish
+        # If cache is available, use it to ground the final summary and checks
+        if state.cache_name:
+            from app.core.config import settings
+            try:
+                # Use Gemini client directly for cached content
+                # Add instruction to usage of cache
+                prompt += "\n\n(Note: The original source document is available in your context. Use it to verify facts and improve the summary.)"
+                
+                response_obj = await self.llm.client.aio.models.generate_content(
+                    model=settings.GEMINI_MODEL,
+                    config={
+                        "cached_content": state.cache_name,
+                    },
+                    contents=[{
+                        "role": "user", 
+                        "parts": [{"text": "System: You are an expert editor of educational materials.\n\n" + prompt}]
+                    }]
+                )
+                return response_obj.text.strip()
+            except Exception as e:
+                # Fallback to standard generation if cache fails
+                print(f"[Finalizer] Cache usage failed: {e}. Falling back to standard generation.")
+                pass
+
+        # Standard generation (no cache or fallback)
         response = await self.llm.generate(
             prompt=prompt,
             temperature=0.5,  # Moderate creativity

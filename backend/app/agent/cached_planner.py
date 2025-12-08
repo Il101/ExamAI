@@ -15,6 +15,22 @@ logger = logging.getLogger(__name__)
 class CachedCoursePlanner(CoursePlanner):
     """Planner with integrated cache creation"""
     
+    async def make_plan(self, state: AgentState):
+        """
+        Override standard make_plan to check for existing cache in state.
+        This ensures even if we didn't just upload a file (e.g. retry), we use the cache.
+        """
+        if state.cache_name:
+            logger.info(f"Using existing cache for planning: {state.cache_name}")
+            # Generate plan using internal cached method
+            plan = await self._make_plan_internal(state, state.cache_name)
+            
+            # Convert to legacy steps format to match interface
+            from app.agent.plan_adapter import exam_plan_to_steps
+            return exam_plan_to_steps(plan)
+            
+        return await super().make_plan(state)
+
     async def make_plan_with_cache(
         self,
         state: AgentState,
