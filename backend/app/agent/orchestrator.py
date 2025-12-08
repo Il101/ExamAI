@@ -131,11 +131,13 @@ class PlanAndExecuteAgent:
                         error_msg = str(e)
                         
                         # Check if error is transient using exception types
+                        import asyncio
                         from google.genai import errors as genai_errors
                         is_transient = isinstance(e, (
                             genai_errors.ResourceExhausted,  # 429 rate limit
                             genai_errors.ServiceUnavailable,  # 503 service unavailable
                             genai_errors.DeadlineExceeded,   # timeout
+                            asyncio.TimeoutError,            # asyncio timeout
                         ))
                         
                         # Fallback to string matching for non-genai errors

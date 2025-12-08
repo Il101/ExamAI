@@ -117,24 +117,42 @@ class AgentService:
                         topic.status = "ready"
                         await self.topic_repo.update(topic)
                         try:
-                            # Verify if session is active
+                            # Commit topic update
                             await self.topic_repo.session.commit()
                         except Exception as e:
-                            print(f"[AgentService] Failed to commit incremental topic update: {e}")
+                            # Critical: if commit fails, rollback and mark topic as failed
+                            print(f"[AgentService] CRITICAL: Failed to commit topic update: {e}")
+                            await self.topic_repo.session.rollback()
+                            # Mark topic as failed
+                            topic.status = "failed"
+                            topic.content = f"Failed to save content: {str(e)}"
+                            await self.topic_repo.update(topic)
+                            try:
+                                await self.topic_repo.session.commit()
+                            except Exception as rollback_error:
+                                print(f"[AgentService] CRITICAL: Failed to mark topic as failed: {rollback_error}")
+                            # Re-raise to stop generation
+                            raise ValueError(f"Failed to commit topic {topic.id}: {e}")
 
-            # Run agent
-            state = await self.agent.run(
-                user_request=f"Create study notes for {exam.title}",
-                subject=exam.subject,
-                exam_type=exam.exam_type,
-                level=exam.level,
-                original_content=exam.original_content,
-                existing_plan=existing_plan,
-                progress_callback=progress_callback,
-                on_step_complete=on_step_complete,
-                cache_name=exam.cache_name,
-                exam_id=str(exam.id),
-            )
+            # Run agent with timeout to prevent indefinite hangs
+            try:
+                state = await asyncio.wait_for(
+                    self.agent.run(
+                        user_request=f"Create study notes for {exam.title}",
+                        subject=exam.subject,
+                        exam_type=exam.exam_type,
+                        level=exam.level,
+                        original_content=exam.original_content,
+                        existing_plan=existing_plan,
+                        progress_callback=progress_callback,
+                        on_step_complete=on_step_complete,
+                        cache_name=exam.cache_name,
+                        exam_id=str(exam.id),
+                    ),
+                    timeout=1800.0  # 30 minutes maximum for entire generation
+                )
+            except asyncio.TimeoutError:
+                raise ValueError("Content generation exceeded 30 minute timeout")
 
             # Save results
             # We split total tokens roughly 50/50 for input/output if not tracked separately per step
