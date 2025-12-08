@@ -174,6 +174,10 @@ async def create_exam_v3(
         
         # Trigger Async Content Generation (instead of deprecated extraction)
         try:
+            # Commit transaction explicitly to ensure exam exists in DB before task starts
+            # This fixes race condition where Celery worker picks up task before API commits
+            await exam_service.exam_repo.session.commit()
+            
             from app.tasks.exam_tasks import generate_exam_content
             # Start generation immediately
             generate_exam_content.delay(str(exam.id), str(current_user.id))
