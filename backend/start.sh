@@ -32,8 +32,9 @@ echo "Skipping migrations (already applied manually)"
 # run_migrations
 
 # Start Celery worker in the background with output redirection
+# Start Celery worker in the background with output redirection
 echo "Starting Celery worker..."
-celery -A app.tasks.celery_app worker --pool=solo --loglevel=info 2>&1 &
+DB_POOL_DISABLE=True celery -A app.tasks.celery_app worker --pool=solo --loglevel=info 2>&1 &
 CELERY_PID=$!
 echo "Celery worker started with PID: $CELERY_PID"
 
