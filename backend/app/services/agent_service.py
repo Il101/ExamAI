@@ -92,6 +92,8 @@ class AgentService:
         existing_topics = await self.topic_repo.get_by_exam_id(exam.id)
         existing_plan = None
         
+        print(f"[AgentService] Found {len(existing_topics)} existing topics for exam {exam_id}")
+        
         if existing_topics:
             from app.agent.state import PlanStep, Priority
             existing_plan = []
@@ -105,6 +107,9 @@ class AgentService:
                         estimated_paragraphs=5
                     )
                 )
+            print(f"[AgentService] Built existing_plan with {len(existing_plan)} steps")
+        else:
+            print(f"[AgentService] WARNING: No existing topics found! Celery will fail if orchestrator expects a plan.")
 
         try:
             # Define step completion callback for incremental DB updates

@@ -4,21 +4,27 @@ V3.0 Exam creation with integrated plan generation and caching.
 This method:
 1. Creates exam in 'planning' status
 2. Generates plan with CachedCoursePlanner (creates cache + uploads to S3)
-3. Stores plan_data and cache info
-4. Triggers initial prefetch (first 2 topics)
-5. Returns exam with plan ready
+3. Creates Topic records in database from plan
+4. Stores plan_data and cache info
+5. Triggers initial prefetch (first 2 topics)
+6. Returns exam with plan ready
 """
 from typing import Tuple
 from uuid import UUID
 from datetime import datetime, timedelta, timezone
+import logging
 
 from app.domain.exam import Exam
 from app.domain.user import User
+from app.domain.topic import Topic
 from app.agent.schemas import ExamPlan
 from app.agent.cached_planner import CachedCoursePlanner
 from app.integrations.storage import SupabaseStorage
 from app.integrations.llm.cache_manager import ContextCacheManager
 from app.services.generation_service import GenerationService
+from app.repositories.topic_repository import TopicRepository
+
+logger = logging.getLogger(__name__)
 
 
 async def create_exam_with_plan(
@@ -89,7 +95,30 @@ async def create_exam_with_plan(
         mime_type=original_file_mime_type or "application/pdf"
     )
     
-    # Prepare updates dictionary
+    # 3. Create Topic records from plan
+    # Use the same session as exam_service to ensure transactional consistency
+    topic_repo = TopicRepository(exam_service.exam_repo.session)
+    
+    all_topics = plan.get_all_topics()
+    created_topics = []
+    
+    for idx, topic_plan in enumerate(all_topics):
+        topic = Topic(
+            exam_id=exam.id,
+            user_id=user.id,
+            topic_name=topic_plan.title,
+            content="",  # Will be generated later
+            status="pending",
+            order_index=idx,
+            generation_priority=1,  # All topics have equal priority for now
+            difficulty_level=3,  # Default difficulty
+        )
+        created_topic = await topic_repo.create(topic)
+        created_topics.append(created_topic)
+    
+    logger.info(f"Created {len(created_topics)} Topic records for exam {exam.id}")
+    
+    # 4. Prepare updates dictionary
     updates = {
         "plan_data": plan.model_dump(),
         "cache_name": cache_name,
