@@ -87,52 +87,48 @@ def generate_exam_content(self, exam_id: str, user_id: str):
     print(f"[CELERY] Starting generate_exam_content task for exam_id={exam_id}, user_id={user_id}")
     print(f"[CELERY] Task ID: {self.request.id}")
     
-    try:
-        print(f"[CELERY] Running async generation...")
-        # Run async code in sync Celery task
-        result = asyncio.run(
-            _generate_exam_content_async(
+    async def task_wrapper():
+        try:
+            print(f"[CELERY] Running async generation...")
+            # Run async code
+            result = await _generate_exam_content_async(
                 exam_id=UUID(exam_id), user_id=UUID(user_id), task=self
             )
-        )
-        
-        print(f"[CELERY] Generation completed successfully for exam {exam_id}")
-        return result
+            print(f"[CELERY] Generation completed successfully for exam {exam_id}")
+            return result
+            
+        except Exception as e:
+            # Catch error within the same event loop
+            # Categorize error and create user-friendly message
+            error_category, user_message = _categorize_error(e)
 
-    except Exception as e:
-        # Categorize error and create user-friendly message
-        error_category, user_message = _categorize_error(e)
+            # Log detailed error for developers
+            print(f"Error generating exam {exam_id}: {str(e)}")
+            print(f"Error category: {error_category}")
 
-        # Log detailed error for developers
-        print(f"Error generating exam {exam_id}: {str(e)}")
-        print(f"Error category: {error_category}")
-
-        # Mark exam as failed with descriptive error message
-        # Use existing event loop if available, otherwise create new one
-        try:
-            loop = asyncio.get_running_loop()
-            # We're in an event loop, schedule as task
-            loop.create_task(
-                _mark_exam_failed(
+            # Mark exam as failed with descriptive error message
+            # Safe to call directly as we are in the same loop
+            try:
+                await _mark_exam_failed(
                     UUID(exam_id), error_category=error_category, error_message=user_message
                 )
-            )
-        except RuntimeError:
-            # No event loop running, safe to use asyncio.run()
-            asyncio.run(
-                _mark_exam_failed(
-                    UUID(exam_id), error_category=error_category, error_message=user_message
-                )
-            )
+            except Exception as mark_error:
+                print(f"[CELERY] CRITICAL: Failed to mark exam as failed: {mark_error}")
 
-        # Retry task if retries remaining (only for transient errors)
-        if self.request.retries < self.max_retries and error_category in [
-            "api_error",
-            "timeout",
-        ]:
-            raise self.retry(exc=e)
+            # Retry task if retries remaining (only for transient errors)
+            if self.request.retries < self.max_retries and error_category in [
+                "api_error",
+                "timeout",
+            ]:
+                # We need to raise Retry exception, but we are inside async wrapper.
+                # asyncio.run will propagate exceptions.
+                # Wait, self.retry raises an exception.
+                raise self.retry(exc=e)
 
-        raise
+            raise e
+
+    # Run the wrapper in a single event loop
+    return asyncio.run(task_wrapper())
 
 
 def _categorize_error(exception: Exception) -> tuple[str, str]:
