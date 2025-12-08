@@ -78,7 +78,7 @@ class CacheFallbackService:
                             # Upload to Gemini (using sync client method inside async flow - acceptable for now or use run_in_executor if blocking)
                             # cache_manager.client is genai.Client
                             gemini_file = self.cache.client.files.upload(
-                                path=temp_path,
+                                file=temp_path,
                                 config={'mime_type': mime_type}
                             )
                             logger.info(f"Uploaded recovery file to Gemini: {gemini_file.uri}")
