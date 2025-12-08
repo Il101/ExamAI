@@ -192,9 +192,18 @@ async def _generate_exam_content_async(
         review_repo = ReviewItemRepository(session)
 
         print(f"[CELERY ASYNC] Fetching user and exam from database...")
-        # Get user and exam
-        user = await user_repo.get_by_id(user_id)
-        exam = await exam_repo.get_by_id(exam_id)
+        # Get user and exam with timeout to prevent hanging
+        try:
+            user = await asyncio.wait_for(
+                user_repo.get_by_id(user_id),
+                timeout=30.0  # 30 second timeout
+            )
+            exam = await asyncio.wait_for(
+                exam_repo.get_by_id(exam_id),
+                timeout=30.0
+            )
+        except asyncio.TimeoutError:
+            raise ValueError(f"Database query timeout: failed to fetch user or exam after 30s")
 
         if not user or not exam:
             raise ValueError("User or exam not found")
