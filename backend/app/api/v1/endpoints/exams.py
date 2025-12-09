@@ -73,6 +73,8 @@ async def create_exam_v3(
     import tempfile
     import os
     
+    import aiofiles
+    
     tmp_path = None
     pdf_path = None
     warnings = []
@@ -100,10 +102,13 @@ async def create_exam_v3(
                 "Supported types: PDF, DOCX, TXT, MP3, MP4"
             )
         
-        # Create temp file
+        # Create temp file (async write)
+        # We use NamedTemporaryFile just to generate a unique safe path
         with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1]) as tmp:
-            tmp.write(content_bytes)
             tmp_path = tmp.name
+            
+        async with aiofiles.open(tmp_path, 'wb') as f:
+            await f.write(content_bytes)
         
         # Get Gemini client
         client = llm_provider.client
@@ -124,15 +129,19 @@ async def create_exam_v3(
                 # For now, let's just upload the raw file as is or convert if needed
                 # The 'ensure_pdf' utility is good for standardizing
                 from app.utils.pdf_converter import ensure_pdf
-                pdf_path = ensure_pdf(tmp_path, file.content_type)
+                from starlette.concurrency import run_in_threadpool
+                
+                # ensure_pdf uses blocking subprocess, so run in threadpool
+                pdf_path = await run_in_threadpool(ensure_pdf, tmp_path, file.content_type)
                 
                 # Upload PDF to storage
                 filename = f"{uuid4()}.pdf"
                 storage_path = f"exams/source/{filename}"
                 
-                with open(pdf_path, "rb") as f:
-                    file_data = f.read()
-                    await get_storage().upload_file(file_data, storage_path)
+                async with aiofiles.open(pdf_path, "rb") as f:
+                    file_data = await f.read()
+                    
+                await get_storage().upload_file(file_data, storage_path)
                     
                 logger.info(f"Successfully processed and stored source file: {storage_path}")
                 

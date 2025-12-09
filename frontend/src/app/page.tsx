@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Upload, Brain, Zap, Target, BookOpen, Briefcase, Sparkles, CheckCircle2, ArrowRight, Clock, TrendingUp, HelpCircle } from "lucide-react";
+import { Upload, Brain, Zap, Target, BookOpen, Briefcase, Sparkles, CheckCircle2, ArrowRight, Clock, TrendingUp, HelpCircle, LogIn, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useScrollAnimation } from "@/lib/hooks/useScrollAnimation";
@@ -117,8 +117,35 @@ export default function Index() {
 
   return (
     <div className="min-h-screen bg-background overflow-hidden">
+      {/* Landing Page Header */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <Link href="/">
+              <h1 className="text-2xl font-bold bg-gradient-brand bg-clip-text text-transparent">
+                ExamAI Pro
+              </h1>
+            </Link>
+            <div className="flex items-center gap-3">
+              <Link href="/login">
+                <Button variant="ghost" className="gap-2">
+                  <LogIn className="w-4 h-4" />
+                  Login
+                </Button>
+              </Link>
+              <Link href="/register">
+                <Button className="bg-gradient-brand hover:opacity-90 gap-2">
+                  <UserPlus className="w-4 h-4" />
+                  Register
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </header>
+
       {/* Hero Section */}
-      <section className="relative overflow-hidden min-h-screen flex items-center">
+      <section className="relative overflow-hidden min-h-screen flex items-center pt-16">
         <ParticleBackground />
         <div className="absolute inset-0 bg-gradient-glow opacity-50" />
 
@@ -129,11 +156,6 @@ export default function Index() {
 
         <div className="container mx-auto px-6 py-20 relative">
           <div className="max-w-4xl mx-auto text-center">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/50 backdrop-blur-sm mb-8 animate-fade-in glow-pulse">
-              <Sparkles className="w-4 h-4 text-primary floating" />
-              <span className="text-sm font-medium text-accent-foreground">Powered by Gemini 2.0 Flash</span>
-            </div>
-
             <h1 className="text-5xl md:text-7xl font-bold mb-6 text-foreground animate-fade-in-up">
               Turn any file into a{" "}
               <span className="bg-gradient-brand bg-clip-text text-transparent">
@@ -567,7 +589,7 @@ export default function Index() {
           </div>
 
           <div className="text-center text-xs text-muted-foreground mt-8">
-            © 2025 ExamAI Pro. Powered by Gemini 2.0 Flash.
+            © 2025 ExamAI Pro. All rights reserved.
           </div>
         </div>
       </footer>

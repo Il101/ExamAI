@@ -87,9 +87,11 @@ export function MobileNav({ open, onClose, isAdmin = false }: MobileNavProps) {
 
                             <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-background/95 backdrop-blur-xl px-6 pb-4 border-r border-white/10">
                                 <div className="flex h-16 shrink-0 items-center">
-                                    <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                                        ExamAI Pro
-                                    </h1>
+                                    <Link href="/dashboard" onClick={onClose}>
+                                        <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent cursor-pointer hover:opacity-80 transition-opacity">
+                                            ExamAI Pro
+                                        </h1>
+                                    </Link>
                                 </div>
                                 <nav className="flex flex-1 flex-col">
                                     <ul role="list" className="flex flex-1 flex-col gap-y-7">
