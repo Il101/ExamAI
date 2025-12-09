@@ -140,6 +140,13 @@ def _categorize_error(exception: Exception) -> tuple[str, str]:
     """
     error_str = str(exception).lower()
 
+    # Exam status errors (already completed, etc.) - should NOT retry
+    if "cannot generate exam with status" in error_str or "status: ready" in error_str:
+        return (
+            "exam_already_completed",
+            "This exam has already been generated and is ready to use.",
+        )
+
     # File parsing errors
     if "parse" in error_str or "encoding" in error_str:
         return (

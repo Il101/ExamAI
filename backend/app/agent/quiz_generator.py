@@ -1,9 +1,12 @@
 import json
+import logging
 from typing import List, Any
 
 from pydantic import BaseModel, Field
 
 from app.integrations.llm.base import LLMProvider
+
+logger = logging.getLogger(__name__)
 
 
 class FlashcardSchema(BaseModel):
@@ -64,11 +67,22 @@ class QuizGenerator:
         
         from app.prompts import load_prompt
         
-        print(f"[QuizGenerator] Generating {num_cards} flashcards...")
+        logger.info("Generating flashcards", extra={
+            "component": "quiz_generator",
+            "num_cards": num_cards,
+            "has_cache": cache_name is not None,
+            "cache_name": cache_name,
+            "content_length": len(content) if content else 0
+        })
         
         # Use cache if available, otherwise use content directly
         if cache_name:
             try:
+                logger.debug("Using context cache for flashcard generation", extra={
+                    "component": "quiz_generator",
+                    "cache_name": cache_name
+                })
+                
                 # Use cache - remove content placeholder from prompt
                 import re
                 prompt_template = load_prompt('quiz/flashcards.txt', num_cards=num_cards, content="")
@@ -82,6 +96,12 @@ class QuizGenerator:
                 
                 # Call with cache
                 from app.core.config import settings
+                logger.debug("Calling Gemini API with cache", extra={
+                    "component": "quiz_generator",
+                    "model": settings.GEMINI_MODEL,
+                    "cache_name": cache_name
+                })
+                
                 response = await self.llm.client.aio.models.generate_content(
                     model=settings.GEMINI_MODEL,
                     config={
@@ -90,13 +110,18 @@ class QuizGenerator:
                     contents=[{"role": "user", "parts": [{"text": prompt}]}]
                 )
                 
+                logger.debug("Received response from Gemini API", extra={
+                    "component": "quiz_generator",
+                    "response_length": len(response.text) if response.text else 0
+                })
+                
                 json_text = response.text
             
             except Exception as cache_error:
                 # Check if cache expired
                 error_str = str(cache_error).lower()
                 if "cache" in error_str and ("not found" in error_str or "expired" in error_str or "404" in error_str):
-                    print(f"[QuizGenerator] Cache expired, attempting to recreate...")
+                    logger.warning("Cache expired, attempting to recreate", extra={"component": "quiz_generator"})
                     
                     # Try to recreate cache if we have exam_id and content
                     if exam_id and content:
@@ -104,14 +129,14 @@ class QuizGenerator:
                             from app.integrations.llm.cache_manager import ContextCacheManager
                             
                             cache_manager = ContextCacheManager(self.llm)
-                            print(f"[QuizGenerator] Recreating cache for exam {exam_id}...")
+                            logger.info("Recreating cache for exam", extra={"component": "quiz_generator", "exam_id": str(exam_id)})
                             
                             new_cache_name = await cache_manager.create_cache(
                                 exam_id=exam_id,
                                 content=content,
                                 ttl_seconds=3600
                             )
-                            print(f"[QuizGenerator] Successfully recreated cache: {new_cache_name}")
+                            logger.info("Successfully recreated cache", extra={"component": "quiz_generator", "cache_name": new_cache_name})
                             
                             # Retry with new cache
                             prompt_template = load_prompt('quiz/flashcards.txt', num_cards=num_cards, content="")
@@ -133,9 +158,9 @@ class QuizGenerator:
                             json_text = response.text
                             
                         except Exception as recreate_error:
-                            print(f"[QuizGenerator] Failed to recreate cache: {recreate_error}")
+                            logger.error("Failed to recreate cache", extra={"component": "quiz_generator", "error": str(recreate_error)})
                             # Final fallback: use full content
-                            print(f"[QuizGenerator] Falling back to full content")
+                            logger.warning("Falling back to full content", extra={"component": "quiz_generator"})
                             prompt = load_prompt(
                                 'quiz/flashcards.txt',
                                 num_cards=num_cards,
@@ -153,7 +178,7 @@ class QuizGenerator:
                             json_text = response.content
                     else:
                         # No exam_id - can't recreate cache, use full content
-                        print(f"[QuizGenerator] No exam_id, falling back to full content")
+                        logger.warning("No exam_id, falling back to full content", extra={"component": "quiz_generator"})
                         prompt = load_prompt(
                             'quiz/flashcards.txt',
                             num_cards=num_cards,
@@ -205,12 +230,12 @@ class QuizGenerator:
             # Validate and convert
             flashcards = [FlashcardSchema(**item) for item in cards_data]
             
-            print(f"[QuizGenerator] Generated {len(flashcards)} flashcards")
+            logger.info("Generated %s %s", len(flashcards), "flashcards", extra={"component": "quiz_generator", "count": len(flashcards)})
             return flashcards
 
         except Exception as e:
-            print(f"[QuizGenerator] Error parsing flashcards: {e}")
-            print(f"[QuizGenerator] Raw text (first 500 chars): {json_text[:500]}")
+            logger.error("Error parsing %s", "flashcards", extra={"component": "quiz_generator", "error": str(e)})
+            logger.debug("Raw text preview", extra={"component": "quiz_generator", "preview": json_text[:500]})
             raise ValueError(f"Failed to generate flashcards: {str(e)}")
 
     def _parse_json(self, text: str) -> Any:
@@ -279,12 +304,26 @@ class QuizGenerator:
         """
         
         from app.prompts import load_prompt
+        import time
         
-        print(f"[QuizGenerator] Generating {num_questions} MCQ questions...")
+        start_time = time.time()
+        
+        logger.info("Generating MCQ questions", extra={
+            "component": "quiz_generator",
+            "num_questions": num_questions,
+            "has_cache": cache_name is not None,
+            "cache_name": cache_name,
+            "content_length": len(content) if content else 0
+        })
         
         # Use cache if available, otherwise use content directly
         if cache_name:
             try:
+                logger.debug("Using context cache for MCQ generation", extra={
+                    "component": "quiz_generator",
+                    "cache_name": cache_name
+                })
+                
                 # Use cache - remove content placeholder from prompt
                 import re
                 prompt_template = load_prompt('quiz/mcq_questions.txt', num_questions=num_questions, content="")
@@ -298,6 +337,15 @@ class QuizGenerator:
                 
                 # Call with cache
                 from app.core.config import settings
+                
+                logger.debug("Calling Gemini API with cache for MCQ", extra={
+                    "component": "quiz_generator",
+                    "model": settings.GEMINI_MODEL,
+                    "cache_name": cache_name,
+                    "num_questions": num_questions
+                })
+                
+                api_start = time.time()
                 response = await self.llm.client.aio.models.generate_content(
                     model=settings.GEMINI_MODEL,
                     config={
@@ -305,6 +353,13 @@ class QuizGenerator:
                     },
                     contents=[{"role": "user", "parts": [{"text": prompt}]}]
                 )
+                api_duration = (time.time() - api_start) * 1000
+                
+                logger.info("Received MCQ response from Gemini API", extra={
+                    "component": "quiz_generator",
+                    "api_duration_ms": round(api_duration, 2),
+                    "response_length": len(response.text) if response.text else 0
+                })
                 
                 json_text = response.text
             
@@ -312,7 +367,7 @@ class QuizGenerator:
                 # Check if cache expired
                 error_str = str(cache_error).lower()
                 if "cache" in error_str and ("not found" in error_str or "expired" in error_str or "404" in error_str):
-                    print(f"[QuizGenerator] Cache expired, attempting to recreate...")
+                    logger.warning("Cache expired, attempting to recreate", extra={"component": "quiz_generator"})
                     
                     # Try to recreate cache if we have exam_id and content
                     if exam_id and content:
@@ -320,14 +375,14 @@ class QuizGenerator:
                             from app.integrations.llm.cache_manager import ContextCacheManager
                             
                             cache_manager = ContextCacheManager(self.llm)
-                            print(f"[QuizGenerator] Recreating cache for exam {exam_id}...")
+                            logger.info("Recreating cache for exam", extra={"component": "quiz_generator", "exam_id": str(exam_id)})
                             
                             new_cache_name = await cache_manager.create_cache(
                                 exam_id=exam_id,
                                 content=content,
                                 ttl_seconds=3600
                             )
-                            print(f"[QuizGenerator] Successfully recreated cache: {new_cache_name}")
+                            logger.info("Successfully recreated cache", extra={"component": "quiz_generator", "cache_name": new_cache_name})
                             
                             # Retry with new cache
                             prompt_template = load_prompt('quiz/mcq_questions.txt', num_questions=num_questions, content="")
@@ -349,9 +404,9 @@ class QuizGenerator:
                             json_text = response.text
                             
                         except Exception as recreate_error:
-                            print(f"[QuizGenerator] Failed to recreate cache: {recreate_error}")
+                            logger.error("Failed to recreate cache", extra={"component": "quiz_generator", "error": str(recreate_error)})
                             # Final fallback: use full content
-                            print(f"[QuizGenerator] Falling back to full content")
+                            logger.warning("Falling back to full content", extra={"component": "quiz_generator"})
                             prompt = load_prompt(
                                 'quiz/mcq_questions.txt',
                                 num_questions=num_questions,
@@ -369,7 +424,7 @@ class QuizGenerator:
                             json_text = response.content
                     else:
                         # No exam_id - can't recreate cache, use full content
-                        print(f"[QuizGenerator] No exam_id, falling back to full content")
+                        logger.warning("No exam_id, falling back to full content", extra={"component": "quiz_generator"})
                         prompt = load_prompt(
                             'quiz/mcq_questions.txt',
                             num_questions=num_questions,
@@ -427,10 +482,15 @@ class QuizGenerator:
                 if correct_count != 1:
                     raise ValueError(f"Question must have exactly 1 correct answer, got {correct_count}")
             
-            print(f"[QuizGenerator] Generated {len(questions)} MCQ questions")
+            total_duration = (time.time() - start_time) * 1000
+            logger.info("Successfully generated MCQ questions", extra={
+                "component": "quiz_generator",
+                "count": len(questions),
+                "total_duration_ms": round(total_duration, 2),
+                "used_cache": cache_name is not None
+            })
             return questions
 
         except Exception as e:
-            print(f"[QuizGenerator] Error parsing MCQ questions: {e}")
+            logger.error("Error parsing %s", "MCQ questions", extra={"component": "quiz_generator", "error": str(e)})
             raise ValueError(f"Failed to generate MCQ quiz: {str(e)}")
-
