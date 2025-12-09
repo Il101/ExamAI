@@ -3,13 +3,11 @@
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useExamDetail } from '@/lib/hooks/use-exam-detail';
-import { useStudySession } from '@/lib/hooks/use-study-session';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, ArrowLeft, Play, Brain, Layers, Clock } from 'lucide-react';
+import { Loader2, ArrowLeft, Play, Brain, Layers } from 'lucide-react';
 import Link from 'next/link';
-import { toast } from 'sonner';
 
 export default function ExamFlashcardsPage() {
     const params = useParams();
@@ -17,17 +15,19 @@ export default function ExamFlashcardsPage() {
     const examId = params.id as string;
 
     const { exam, isLoading } = useExamDetail(examId);
-    const { startSession, isStarting } = useStudySession();
     const [flashcardCounts, setFlashcardCounts] = useState<Record<string, number>>({});
-    const [loadingCounts, setLoadingCounts] = useState(true);
+    const [loadingCounts, setLoadingCounts] = useState(false);
 
     // Fetch flashcard counts for all topics
     useEffect(() => {
         const fetchFlashcardCounts = async () => {
-            if (!exam || !(exam as any).topics) return;
+            const topics = (exam as any)?.topics;
+            if (!exam || !topics || topics.length === 0) {
+                setLoadingCounts(false);
+                return;
+            }
 
             setLoadingCounts(true);
-            const topics = (exam as any).topics || [];
             const counts: Record<string, number> = {};
 
             try {
@@ -35,11 +35,15 @@ export default function ExamFlashcardsPage() {
                 await Promise.all(
                     topics.map(async (topic: any) => {
                         try {
+                            const token = localStorage.getItem('token');
+                            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
                             const response = await fetch(
-                                `/api/reviews/due?topic_id=${topic.id}`,
+                                `${apiUrl}/api/v1/reviews/due?topic_id=${topic.id}`,
                                 {
                                     headers: {
-                                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                                        'Authorization': `Bearer ${token}`,
+                                        'Content-Type': 'application/json',
                                     },
                                 }
                             );
@@ -48,6 +52,7 @@ export default function ExamFlashcardsPage() {
                                 const flashcards = await response.json();
                                 counts[topic.id] = Array.isArray(flashcards) ? flashcards.length : 0;
                             } else {
+                                console.warn(`Failed to fetch flashcards for topic ${topic.id}: ${response.status}`);
                                 counts[topic.id] = 0;
                             }
                         } catch (error) {
@@ -68,24 +73,14 @@ export default function ExamFlashcardsPage() {
         fetchFlashcardCounts();
     }, [exam]);
 
-    const handleStartSession = (options: { examId: string; topicId?: string }) => {
-        startSession({ examId: options.examId, duration: 25 }, {
-            onSuccess: (session) => {
-                // Here we need to make sure the session page knows what to load.
-                // Currently /dashboard/study/session loads by examId.
-                // We should probably update that page to check for topicId as well if we passed it?
-                // For now, let's stick to the URL params the session page expects.
-                const query = new URLSearchParams();
-                query.set('examId', session.exam_id);
-                if (options.topicId) {
-                    query.set('topicId', options.topicId);
-                }
-                router.push(`/dashboard/study/session?${query.toString()}`);
-            },
-            onError: () => {
-                toast.error('Failed to start session');
-            }
-        });
+    const handleStartReview = (topicId?: string) => {
+        // Navigate directly to study session with flashcards
+        const query = new URLSearchParams();
+        query.set('examId', examId);
+        if (topicId) {
+            query.set('topicId', topicId);
+        }
+        router.push(`/dashboard/study/session?${query.toString()}`);
     };
 
     if (isLoading) {
@@ -129,11 +124,11 @@ export default function ExamFlashcardsPage() {
                     </div>
                     <Button
                         size="lg"
-                        onClick={() => handleStartSession({ examId: exam.id })}
-                        disabled={isStarting || loadingCounts || Object.values(flashcardCounts).reduce((sum, count) => sum + count, 0) === 0}
+                        onClick={() => handleStartReview()}
+                        disabled={loadingCounts || Object.values(flashcardCounts).reduce((sum, count) => sum + count, 0) === 0}
                         className="shadow-lg"
                     >
-                        {isStarting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
+                        <Play className="mr-2 h-4 w-4" />
                         Study All Cards
                     </Button>
                 </div>
@@ -144,32 +139,26 @@ export default function ExamFlashcardsPage() {
                 {topics.map((topic: any, index: number) => (
                     <Card key={topic.id} className="hover:bg-muted/30 transition-colors">
                         <CardContent className="p-6 flex items-center justify-between">
-                            <div className="flex items-start gap-4">
+                            <div className="flex items-start gap-4 flex-1">
                                 <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-1">
                                     <span className="font-bold text-primary">{index + 1}</span>
                                 </div>
-                                <div>
-                                    <h3 className="font-semibold text-lg">{topic.topic_name}</h3>
-                                    <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                                <div className="flex-1">
+                                    <h3 className="font-semibold text-lg mb-2">{topic.topic_name}</h3>
+                                    <div className="flex items-center gap-2">
                                         <Badge variant="outline" className="font-normal">
-                                            {topic.status === 'ready' ? 'Ready' : topic.status}
+                                            {topic.status === 'ready' ? 'Ready' : 'Pending'}
                                         </Badge>
                                         {loadingCounts ? (
-                                            <span className="flex items-center gap-1">
+                                            <span className="flex items-center gap-1 text-sm text-muted-foreground">
                                                 <Loader2 className="h-3 w-3 animate-spin" />
-                                                Loading cards...
+                                                Loading...
                                             </span>
                                         ) : (
-                                            <Badge variant={flashcardCounts[topic.id] > 0 ? "default" : "secondary"} className="font-normal">
+                                            <Badge variant={flashcardCounts[topic.id] > 0 ? "default" : "secondary"}>
                                                 <Brain className="h-3 w-3 mr-1" />
                                                 {flashcardCounts[topic.id] || 0} cards
                                             </Badge>
-                                        )}
-                                        {topic.estimated_study_minutes && (
-                                            <span className="flex items-center gap-1">
-                                                <Clock className="h-3 w-3" />
-                                                {topic.estimated_study_minutes} min
-                                            </span>
                                         )}
                                     </div>
                                 </div>
@@ -177,11 +166,12 @@ export default function ExamFlashcardsPage() {
 
                             <Button
                                 variant="secondary"
-                                onClick={() => handleStartSession({ examId: exam.id, topicId: topic.id })}
-                                disabled={isStarting || loadingCounts || !flashcardCounts[topic.id] || flashcardCounts[topic.id] === 0}
+                                size="lg"
+                                onClick={() => handleStartReview(topic.id)}
+                                disabled={loadingCounts || !flashcardCounts[topic.id] || flashcardCounts[topic.id] === 0}
                             >
                                 <Brain className="mr-2 h-4 w-4" />
-                                Study Topic
+                                Study
                             </Button>
                         </CardContent>
                     </Card>
