@@ -12,9 +12,10 @@ import { AiTutorChat } from '@/components/exam/ai-tutor-chat';
 import { CheckYourself } from '@/components/exam/check-yourself';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Clock, BarChart3, AlertCircle } from 'lucide-react';
+import { Loader2, Clock, BarChart3, AlertCircle, ChevronRight } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { cn } from '@/lib/utils';
 
 export default function TopicDetailPage() {
     const params = useParams();
@@ -124,14 +125,13 @@ export default function TopicDetailPage() {
     const nextTopicId = currentIndex < topics.length - 1 ? topics[currentIndex + 1].id : null;
 
     const breadcrumbItems: BreadcrumbItem[] = [
-        { label: 'Dashboard', href: '/dashboard', icon: 'home' },
         { label: 'Exams', href: '/dashboard/exams', icon: 'exam' },
         { label: exam.title, href: `/dashboard/exams/${exam.id}`, icon: 'exam' },
         { label: topic.topic_name, icon: 'topic' },
     ];
 
     return (
-        <div className="flex h-screen overflow-hidden">
+        <div className="flex h-[calc(100vh-4rem)] overflow-hidden bg-background">
             {/* Left Sidebar - Topic Navigation */}
             <TopicSidebar
                 exam={exam}
@@ -140,74 +140,91 @@ export default function TopicDetailPage() {
             />
 
             {/* Main Content */}
-            <div className="flex-1 overflow-y-auto">
-                <div className="container max-w-4xl py-8 px-6">
-                    {/* Breadcrumbs */}
-                    <Breadcrumbs items={breadcrumbItems} className="mb-6" />
+            <div className="flex-1 overflow-y-auto w-full">
+                <div className="container max-w-5xl py-8 px-8 mx-auto">
+                    {/* Minimal Breadcrumbs */}
+                    <div className="mb-6 flex items-center text-sm text-muted-foreground/60">
+                        <Breadcrumbs items={breadcrumbItems} className="mb-0 text-xs uppercase tracking-wider font-medium" />
+                    </div>
 
-                    {/* Topic Header */}
-                    <div className="mb-8">
-                        <h1 className="text-3xl font-bold mb-4">{topic.topic_name}</h1>
-                        <div className="flex flex-wrap gap-2">
-                            <Badge variant="secondary" className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                ~{topic.estimated_study_minutes || 5} min
-                            </Badge>
-                            <Badge variant="outline" className="flex items-center gap-1">
-                                <BarChart3 className="h-3 w-3" />
-                                Difficulty: {topic.difficulty_level}/3
-                            </Badge>
-                            <Badge variant="outline">
-                                Topic {currentIndex + 1} of {topics.length}
-                            </Badge>
+                    {/* Topic Header - Strict Style */}
+                    <div className="mb-10 border-b border-border/40 pb-6">
+                        <h1 className="text-3xl lg:text-4xl font-bold tracking-tight mb-4 text-foreground">
+                            {topic.topic_name}
+                        </h1>
+
+                        <div className="flex items-center gap-6 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-2">
+                                <Clock className="h-4 w-4 opacity-70" />
+                                <span>~{topic.estimated_study_minutes || 5} min read</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <BarChart3 className="h-4 w-4 opacity-70" />
+                                <span>Level {topic.difficulty_level}/3</span>
+                            </div>
+                            <div className="ml-auto text-xs font-mono opacity-50">
+                                TOPIC {currentIndex + 1} / {topics.length}
+                            </div>
                         </div>
                     </div>
 
-                    {/* Topic Content */}
-                    <div className="prose prose-slate dark:prose-invert max-w-none mb-8">
+                    {/* Topic Content - Modern Typography */}
+                    <article className="prose prose-zinc dark:prose-invert max-w-none 
+                        prose-headings:font-semibold prose-headings:tracking-tight 
+                        prose-p:leading-relaxed prose-p:text-muted-foreground/90
+                        prose-li:text-muted-foreground/90
+                        prose-strong:text-foreground prose-strong:font-semibold
+                        prose-code:text-primary prose-code:bg-primary/5 prose-code:px-1 prose-code:rounded
+                        prose-pre:bg-muted/50 prose-pre:border
+                        mb-12">
                         {topic.content ? (
                             <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                 {topic.content}
                             </ReactMarkdown>
                         ) : (
-                            <Card className="p-8 text-center">
+                            <div className="p-12 text-center border border-dashed rounded-lg bg-muted/20">
                                 <p className="text-muted-foreground">
                                     No content available for this topic yet.
                                 </p>
-                            </Card>
+                            </div>
                         )}
-                    </div>
+                    </article>
 
                     {/* Check Yourself Quiz */}
                     {topic.content && (
-                        <div className="mb-8">
-                            <CheckYourself
-                                topicId={topic.id}
-                                onComplete={handleQuizComplete}
-                                onSkip={handleQuizSkip}
-                            />
+                        <div className="mb-12 pt-8 border-t border-border/40">
+                            <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
+                                <CheckYourself
+                                    topicId={topic.id}
+                                    onComplete={handleQuizComplete}
+                                    onSkip={handleQuizSkip}
+                                />
+                            </h3>
                         </div>
                     )}
 
                     {/* Navigation */}
-                    <TopicNavigation
-                        currentIndex={currentIndex}
-                        totalTopics={topics.length}
-                        prevTopicId={prevTopicId}
-                        nextTopicId={quizCompleted ? nextTopicId : null}
-                    />
+                    <div className="pb-12">
+                        <TopicNavigation
+                            currentIndex={currentIndex}
+                            totalTopics={topics.length}
+                            prevTopicId={prevTopicId}
+                            nextTopicId={quizCompleted ? nextTopicId : null}
+                        />
+                    </div>
                 </div>
             </div>
 
             {/* Right Sidebar - AI Tutor (Desktop Only) */}
-            <aside className="hidden xl:flex w-80 border-l bg-muted/30 flex-col">
-                <div className="p-4 border-b">
-                    <h3 className="font-semibold text-sm">💬 AI Tutor</h3>
-                    <p className="text-xs text-muted-foreground mt-1">
-                        Ask questions about this topic
-                    </p>
+            <aside className="hidden xl:flex w-96 border-l bg-background/50 flex-col">
+                <div className="p-4 border-b h-14 flex items-center justify-between bg-muted/10">
+                    <div className="flex items-center gap-2">
+                        <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                        <h3 className="font-medium text-sm">AI Tutor</h3>
+                    </div>
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-medium">Always Active</span>
                 </div>
-                <div className="flex-1 overflow-hidden">
+                <div className="flex-1 overflow-hidden bg-background">
                     <AiTutorChat topicId={topicId} />
                 </div>
             </aside>

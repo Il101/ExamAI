@@ -7,7 +7,7 @@ import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
 import { MobileNav } from '@/components/layout/mobile-nav';
 import { TimerWidget } from '@/components/study/timer-widget';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 function DashboardLayoutContent({
   children,
@@ -19,6 +19,10 @@ function DashboardLayoutContent({
   const { user, isLoading } = useAuth();
   const { isCollapsed } = useSidebar();
   const router = useRouter();
+  const pathname = usePathname();
+
+  // Check if we are on a topic page to remove default padding
+  const isTopicPage = pathname?.startsWith('/dashboard/topics/');
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -64,8 +68,8 @@ function DashboardLayoutContent({
       <div className={`transition-all duration-300 ${isCollapsed ? 'lg:pl-20' : 'lg:pl-72'}`}>
         <Header onMenuClick={() => setMobileMenuOpen(true)} />
 
-        <main className="py-10">
-          <div className="px-4 sm:px-6 lg:px-8">
+        <main className={isTopicPage ? "" : "py-10"}>
+          <div className={isTopicPage ? "" : "px-4 sm:px-6 lg:px-8"}>
             {children}
           </div>
         </main>

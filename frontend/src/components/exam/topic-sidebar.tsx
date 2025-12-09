@@ -27,22 +27,22 @@ export function TopicSidebar({ exam, currentTopicId, className }: TopicSidebarPr
         // For now, using simple status-based icons
         // Could be enhanced with actual completion tracking
         if (topic.id === currentTopicId) {
-            return <BookOpen className="h-4 w-4 text-primary" />;
+            return <BookOpen className="h-4 w-4 text-primary animate-pulse" />;
         }
         if (topic.status === 'ready') {
-            return <CheckCircle2 className="h-4 w-4 text-green-600" />;
+            return <CheckCircle2 className="h-4 w-4 text-green-600/80" />;
         }
-        return <Circle className="h-4 w-4 text-muted-foreground" />;
+        return <Circle className="h-4 w-4 text-muted-foreground/30" />;
     };
 
     if (collapsed) {
         return (
-            <div className={cn('w-12 border-r bg-muted/30 flex flex-col items-center py-4', className)}>
+            <div className={cn('w-12 bg-background border-r border-border/40 flex flex-col items-center py-4', className)}>
                 <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => setCollapsed(false)}
-                    className="mb-4"
+                    className="mb-4 h-8 w-8 text-muted-foreground hover:text-foreground"
                 >
                     <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -51,8 +51,8 @@ export function TopicSidebar({ exam, currentTopicId, className }: TopicSidebarPr
                         <div
                             key={topic.id}
                             className={cn(
-                                'h-8 w-8 rounded-md flex items-center justify-center',
-                                topic.id === currentTopicId ? 'bg-primary/10' : 'hover:bg-muted'
+                                'h-8 w-8 rounded-md flex items-center justify-center transition-colors',
+                                topic.id === currentTopicId ? 'bg-primary/10 text-primary' : 'hover:bg-muted text-muted-foreground'
                             )}
                         >
                             {getTopicIcon(topic)}
@@ -66,16 +66,16 @@ export function TopicSidebar({ exam, currentTopicId, className }: TopicSidebarPr
     return (
         <aside
             className={cn(
-                'w-64 border-r bg-muted/30 flex flex-col',
+                'w-72 bg-background border-r border-border/40 flex flex-col',
                 className
             )}
         >
             {/* Header */}
-            <div className="p-4 border-b">
+            <div className="px-4 py-4 border-b border-border/30">
                 <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-sm truncate">{exam.title}</h3>
-                        <p className="text-xs text-muted-foreground">
+                    <div className="flex-1 min-w-0 pr-2">
+                        <h3 className="font-semibold text-sm truncate tracking-tight text-foreground">{exam.title}</h3>
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 mt-1">
                             {completedCount} of {topics.length} topics
                         </p>
                     </div>
@@ -83,17 +83,17 @@ export function TopicSidebar({ exam, currentTopicId, className }: TopicSidebarPr
                         variant="ghost"
                         size="icon"
                         onClick={() => setCollapsed(true)}
-                        className="h-8 w-8 flex-shrink-0"
+                        className="h-6 w-6 text-muted-foreground hover:text-foreground -mr-2"
                     >
                         <ChevronLeft className="h-4 w-4" />
                     </Button>
                 </div>
-                <Progress value={progressPercent} className="h-1" />
+                <Progress value={progressPercent} className="h-0.5 bg-muted" />
             </div>
 
             {/* Topic List */}
-            <div className="flex-1 overflow-y-auto p-2">
-                <div className="space-y-1">
+            <div className="flex-1 overflow-y-auto px-2 py-3">
+                <div className="space-y-0.5">
                     {topics.map((topic, index) => {
                         const isActive = topic.id === currentTopicId;
 
@@ -102,26 +102,22 @@ export function TopicSidebar({ exam, currentTopicId, className }: TopicSidebarPr
                                 key={topic.id}
                                 href={`/dashboard/topics/${topic.id}`}
                                 className={cn(
-                                    'flex items-start gap-2 p-2 rounded-md text-sm transition-colors',
-                                    'hover:bg-accent',
-                                    isActive && 'bg-primary/10 text-primary font-medium'
+                                    'flex items-start gap-3 px-3 py-2.5 rounded-md text-sm transition-all duration-200 group',
+                                    isActive
+                                        ? 'bg-muted/50 text-foreground font-medium shadow-sm ring-1 ring-border/50'
+                                        : 'text-muted-foreground hover:bg-muted/30 hover:text-foreground'
                                 )}
                             >
-                                <div className="pt-0.5 flex-shrink-0">
+                                <div className="pt-0.5 flex-shrink-0 opacity-70 group-hover:opacity-100 transition-opacity">
                                     {getTopicIcon(topic)}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-1 mb-0.5">
-                                        <span className="text-xs text-muted-foreground">
-                                            {index + 1}.
-                                        </span>
-                                        <span className="truncate">{topic.topic_name}</span>
+                                    <div className="flex items-center gap-2 mb-0.5">
+                                        <span className={cn(
+                                            "truncate text-[13px]",
+                                            isActive && "text-primary"
+                                        )}>{topic.topic_name}</span>
                                     </div>
-                                    {topic.estimated_study_minutes && (
-                                        <span className="text-xs text-muted-foreground">
-                                            ~{topic.estimated_study_minutes} min
-                                        </span>
-                                    )}
                                 </div>
                             </Link>
                         );
@@ -130,10 +126,11 @@ export function TopicSidebar({ exam, currentTopicId, className }: TopicSidebarPr
             </div>
 
             {/* Footer */}
-            <div className="p-4 border-t">
+            <div className="p-3 border-t border-border/30 bg-muted/5">
                 <Link href={`/dashboard/exams/${exam.id}`}>
-                    <Button variant="outline" size="sm" className="w-full">
-                        Back to Exam
+                    <Button variant="ghost" size="sm" className="w-full text-xs text-muted-foreground hover:text-foreground justify-start px-2">
+                        <ChevronLeft className="h-3 w-3 mr-2" />
+                        Back to Exam Overview
                     </Button>
                 </Link>
             </div>
