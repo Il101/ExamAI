@@ -155,10 +155,10 @@ class AgentService:
                         cache_name=exam.cache_name,
                         exam_id=str(exam.id),
                     ),
-                    timeout=1800.0  # 30 minutes maximum for entire generation
+                    timeout=3600.0  # 60 minutes maximum for entire generation (increased from 30min)
                 )
             except asyncio.TimeoutError:
-                raise ValueError("Content generation exceeded 30 minute timeout")
+                raise ValueError("Content generation exceeded 60 minute timeout")
 
             # Save results
             # We split total tokens roughly 50/50 for input/output if not tracked separately per step

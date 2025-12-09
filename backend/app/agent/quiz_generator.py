@@ -192,14 +192,7 @@ class QuizGenerator:
 
         # Parse response
         try:
-            # Clean response
-            json_text = json_text.strip()
-            if json_text.startswith("```json"):
-                json_text = json_text[7:-3].strip()
-            elif json_text.startswith("```"):
-                json_text = json_text[3:-3].strip()
-
-            data = json.loads(json_text)
+            data = self._parse_json(json_text)
             
             # Handle wrapped response
             if isinstance(data, dict) and "cards" in data:
@@ -207,7 +200,7 @@ class QuizGenerator:
             elif isinstance(data, list):
                 cards_data = data
             else:
-                raise ValueError("Invalid response format")
+                raise ValueError("Invalid response format: expected list or dict with 'cards'")
 
             # Validate and convert
             flashcards = [FlashcardSchema(**item) for item in cards_data]
@@ -217,8 +210,55 @@ class QuizGenerator:
 
         except Exception as e:
             print(f"[QuizGenerator] Error parsing flashcards: {e}")
-            # Fallback or re-raise? For now re-raise to see errors
+            print(f"[QuizGenerator] Raw text (first 500 chars): {json_text[:500]}")
             raise ValueError(f"Failed to generate flashcards: {str(e)}")
+
+    def _parse_json(self, text: str) -> Any:
+        """
+        Robustly parse JSON from text, handling markdown blocks and trailing text.
+        """
+        text = text.strip()
+        
+        # Strip markdown code blocks if present
+        if text.startswith("```json"):
+            text = text[7:]
+            if text.endswith("```"):
+                text = text[:-3]
+        elif text.startswith("```"):
+            text = text[3:]
+            if text.endswith("```"):
+                text = text[:-3]
+                
+        text = text.strip()
+        
+        try:
+            # Try standard load first
+            return json.loads(text)
+        except json.JSONDecodeError as e:
+            # Check for "Extra data" error (content after valid JSON)
+            if "Extra data" in str(e):
+                try:
+                    # raw_decode returns (obj, end_index)
+                    # It parses the first valid JSON object it finds
+                    decoder = json.JSONDecoder()
+                    obj, _ = decoder.raw_decode(text)
+                    return obj
+                except Exception:
+                    # If raw_decode fails, simple regex fallback
+                    pass
+            
+            # Try finding the largest JSON-like block
+            import re
+            # Find everything between first { and last } OR first [ and last ]
+            # This is a fallback heuristic
+            match = re.search(r'(\{.*\}|\[.*\])', text, re.DOTALL)
+            if match:
+                try:
+                    return json.loads(match.group(1))
+                except:
+                    pass
+            
+            raise e
 
     async def generate_mcq_quiz(
         self, 
@@ -368,13 +408,7 @@ class QuizGenerator:
 
         # Parse response
         try:
-            json_text = json_text.strip()
-            if json_text.startswith("```json"):
-                json_text = json_text[7:-3].strip()
-            elif json_text.startswith("```"):
-                json_text = json_text[3:-3].strip()
-
-            data = json.loads(json_text)
+            data = self._parse_json(json_text)
             
             # Handle wrapped response
             if isinstance(data, dict) and "questions" in data:
