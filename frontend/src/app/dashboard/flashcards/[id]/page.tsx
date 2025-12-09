@@ -1,6 +1,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { useExamDetail } from '@/lib/hooks/use-exam-detail';
 import { useStudySession } from '@/lib/hooks/use-study-session';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,6 +18,55 @@ export default function ExamFlashcardsPage() {
 
     const { exam, isLoading } = useExamDetail(examId);
     const { startSession, isStarting } = useStudySession();
+    const [flashcardCounts, setFlashcardCounts] = useState<Record<string, number>>({});
+    const [loadingCounts, setLoadingCounts] = useState(true);
+
+    // Fetch flashcard counts for all topics
+    useEffect(() => {
+        const fetchFlashcardCounts = async () => {
+            if (!exam || !(exam as any).topics) return;
+
+            setLoadingCounts(true);
+            const topics = (exam as any).topics || [];
+            const counts: Record<string, number> = {};
+
+            try {
+                // Fetch flashcard count for each topic
+                await Promise.all(
+                    topics.map(async (topic: any) => {
+                        try {
+                            const response = await fetch(
+                                `/api/reviews/due?topic_id=${topic.id}`,
+                                {
+                                    headers: {
+                                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                                    },
+                                }
+                            );
+
+                            if (response.ok) {
+                                const flashcards = await response.json();
+                                counts[topic.id] = Array.isArray(flashcards) ? flashcards.length : 0;
+                            } else {
+                                counts[topic.id] = 0;
+                            }
+                        } catch (error) {
+                            console.error(`Failed to fetch flashcards for topic ${topic.id}:`, error);
+                            counts[topic.id] = 0;
+                        }
+                    })
+                );
+
+                setFlashcardCounts(counts);
+            } catch (error) {
+                console.error('Failed to fetch flashcard counts:', error);
+            } finally {
+                setLoadingCounts(false);
+            }
+        };
+
+        fetchFlashcardCounts();
+    }, [exam]);
 
     const handleStartSession = (options: { examId: string; topicId?: string }) => {
         startSession({ examId: options.examId, duration: 25 }, {
@@ -64,6 +114,13 @@ export default function ExamFlashcardsPage() {
                         <p className="text-muted-foreground mt-1 flex items-center gap-2">
                             <Layers className="h-4 w-4" />
                             {topics.length} Topics
+                            {!loadingCounts && (
+                                <>
+                                    <span className="text-gray-300">|</span>
+                                    <Brain className="h-4 w-4" />
+                                    {Object.values(flashcardCounts).reduce((sum, count) => sum + count, 0)} Total Cards
+                                </>
+                            )}
                             <span className="text-gray-300">|</span>
                             <Link href={`/dashboard/exams/${exam.id}`} className="hover:underline">
                                 View Exam Details
@@ -73,7 +130,7 @@ export default function ExamFlashcardsPage() {
                     <Button
                         size="lg"
                         onClick={() => handleStartSession({ examId: exam.id })}
-                        disabled={isStarting}
+                        disabled={isStarting || loadingCounts || Object.values(flashcardCounts).reduce((sum, count) => sum + count, 0) === 0}
                         className="shadow-lg"
                     >
                         {isStarting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
@@ -97,6 +154,17 @@ export default function ExamFlashcardsPage() {
                                         <Badge variant="outline" className="font-normal">
                                             {topic.status === 'ready' ? 'Ready' : topic.status}
                                         </Badge>
+                                        {loadingCounts ? (
+                                            <span className="flex items-center gap-1">
+                                                <Loader2 className="h-3 w-3 animate-spin" />
+                                                Loading cards...
+                                            </span>
+                                        ) : (
+                                            <Badge variant={flashcardCounts[topic.id] > 0 ? "default" : "secondary"} className="font-normal">
+                                                <Brain className="h-3 w-3 mr-1" />
+                                                {flashcardCounts[topic.id] || 0} cards
+                                            </Badge>
+                                        )}
                                         {topic.estimated_study_minutes && (
                                             <span className="flex items-center gap-1">
                                                 <Clock className="h-3 w-3" />
@@ -110,7 +178,7 @@ export default function ExamFlashcardsPage() {
                             <Button
                                 variant="secondary"
                                 onClick={() => handleStartSession({ examId: exam.id, topicId: topic.id })}
-                                disabled={isStarting || topic.status !== 'ready'}
+                                disabled={isStarting || loadingCounts || !flashcardCounts[topic.id] || flashcardCounts[topic.id] === 0}
                             >
                                 <Brain className="mr-2 h-4 w-4" />
                                 Study Topic
