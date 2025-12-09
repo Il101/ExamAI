@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/hooks/use-auth';
+import { SidebarProvider, useSidebar } from '@/lib/contexts/sidebar-context';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
 import { MobileNav } from '@/components/layout/mobile-nav';
 import { TimerWidget } from '@/components/study/timer-widget';
 import { useRouter } from 'next/navigation';
 
-export default function DashboardLayout({
+function DashboardLayoutContent({
   children,
 }: {
   children: React.ReactNode;
@@ -16,6 +17,7 @@ export default function DashboardLayout({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const { user, isLoading } = useAuth();
+  const { isCollapsed } = useSidebar();
   const router = useRouter();
 
   // Redirect to login if not authenticated
@@ -59,7 +61,7 @@ export default function DashboardLayout({
       <Sidebar isAdmin={isAdmin} />
 
       {/* Main content area */}
-      <div className="lg:pl-72">
+      <div className={`transition-all duration-300 ${isCollapsed ? 'lg:pl-20' : 'lg:pl-72'}`}>
         <Header onMenuClick={() => setMobileMenuOpen(true)} />
 
         <main className="py-10">
@@ -72,5 +74,19 @@ export default function DashboardLayout({
       {/* Global Pomodoro Timer */}
       <TimerWidget sessionId={activeSessionId} />
     </div>
+  );
+}
+
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <SidebarProvider>
+      <DashboardLayoutContent>
+        {children}
+      </DashboardLayoutContent>
+    </SidebarProvider>
   );
 }

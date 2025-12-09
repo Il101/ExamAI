@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { topicsApi, Topic } from '@/lib/api/topics';
 import { examsApi, ExamWithTopics } from '@/lib/api/exams';
+import { useSidebar } from '@/lib/contexts/sidebar-context';
 import { Breadcrumbs, BreadcrumbItem } from '@/components/ui/breadcrumbs';
 import { TopicSidebar } from '@/components/exam/topic-sidebar';
 import { TopicNavigation } from '@/components/exam/topic-navigation';
@@ -18,6 +19,7 @@ import remarkGfm from 'remark-gfm';
 export default function TopicDetailPage() {
     const params = useParams();
     const topicId = params.id as string;
+    const { setIsCollapsed } = useSidebar();
 
     const [topic, setTopic] = useState<Topic | null>(null);
     const [exam, setExam] = useState<ExamWithTopics | null>(null);
@@ -25,6 +27,14 @@ export default function TopicDetailPage() {
     const [error, setError] = useState<string | null>(null);
     const [quizCompleted, setQuizCompleted] = useState(false);
     const [quizScore, setQuizScore] = useState<{ score: number; total: number } | null>(null);
+
+    // Collapse sidebar when topic page loads, expand when leaving
+    useEffect(() => {
+        setIsCollapsed(true);
+        return () => {
+            setIsCollapsed(false);
+        };
+    }, [setIsCollapsed]);
 
     useEffect(() => {
         loadTopicData();

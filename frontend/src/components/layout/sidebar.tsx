@@ -2,7 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
+import { useSidebar } from '@/lib/contexts/sidebar-context';
 import {
     LayoutDashboard,
     BookOpen,
@@ -12,6 +14,12 @@ import {
     CreditCard,
     Shield,
 } from 'lucide-react';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -32,18 +40,33 @@ interface SidebarProps {
 
 export function Sidebar({ isAdmin = false }: SidebarProps) {
     const pathname = usePathname();
+    const { isCollapsed } = useSidebar();
+    const [isHovered, setIsHovered] = useState(false);
 
     const allNavigation = isAdmin
         ? [...navigation, ...adminNavigation]
         : navigation;
 
+    // Sidebar is expanded when not collapsed OR when hovered
+    const isExpanded = !isCollapsed || isHovered;
+
     return (
-        <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
+        <div
+            className={cn(
+                "hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:flex-col transition-all duration-300 ease-in-out",
+                isExpanded ? "lg:w-72" : "lg:w-20"
+            )}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+        >
             <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-white/10 bg-card/30 backdrop-blur-xl px-6 pb-4">
                 <div className="flex h-16 shrink-0 items-center">
                     <Link href="/dashboard">
-                        <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent cursor-pointer hover:opacity-80 transition-opacity">
-                            ExamAI Pro
+                        <h1 className={cn(
+                            "text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent cursor-pointer hover:opacity-80 transition-all duration-300",
+                            !isExpanded && "opacity-0 w-0"
+                        )}>
+                            {isExpanded && "ExamAI Pro"}
                         </h1>
                     </Link>
                 </div>
@@ -51,19 +74,20 @@ export function Sidebar({ isAdmin = false }: SidebarProps) {
                     <ul role="list" className="flex flex-1 flex-col gap-y-7">
                         <li>
                             <ul role="list" className="-mx-2 space-y-1">
-                                {allNavigation.map((item) => {
-                                    const isActive = pathname === item.href ||
-                                        (item.href !== '/dashboard' && pathname.startsWith(item.href));
+                                <TooltipProvider delayDuration={0}>
+                                    {allNavigation.map((item) => {
+                                        const isActive = pathname === item.href ||
+                                            (item.href !== '/dashboard' && pathname.startsWith(item.href));
 
-                                    return (
-                                        <li key={item.name}>
+                                        const navItem = (
                                             <Link
                                                 href={item.href}
                                                 className={cn(
                                                     isActive
                                                         ? 'bg-white/10 text-primary'
                                                         : 'text-muted-foreground hover:text-primary hover:bg-white/5',
-                                                    'group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold transition-colors'
+                                                    'group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold transition-colors',
+                                                    !isExpanded && 'justify-center'
                                                 )}
                                             >
                                                 <item.icon
@@ -74,11 +98,33 @@ export function Sidebar({ isAdmin = false }: SidebarProps) {
                                                     style={{ border: 'none', outline: 'none' }}
                                                     aria-hidden="true"
                                                 />
-                                                {item.name}
+                                                <span className={cn(
+                                                    "transition-all duration-300",
+                                                    !isExpanded && "opacity-0 w-0 overflow-hidden"
+                                                )}>
+                                                    {isExpanded && item.name}
+                                                </span>
                                             </Link>
-                                        </li>
-                                    );
-                                })}
+                                        );
+
+                                        return (
+                                            <li key={item.name}>
+                                                {!isExpanded ? (
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            {navItem}
+                                                        </TooltipTrigger>
+                                                        <TooltipContent side="right" className="ml-2">
+                                                            {item.name}
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                ) : (
+                                                    navItem
+                                                )}
+                                            </li>
+                                        );
+                                    })}
+                                </TooltipProvider>
                             </ul>
                         </li>
                     </ul>
