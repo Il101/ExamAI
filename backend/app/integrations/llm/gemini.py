@@ -170,9 +170,11 @@ class GeminiProvider(LLMProvider):
             usage = response.usage_metadata
             tokens_input = usage.prompt_token_count if usage else 0
             tokens_output = usage.candidates_token_count if usage else 0
+            cached_tokens = getattr(usage, "cached_content_token_count", 0) if usage else 0
 
             print(
-                f"[GeminiProvider] API call: {api_time:.2f}s, Total: {total_time:.2f}s, Tokens: {tokens_input}/{tokens_output}"
+                f"[GeminiProvider] API call: {api_time:.2f}s, Total: {total_time:.2f}s, "
+                f"Tokens: {tokens_input}/{tokens_output}, Cached: {cached_tokens}"
             )
 
             # Calculate cost
