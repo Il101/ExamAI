@@ -13,7 +13,7 @@ import type { Exam } from '@/lib/api/exams';
 export default function DashboardPage() {
   const { user } = useAuth();
   const { stats, isLoading: isLoadingStats } = useAnalytics();
-  const { exams, isLoading: isLoadingExams, startGeneration } = useExams();
+  const { exams, isLoading: isLoadingExams } = useExams();
 
   const recentExams = exams?.slice(0, 3) || [];
 
@@ -198,7 +198,6 @@ export default function DashboardPage() {
               <ExamCard
                 key={exam.id}
                 exam={exam}
-                onGenerate={() => startGeneration(exam.id)}
               />
             ))}
           </div>
