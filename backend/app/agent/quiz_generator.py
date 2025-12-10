@@ -88,40 +88,69 @@ class QuizGenerator:
             content=content
         )
         
-        # Generate with increased timeout (180s) to handle slow API responses
-        # We don't need cache_name here as 'content' has everything we need
-        response = await self.llm.generate(
-            prompt=prompt,
-            temperature=0.3,
-            system_prompt="You are an expert tutor creating study materials.",
-            response_schema=FlashcardSetSchema,
-            timeout=180.0
-        )
+        # Retry mechanism for transient 504 errors (server overload during prefill)
+        # First attempt may hit overloaded servable, retry gets routed to different server
+        max_retries = 3
+        last_error = None
         
-        json_text = response.content
+        for attempt in range(max_retries):
+            try:
+                # Generate with increased timeout (180s) to handle slow API responses
+                # We don't need cache_name here as 'content' has everything we need
+                response = await self.llm.generate(
+                    prompt=prompt,
+                    temperature=0.3,
+                    system_prompt="You are an expert tutor creating study materials.",
+                    response_schema=FlashcardSetSchema,
+                    timeout=180.0
+                )
+                
+                json_text = response.content
 
-        # Parse response
-        try:
-            data = self._parse_json(json_text)
-            
-            # Handle wrapped response
-            if isinstance(data, dict) and "cards" in data:
-                cards_data = data["cards"]
-            elif isinstance(data, list):
-                cards_data = data
-            else:
-                raise ValueError("Invalid response format: expected list or dict with 'cards'")
+                # Parse response
+                try:
+                    data = self._parse_json(json_text)
+                    
+                    # Handle wrapped response
+                    if isinstance(data, dict) and "cards" in data:
+                        cards_data = data["cards"]
+                    elif isinstance(data, list):
+                        cards_data = data
+                    else:
+                        raise ValueError("Invalid response format: expected list or dict with 'cards'")
 
-            # Validate and convert
-            flashcards = [FlashcardSchema(**item) for item in cards_data]
-            
-            logger.info("Generated %s %s", len(flashcards), "flashcards", extra={"component": "quiz_generator", "count": len(flashcards)})
-            return flashcards
+                    # Validate and convert
+                    flashcards = [FlashcardSchema(**item) for item in cards_data]
+                    
+                    logger.info("Generated %s %s", len(flashcards), "flashcards", extra={"component": "quiz_generator", "count": len(flashcards)})
+                    return flashcards
 
-        except Exception as e:
-            logger.error("Error parsing %s", "flashcards", extra={"component": "quiz_generator", "error": str(e)})
-            logger.debug("Raw text preview", extra={"component": "quiz_generator", "preview": json_text[:500]})
-            raise ValueError(f"Failed to generate flashcards: {str(e)}")
+                except Exception as e:
+                    logger.error("Error parsing %s", "flashcards", extra={"component": "quiz_generator", "error": str(e)})
+                    logger.debug("Raw text preview", extra={"component": "quiz_generator", "preview": json_text[:500]})
+                    raise ValueError(f"Failed to generate flashcards: {str(e)}")
+                    
+            except RuntimeError as e:
+                last_error = e
+                error_msg = str(e)
+                
+                # Retry only on 504 DEADLINE_EXCEEDED (transient server overload)
+                if ("504" in error_msg or "DEADLINE_EXCEEDED" in error_msg) and attempt < max_retries - 1:
+                    wait_time = 5 * (2 ** attempt)  # 5s, 10s, 20s
+                    logger.warning(
+                        "Flashcard generation timeout (504), retry %s/%s in %ss",
+                        attempt + 1, max_retries, wait_time,
+                        extra={"component": "quiz_generator", "attempt": attempt + 1, "wait_time": wait_time}
+                    )
+                    import asyncio
+                    await asyncio.sleep(wait_time)
+                    continue
+                else:
+                    # Non-504 error or final attempt - raise immediately
+                    raise
+        
+        # All retries exhausted
+        raise last_error if last_error else RuntimeError("Unknown error in flashcard generation")
 
     def _parse_json(self, text: str) -> Any:
         """
