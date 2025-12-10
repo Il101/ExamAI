@@ -262,6 +262,63 @@ async def create_exam_v3(
 
 
 
+@router.post("/{exam_id}/generate", response_model=dict)
+async def start_exam_generation(
+    exam_id: UUID,
+    current_user: User = Depends(get_current_active_user),
+    exam_service: ExamService = Depends(get_exam_service),
+):
+    """
+    Start content generation for a planned exam.
+    
+    This endpoint triggers the Celery task to generate all topic content
+    for an exam that has been planned but not yet generated.
+    """
+    from app.tasks.exam_tasks import generate_exam_content
+    
+    # Get exam to verify it exists and belongs to user
+    exam = await exam_service.get_exam(current_user.id, exam_id)
+    if not exam:
+        raise HTTPException(status_code=404, detail="Exam not found")
+    
+    # Verify exam is in planned status
+    if exam.status != "planned":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot start generation for exam with status '{exam.status}'. Exam must be in 'planned' status."
+        )
+    
+    # Update status to generating
+    exam.status = "generating"
+    exam.progress = 0.0
+    exam.current_step = "Initializing content generation..."
+    await exam_service.exam_repo.update(exam)
+    await exam_service.exam_repo.session.commit()
+    
+    # Trigger Celery task
+    try:
+        generate_exam_content.delay(str(exam.id), str(current_user.id))
+        logger.info(f"✅ Started content generation for exam {exam.id}")
+        
+        return {
+            "message": "Content generation started",
+            "exam_id": str(exam.id),
+            "status": "generating"
+        }
+    except Exception as e:
+        logger.error(f"Failed to start generation task: {e}", exc_info=True)
+        # Revert status
+        exam.status = "planned"
+        exam.progress = None
+        exam.current_step = None
+        await exam_service.exam_repo.update(exam)
+        await exam_service.exam_repo.session.commit()
+        
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to start content generation. Please try again."
+        )
+
 
 @router.get("/", response_model=ExamListResponse)
 async def list_exams(

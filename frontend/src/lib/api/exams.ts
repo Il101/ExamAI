@@ -92,6 +92,11 @@ export const examsApi = {
     const response = await api.get(`/exams/${examId}/status`);
     return response.data;
   },
+
+  startGeneration: async (examId: string) => {
+    const response = await api.post(`/exams/${examId}/generate`);
+    return response.data;
+  },
 };
 
 export interface GenerationStatusResponse {
