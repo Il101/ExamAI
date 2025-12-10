@@ -7,7 +7,6 @@ Replaces:
 - generate_topic_content
 """
 import asyncio
-from typing import List
 from uuid import UUID
 import logging
 
@@ -32,7 +31,6 @@ def generate_all_topics(
     self,
     exam_id: str,
     user_id: str,
-    topic_ids: List[str],
     cache_name: str = None
 ):
     """
@@ -44,15 +42,15 @@ def generate_all_topics(
     - create_exam_plan (removed)
     
     This task:
-    1. Generates content for each topic
-    2. Creates flashcards for each topic
-    3. Updates progress
-    4. Marks exam as ready when complete
+    1. Fetches topics for the exam
+    2. Generates content for each topic
+    3. Creates flashcards for each topic
+    4. Updates progress
+    5. Marks exam as ready when complete
     
     Args:
         exam_id: Exam UUID (string)
         user_id: User UUID (string)
-        topic_ids: List of topic UUIDs (strings)
         cache_name: Optional Gemini cache name
     """
     async def _generate():
@@ -61,6 +59,19 @@ def generate_all_topics(
             topic_repo = TopicRepository(session)
             exam_repo = ExamRepository(session)
             review_repo = ReviewItemRepository(session)
+            
+            # Get all topics for this exam
+            topics = await topic_repo.get_by_exam_id(UUID(exam_id))
+            topic_ids = [str(t.id) for t in topics]
+            
+            if not topics:
+                logger.warning(f"No topics found for exam {exam_id}")
+                return
+            
+            logger.info(
+                f"Starting generation for exam {exam_id}: "
+                f"{len(topic_ids)} topics, cache: {cache_name or 'none'}"
+            )
             
             # Initialize LLM
             llm = get_llm_provider()
@@ -91,11 +102,6 @@ def generate_all_topics(
                 fallback_service=fallback_service,
                 topic_repo=topic_repo,
                 exam_repo=exam_repo
-            )
-            
-            logger.info(
-                f"Starting generation for exam {exam_id}: "
-                f"{len(topic_ids)} topics, cache: {cache_name or 'none'}"
             )
             
             # Generate each topic

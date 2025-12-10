@@ -194,22 +194,16 @@ async def create_exam_v3(
                 # NEW: Use unified architecture
                 logger.info(f"Using NEW unified architecture for exam {exam.id}")
                 from app.tasks.content_generation_tasks import generate_all_topics
-                from app.repositories.topic_repository import TopicRepository
                 
-                # Get all topics using existing session (after commit)
-                topic_repo = TopicRepository(exam_service.exam_repo.session)
-                topics = await topic_repo.get_by_exam_id(exam.id)
-                
-                # Start generation with new task
+                # Start generation - task will fetch topics itself
                 generate_all_topics.delay(
                     exam_id=str(exam.id),
                     user_id=str(current_user.id),
-                    topic_ids=[str(t.id) for t in topics],
                     cache_name=exam.cache_name
                 )
                 logger.info(
                     f"✅ NEW: Triggered unified generation for exam {exam.id} "
-                    f"({len(topics)} topics, cache: {exam.cache_name or 'none'})"
+                    f"(cache: {exam.cache_name or 'none'})"
                 )
             else:
                 # OLD: Use legacy path (fallback)
