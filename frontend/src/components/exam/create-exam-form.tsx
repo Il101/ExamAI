@@ -28,7 +28,7 @@ import { useRouter } from 'next/navigation';
 
 export function CreateExamForm({ onSuccess }: { onSuccess?: () => void }) {
   const router = useRouter();
-  const { createExam, isCreating, startGeneration } = useExams();
+  const { createExam, isCreating } = useExams();
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [examType, setExamType] = useState<'oral' | 'written' | 'test'>('written');
   const [level, setLevel] = useState<'school' | 'bachelor' | 'master' | 'phd'>('bachelor');
