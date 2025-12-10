@@ -84,8 +84,11 @@ def generate_all_topics(
             # Initialize cache fallback
             from app.integrations.llm.cache_manager import ContextCacheManager
             from app.integrations.storage.supabase_storage import SupabaseStorage
+            from google import genai
             
-            cache_manager = ContextCacheManager(llm)
+            # CRITICAL: ContextCacheManager requires genai.Client, not GeminiProvider
+            genai_client = genai.Client(api_key=settings.GEMINI_API_KEY)
+            cache_manager = ContextCacheManager(genai_client)
             storage = SupabaseStorage(
                 url=settings.SUPABASE_URL,
                 key=settings.SUPABASE_KEY,
