@@ -96,18 +96,23 @@ class QuizGenerator:
                 
                 # Call with cache
                 from app.core.config import settings
+                import asyncio
                 logger.debug("Calling Gemini API with cache", extra={
                     "component": "quiz_generator",
                     "model": settings.GEMINI_MODEL,
                     "cache_name": cache_name
                 })
                 
-                response = await self.llm.client.aio.models.generate_content(
-                    model=settings.GEMINI_MODEL,
-                    config={
-                        "cached_content": cache_name,
-                    },
-                    contents=[{"role": "user", "parts": [{"text": prompt}]}]
+                # Wrap in timeout (120s like topic content generation)
+                response = await asyncio.wait_for(
+                    self.llm.client.aio.models.generate_content(
+                        model=settings.GEMINI_MODEL,
+                        config={
+                            "cached_content": cache_name,
+                        },
+                        contents=[{"role": "user", "parts": [{"text": prompt}]}]
+                    ),
+                    timeout=120.0
                 )
                 
                 logger.debug("Received response from Gemini API", extra={
@@ -147,12 +152,16 @@ class QuizGenerator:
                                 flags=re.DOTALL
                             )
                             
-                            response = await self.llm.client.aio.models.generate_content(
-                                model=settings.GEMINI_MODEL,
-                                config={
-                                    "cached_content": new_cache_name,
-                                },
-                                contents=[{"role": "user", "parts": [{"text": prompt}]}]
+                            # Wrap in timeout
+                            response = await asyncio.wait_for(
+                                self.llm.client.aio.models.generate_content(
+                                    model=settings.GEMINI_MODEL,
+                                    config={
+                                        "cached_content": new_cache_name,
+                                    },
+                                    contents=[{"role": "user", "parts": [{"text": prompt}]}]
+                                ),
+                                timeout=120.0
                             )
                             
                             json_text = response.text
