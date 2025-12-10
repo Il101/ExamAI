@@ -66,7 +66,7 @@ async def create_exam_v3(
     from app.agent.cached_planner import CachedCoursePlanner
     from app.integrations.llm.gemini import GeminiProvider
     from app.api.dependencies import (
-        get_storage, get_cache_manager, get_generation_service
+        get_storage, get_cache_manager
     )
     from app.core.config import settings
     from google.genai import types
@@ -159,7 +159,6 @@ async def create_exam_v3(
         planner = CachedCoursePlanner(llm_provider=llm)
         store = get_storage()
         cache_manager = get_cache_manager()
-        gen_service = get_generation_service()
         
         # Create exam with plan
         # Note: 'gemini_file_uri' is passed so Planner will create cache from it directly
@@ -174,7 +173,6 @@ async def create_exam_v3(
             planner=planner,
             storage=store,
             cache_manager=cache_manager,
-            generation_service=gen_service,
             original_file_url=storage_path,
             original_file_mime_type="application/pdf" if file.content_type in media_supported_types else file.content_type,
             gemini_file_uri=gemini_file_uri
