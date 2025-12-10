@@ -196,10 +196,9 @@ async def create_exam_v3(
                 from app.tasks.content_generation_tasks import generate_all_topics
                 from app.repositories.topic_repository import TopicRepository
                 
-                # Get all topics
-                async with exam_service.exam_repo.session as session:
-                    topic_repo = TopicRepository(session)
-                    topics = await topic_repo.get_by_exam_id(exam.id)
+                # Get all topics using existing session (after commit)
+                topic_repo = TopicRepository(exam_service.exam_repo.session)
+                topics = await topic_repo.get_by_exam_id(exam.id)
                 
                 # Start generation with new task
                 generate_all_topics.delay(
