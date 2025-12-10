@@ -160,6 +160,12 @@ def generate_all_topics(
                 successful_topics = [t for t in topics if t.status == 'ready']
                 ai_summary = f"Generated {len(successful_topics)}/{len(topics)} topics successfully"
                 
+                # Ensure exam is in 'generating' status before marking as ready
+                if exam.status != 'generating':
+                    exam.start_generation()
+                    await exam_repo.update(exam)
+                    await session.commit()
+                
                 # Note: Token tracking would require aggregating from all topics
                 # For now, use placeholder values (TODO: implement proper tracking)
                 exam.mark_as_ready(
