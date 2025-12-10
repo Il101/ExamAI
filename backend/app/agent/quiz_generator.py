@@ -130,99 +130,29 @@ class QuizGenerator:
                     
                     # Try to recreate cache if we have exam_id and content
                     if exam_id and content:
-                        try:
-                            from app.integrations.llm.cache_manager import ContextCacheManager
-                            
-                            cache_manager = ContextCacheManager(self.llm)
-                            logger.info("Recreating cache for exam", extra={"component": "quiz_generator", "exam_id": str(exam_id)})
-                            
-                            new_cache_name = await cache_manager.create_cache(
-                                exam_id=exam_id,
-                                content=content,
-                                ttl_seconds=3600
-                            )
-                            logger.info("Successfully recreated cache", extra={"component": "quiz_generator", "cache_name": new_cache_name})
-                            
-                            # Retry with new cache
-                            prompt_template = load_prompt('quiz/flashcards.txt', num_cards=num_cards, content="")
-                            prompt = re.sub(
-                                r'## Source Content\s+\{content\}\s+---',
-                                '**IMPORTANT:** The source content is already loaded in the context cache. Analyze it to create flashcards.\n\n---',
-                                prompt_template,
-                                flags=re.DOTALL
-                            )
-                            
-                            # Wrap in timeout
-                            response = await asyncio.wait_for(
-                                self.llm.client.aio.models.generate_content(
-                                    model=settings.GEMINI_MODEL,
-                                    config={
-                                        "cached_content": new_cache_name,
-                                    },
-                                    contents=[{"role": "user", "parts": [{"text": prompt}]}]
-                                ),
-                                timeout=120.0
-                            )
-                            
-                            json_text = response.text
-                            
-                        except Exception as recreate_error:
-                            logger.error("Failed to recreate cache", extra={"component": "quiz_generator", "error": str(recreate_error)})
-                            # Final fallback: use full content
-                            logger.warning("Falling back to full content", extra={"component": "quiz_generator"})
-                            prompt = load_prompt(
-                                'quiz/flashcards.txt',
-                                num_cards=num_cards,
-                                content=content
-                            )
-                            
-                            response = await self.llm.generate(
-                                prompt=prompt,
-                                temperature=0.3,
-                                system_prompt="You are an expert tutor creating study materials.",
-                                response_schema=FlashcardSetSchema,
-                                timeout=120.0
-                            )
-                            
-                            json_text = response.content
-                    else:
-                        # No exam_id - can't recreate cache, use full content
-                        logger.warning("No exam_id, falling back to full content", extra={"component": "quiz_generator"})
-                        prompt = load_prompt(
-                            'quiz/flashcards.txt',
-                            num_cards=num_cards,
-                            content=content
-                        )
-                        
-                        response = await self.llm.generate(
-                            prompt=prompt,
-                            temperature=0.3,
-                            system_prompt="You are an expert tutor creating study materials.",
-                            response_schema=FlashcardSetSchema,
-                            timeout=120.0
-                        )
-                        
-                        json_text = response.content
-                else:
-                    # Not a cache error, re-raise
-                    raise
-        else:
-            # No cache - use full content (no truncation)
-            prompt = load_prompt(
-                'quiz/flashcards.txt',
-                num_cards=num_cards,
-                content=content  # Full content, no [:10000] truncation
-            )
-            
-            response = await self.llm.generate(
-                prompt=prompt,
-                temperature=0.3,
-                system_prompt="You are an expert tutor creating study materials.",
-                response_schema=FlashcardSetSchema,
-                timeout=120.0
-            )
-            
-            json_text = response.content
+        # NOTE: We intentionally do NOT use the cache here. 
+        # The flashcards are generated from the provided 'content' string (the topic summary),
+        # not the entire book. Passing the massive cache + the content causing redundancy 
+        # and 504 timeouts (RPC failures) in Gemini.
+        
+        # Build prompt with full content
+        prompt = load_prompt(
+            'quiz/flashcards.txt',
+            num_cards=num_cards,
+            content=content
+        )
+        
+        # Generate with safer timeout (120s)
+        # We don't need cache_name here as 'content' has everything we need
+        response = await self.llm.generate(
+            prompt=prompt,
+            temperature=0.3,
+            system_prompt="You are an expert tutor creating study materials.",
+            response_schema=FlashcardSetSchema,
+            timeout=120.0
+        )
+        
+        json_text = response.content
 
         # Parse response
         try:
