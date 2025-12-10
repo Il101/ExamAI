@@ -143,14 +143,25 @@ class TopicContentGenerator:
         )
         
         # 5. Execute with cache fallback
+        # TopicExecutor.execute_step() only takes AgentState
+        # We need to set up state with the plan_step and execute
+        state.plan = [plan_step]
+        state.current_step_index = 0
+        
         async def _execute_with_cache(cn: Optional[str]):
             """Execute generation with given cache name"""
-            return await self.executor.execute_step(
-                state=state,
-                plan_step=plan_step,
-                previous_results={},
-                cache_name=cn,
-                exam_id=exam_id
+            # Update cache in state
+            state.cache_name = cn
+            # Execute step (returns content string)
+            content = await self.executor.execute_step(state)
+            # Build StepResult manually
+            from app.agent.state import StepResult
+            return StepResult(
+                step_id=plan_step.id,
+                content=content,
+                success=True,
+                tokens_used=state.total_tokens_used,
+                cost_usd=state.total_cost_usd
             )
         
         # Use fallback service to handle cache expiration
