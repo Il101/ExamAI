@@ -139,14 +139,24 @@ class TopicExecutor:
         """Build prompt for topic content generation"""
         from app.prompts import load_prompt
 
-        # Extract relevant content sections based on step title
+        # Prepare content section
         content_section = ""
-        if state.original_content:
-            # Analyze ENTIRE file, not just first N lines
-            lines = state.original_content.split("\n")
-            keywords = step.title.lower().split()
+        
+        # If cache is active, DO NOT include raw content to avoid double token usage
+        if state.cache_name:
+            content_section = (
+                "\n**Source Materials:**\n"
+                "The full source content is already loaded in your context cache.\n"
+                "Please refer to the cached documents to answer this request.\n"
+            )
+        elif state.original_content:
+            # Extract relevant chunks based on keywords
+            lines = state.original_content.split('\n')
+            keywords = step.title.lower().split() + step.description.lower().split()
+            # remove common words
+            stop_words = {'and', 'the', 'of', 'in', 'to', 'a', 'for', 'on', 'with', 'generate', 'content', 'topic'}
+            keywords = [k for k in keywords if k not in stop_words and len(k) > 3]
             
-            # Find relevant paragraphs (not just lines)
             relevant_content = []
             current_para = []
             
