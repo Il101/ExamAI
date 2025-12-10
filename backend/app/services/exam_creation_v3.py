@@ -21,7 +21,6 @@ from app.agent.schemas import ExamPlan
 from app.agent.cached_planner import CachedCoursePlanner
 from app.integrations.storage import SupabaseStorage
 from app.integrations.llm.cache_manager import ContextCacheManager
-from app.services.generation_service import GenerationService
 from app.repositories.topic_repository import TopicRepository
 
 logger = logging.getLogger(__name__)
@@ -38,7 +37,6 @@ async def create_exam_with_plan(
     planner: CachedCoursePlanner,
     storage: SupabaseStorage,
     cache_manager: ContextCacheManager,
-    generation_service: GenerationService,
     original_file_url: str = None,
     original_file_mime_type: str = None,
     gemini_file_uri: str = None  # URI for direct Gemini caching (optional)
@@ -57,7 +55,6 @@ async def create_exam_with_plan(
         planner: CachedCoursePlanner instance
         storage: Storage service
         cache_manager: Cache manager
-        generation_service: Generation service for prefetch
         original_file_url: URL of the original file in storage
         original_file_mime_type: MIME type of the original file
         gemini_file_uri: URI of file in Gemini Files API
