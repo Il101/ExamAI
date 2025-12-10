@@ -129,7 +129,12 @@ class GeminiProvider(LLMProvider):
             }
 
             if system_prompt:
-                config_args["system_instruction"] = system_prompt
+                # If using cache, we CANNOT use system_instruction in config (API restriction)
+                # So we must prepend it to the prompt contents
+                if "cache_name" in kwargs and kwargs["cache_name"]:
+                    full_prompt = f"{system_prompt}\n\n{prompt}"
+                else:
+                    config_args["system_instruction"] = system_prompt
 
             # Add cache support (CRITICAL for reducing input tokens)
             if "cache_name" in kwargs and kwargs["cache_name"]:
