@@ -131,6 +131,11 @@ class GeminiProvider(LLMProvider):
             if system_prompt:
                 config_args["system_instruction"] = system_prompt
 
+            # Add cache support (CRITICAL for reducing input tokens)
+            if "cache_name" in kwargs and kwargs["cache_name"]:
+                config_args["cached_content"] = kwargs["cache_name"]
+                print(f"[GeminiProvider] Using context cache: {kwargs['cache_name']}")
+
             # Add response schema if provided
             if response_schema:
                 config_args["response_mime_type"] = "application/json"

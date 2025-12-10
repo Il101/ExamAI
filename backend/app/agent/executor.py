@@ -39,12 +39,13 @@ class TopicExecutor:
         # Build execution prompt
         prompt = self._build_execution_prompt(state, current_step, previous_context)
 
-        # Call LLM
+        # Call LLM with cache if available
         response = await self.llm.generate(
             prompt=prompt,
             temperature=0.7,  # Higher temperature for creative content
             max_tokens=2000,  # Limit per topic
             system_prompt="You are an expert educator writing study notes.",
+            cache_name=state.cache_name,  # CRITICAL: Use cache to reduce input tokens
         )
 
         print(
