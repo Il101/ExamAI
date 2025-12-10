@@ -111,7 +111,7 @@ class GeminiProvider(LLMProvider):
         system_prompt: Optional[str] = None,
         response_schema: Optional[Any] = None,
         response_mime_type: Optional[str] = None,
-        timeout: float = 120.0,  # Timeout in seconds
+        timeout: float = 180.0,  # Increased timeout to 3 minutes
         **kwargs,
     ) -> LLMResponse:
         """Generate text with Gemini"""
@@ -196,9 +196,13 @@ class GeminiProvider(LLMProvider):
 
         except asyncio.TimeoutError:
             elapsed = time.time() - start_time
-            print(
-                f"[GeminiProvider] TIMEOUT after {elapsed:.2f}s (limit: {timeout}s)"
-            )
+            error_msg = f"[GeminiProvider] ⚠️ TIMEOUT after {elapsed:.2f}s (limit: {timeout}s)"
+            print(error_msg)
+            logger.error(error_msg)
+            # Log to Celery worker stdout/stderr
+            import sys
+            sys.stderr.write(f"{error_msg}\n")
+            sys.stderr.flush()
             raise RuntimeError(f"Gemini API request timed out after {timeout} seconds")
         
         except errors.APIError as e:

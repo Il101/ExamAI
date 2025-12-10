@@ -14,12 +14,13 @@ class TopicExecutor:
     def __init__(self, llm_provider: LLMProvider):
         self.llm = llm_provider
 
-    async def execute_step(self, state: AgentState) -> str:
+    async def execute_step(self, state: AgentState, max_retries: int = 3) -> str:
         """
-        Generate content for current step.
+        Generate content for current step with retry logic.
 
         Args:
             state: AgentState with plan and current step index
+            max_retries: Maximum number of retry attempts
 
         Returns:
             Generated content for the topic
@@ -39,29 +40,58 @@ class TopicExecutor:
         # Build execution prompt
         prompt = self._build_execution_prompt(state, current_step, previous_context)
 
-        # Call LLM with cache if available
-        response = await self.llm.generate(
-            prompt=prompt,
-            temperature=0.7,  # Higher temperature for creative content
-            max_tokens=2000,  # Limit per topic
-            system_prompt="You are an expert educator writing study notes.",
-            cache_name=state.cache_name,  # CRITICAL: Use cache to reduce input tokens
-        )
+        # Retry loop for transient failures
+        last_error = None
+        for attempt in range(max_retries):
+            try:
+                # Call LLM with cache if available
+                response = await self.llm.generate(
+                    prompt=prompt,
+                    temperature=0.7,  # Higher temperature for creative content
+                    max_tokens=2000,  # Limit per topic
+                    system_prompt="You are an expert educator writing study notes.",
+                    cache_name=state.cache_name,  # CRITICAL: Use cache to reduce input tokens
+                )
 
-        print(
-            f"[Executor] Content generated for topic {current_step.id}. Tokens: {response.tokens_input}/{response.tokens_output}"
-        )
+                print(
+                    f"[Executor] Content generated for topic {current_step.id}. Tokens: {response.tokens_input}/{response.tokens_output}"
+                )
 
-        # Track usage
-        state.add_token_usage(
-            response.tokens_input, response.tokens_output, response.cost_usd
-        )
+                # Track usage
+                state.add_token_usage(
+                    response.tokens_input, response.tokens_output, response.cost_usd
+                )
 
-        # Clean content (remove <thinking> tags)
-        from app.utils.content_cleaner import strip_thinking_tags
-        cleaned_content = strip_thinking_tags(response.content)
+                # Clean content (remove <thinking> tags)
+                from app.utils.content_cleaner import strip_thinking_tags
+                cleaned_content = strip_thinking_tags(response.content)
 
-        return cleaned_content.strip()
+                return cleaned_content.strip()
+
+            except RuntimeError as e:
+                last_error = e
+                error_msg = str(e)
+                
+                # Check if it's a timeout or transient error
+                if "timed out" in error_msg.lower() or "timeout" in error_msg.lower():
+                    print(f"[Executor] ⚠️ Attempt {attempt + 1}/{max_retries} failed with timeout: {error_msg}")
+                    
+                    if attempt < max_retries - 1:
+                        # Exponential backoff: 5s, 10s, 20s
+                        wait_time = 5 * (2 ** attempt)
+                        print(f"[Executor] Retrying in {wait_time}s...")
+                        import asyncio
+                        await asyncio.sleep(wait_time)
+                        continue
+                    else:
+                        print(f"[Executor] ❌ All {max_retries} attempts failed for topic {current_step.id}")
+                        raise RuntimeError(f"Failed to generate topic after {max_retries} attempts: {error_msg}")
+                else:
+                    # Non-timeout error, don't retry
+                    raise
+
+        # Should never reach here, but just in case
+        raise last_error if last_error else RuntimeError("Unknown error in execute_step")
 
     def _build_previous_context(self, state: AgentState, current_step: PlanStep) -> str:
         """

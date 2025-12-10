@@ -102,9 +102,21 @@ def generate_exam_content(self, exam_id: str, user_id: str):
             # Categorize error and create user-friendly message
             error_category, user_message = _categorize_error(e)
 
-            # Log detailed error for developers
-            print(f"Error generating exam {exam_id}: {str(e)}")
-            print(f"Error category: {error_category}")
+            # Log detailed error for developers (CRITICAL: Force to stderr)
+            import sys
+            import traceback
+            error_details = f"""
+[CELERY ERROR] ❌ Generation failed for exam {exam_id}
+Error Type: {type(e).__name__}
+Error Category: {error_category}
+Error Message: {str(e)}
+User Message: {user_message}
+Traceback:
+{traceback.format_exc()}
+"""
+            print(error_details)
+            sys.stderr.write(error_details)
+            sys.stderr.flush()
 
             # Mark exam as failed with descriptive error message
             # Safe to call directly as we are in the same loop
@@ -114,6 +126,8 @@ def generate_exam_content(self, exam_id: str, user_id: str):
                 )
             except Exception as mark_error:
                 print(f"[CELERY] CRITICAL: Failed to mark exam as failed: {mark_error}")
+                sys.stderr.write(f"[CELERY] CRITICAL: Failed to mark exam as failed: {mark_error}\n")
+                sys.stderr.flush()
 
             # Retry task if retries remaining (only for transient errors)
             if self.request.retries < self.max_retries and error_category in [
