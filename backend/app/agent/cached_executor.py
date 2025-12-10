@@ -41,13 +41,20 @@ class CachedTopicExecutor(TopicExecutor):
         # But we are calling execute_step which doesn't take fallback service.
         # That's okay, execute_topic_with_cache handles None fallback service (simple cache usage).
         
-        return await self.execute_topic_with_cache(
+        content, new_cache_name = await self.execute_topic_with_cache(
             topic=current_step,
             cache_name=state.cache_name,
             exam_id=UUID(state.exam_id) if state.exam_id else None,
             fallback_service=self.fallback_service,
             context=context
         )
+        
+        # CRITICAL: Update state with new cache name if it was refreshed
+        if new_cache_name:
+            logger.info(f"[CachedExecutor] Updating state with new cache name: {new_cache_name}")
+            state.cache_name = new_cache_name
+            
+        return content
 
     async def execute_topic_with_cache(
         self,
@@ -56,7 +63,7 @@ class CachedTopicExecutor(TopicExecutor):
         exam_id: UUID,
         fallback_service: Optional[CacheFallbackService] = None,
         context: str = ""
-    ) -> str:
+    ) -> tuple[str, Optional[str]]:
         """
         Generate topic content using cache
         
@@ -68,7 +75,7 @@ class CachedTopicExecutor(TopicExecutor):
             context: Additional context from previous topics
         
         Returns:
-            Generated markdown content
+            Tuple of (Generated markdown content, New cache name)
         """
         prompt = self._build_topic_prompt(topic, context, cache_name)
         
@@ -111,11 +118,14 @@ class CachedTopicExecutor(TopicExecutor):
         
         # Execute with fallback if available
         if fallback_service and cache_name:
+            # execute_with_fallback returns (result, new_cache_name)
             return await fallback_service.execute_with_fallback(
                 exam_id, cache_name, generate_op
             )
         else:
-            return await generate_op(cache_name)
+            # No fallback service or no cache, just run normally
+            # Return None for new_cache_name as no update happened
+            return await generate_op(cache_name), None
     
     def _build_topic_prompt(self, topic: TopicPlan, context: str = "", cache_name: Optional[str] = None) -> str:
         """Build prompt for topic generation"""

@@ -25,7 +25,7 @@ class CacheFallbackService:
         exam_id: UUID,
         cache_name: Optional[str],
         operation: Callable[[Optional[str]], Any]
-    ) -> Any:
+    ) -> tuple[Any, Optional[str]]:
         """
         Execute operation with automatic cache recreation on expiry
         
@@ -35,13 +35,13 @@ class CacheFallbackService:
             operation: Async function that takes cache_name and returns result
         
         Returns:
-            Operation result
+            Tuple of (Operation result, New cache name if updated or None)
         
         Raises:
             Original exception if not cache-related
         """
         try:
-            return await operation(cache_name)
+            return await operation(cache_name), None
         
         except Exception as e:
             error_str = str(e).lower()
@@ -130,7 +130,7 @@ class CacheFallbackService:
 
                 # 3. Retry operation with new cache
                 try:
-                    return await operation(new_cache_name)
+                    return await operation(new_cache_name), new_cache_name
                 except Exception as retry_error:
                     logger.error(f"Operation failed even after cache recreation: {retry_error}")
                     raise
@@ -186,7 +186,8 @@ class CacheFallbackService:
                 raise ValueError("Cache not available, use fallback_content")
         
         try:
-            return await self.execute_with_fallback(exam_id, cache_name, operation)
+            result, _ = await self.execute_with_fallback(exam_id, cache_name, operation)
+            return result
         except ValueError as e:
             if "use fallback_content" in str(e) and fallback_content:
                 # Caller should handle this case

@@ -20,8 +20,8 @@ async def test_cached_executor_uses_fallback_on_403():
     mock_llm.client.aio.models.generate_content.side_effect = Exception("403 Forbidden: CachedContent not found")
     
     mock_fallback = AsyncMock(spec=CacheFallbackService)
-    # Fallback should return content
-    mock_fallback.execute_with_fallback.return_value = "Recovered Content"
+    # Fallback should return content AND new cache name
+    mock_fallback.execute_with_fallback.return_value = ("Recovered Content", "new_cache_key_123")
     
     executor = CachedTopicExecutor(mock_llm, fallback_service=mock_fallback)
     
@@ -40,6 +40,11 @@ async def test_cached_executor_uses_fallback_on_403():
     
     # Execute
     content = await executor.execute_step(state)
+    
+    # Assertions
+    assert content == "Recovered Content"
+    assert state.cache_name == "new_cache_key_123"  # Verify propagation
+    mock_fallback.execute_with_fallback.assert_called_once()
     
     # Verify
     assert content == "Recovered Content"

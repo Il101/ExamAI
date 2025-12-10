@@ -143,36 +143,36 @@ class PlanAndExecuteAgent:
                         "timed out" in error_msg or
                         "timeout" in error_msg
                     )
-                        
-                        if attempt < max_retries and is_transient:
-                            wait_time = retry_delay * (2 ** attempt) # Exponential backoff: 2, 4, 8
-                            import asyncio
-                            await self._notify_progress(
-                                progress_callback, 
-                                f"Topic '{current_step.title}' failed (attempt {attempt+1}/{max_retries+1}). Retrying in {wait_time}s...", 
-                                progress
-                            )
-                            import asyncio
-                            await asyncio.sleep(wait_time)
-                            continue
-                        
-                        # Log error but continue with next steps if all retries failed
-                        final_error_msg = (
-                            f"Failed to generate topic '{current_step.title}' after {attempt+1} attempts: {error_msg}"
+                    
+                    if attempt < max_retries and is_transient:
+                        wait_time = retry_delay * (2 ** attempt) # Exponential backoff: 2, 4, 8
+                        import asyncio
+                        await self._notify_progress(
+                            progress_callback, 
+                            f"Topic '{current_step.title}' failed (attempt {attempt+1}/{max_retries+1}). Retrying in {wait_time}s...", 
+                            progress
                         )
-                        state.log_error(final_error_msg)
+                        import asyncio
+                        await asyncio.sleep(wait_time)
+                        continue
+                    
+                    # Log error but continue with next steps if all retries failed
+                    final_error_msg = (
+                        f"Failed to generate topic '{current_step.title}' after {attempt+1} attempts: {error_msg}"
+                    )
+                    state.log_error(final_error_msg)
 
-                        # Create failed result
-                        result = StepResult(
-                            step_id=current_step.id,
-                            content="",
-                            success=False,
-                            error_message=final_error_msg,
-                            timestamp=step_start_time.isoformat(),
-                        )
-                        state.results[current_step.id] = result
-                        state.failed_steps.append(current_step.id)
-                        break # Failed finally, exit retry loop
+                    # Create failed result
+                    result = StepResult(
+                        step_id=current_step.id,
+                        content="",
+                        success=False,
+                        error_message=final_error_msg,
+                        timestamp=step_start_time.isoformat(),
+                    )
+                    state.results[current_step.id] = result
+                    state.failed_steps.append(current_step.id)
+                    break # Failed finally, exit retry loop
 
                 state.current_step_index += 1
 
