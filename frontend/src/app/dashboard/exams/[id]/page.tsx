@@ -18,6 +18,7 @@ export default function ExamDetailPage() {
     const examId = params.id as string;
 
     const { exam, isLoading, isError, error, refetch } = useExamDetail(examId);
+    const { createPlan, startGeneration, isPlanning, isGenerating } = useExams();
 
     if (isLoading) {
         return (
@@ -69,7 +70,7 @@ export default function ExamDetailPage() {
         );
     }
 
-    const { createPlan, startGeneration, isPlanning, isGenerating } = useExams();
+
 
     const renderReadyContent = () => (
         <Tabs defaultValue="summary" className="w-full">
