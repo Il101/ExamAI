@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, ArrowLeft, Play, Brain, Layers } from 'lucide-react';
 import Link from 'next/link';
+import { studyApi } from '@/lib/api/study';
 
 export default function ExamFlashcardsPage() {
     const params = useParams();
@@ -35,26 +36,8 @@ export default function ExamFlashcardsPage() {
                 await Promise.all(
                     topics.map(async (topic: any) => {
                         try {
-                            const token = localStorage.getItem('token');
-                            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-
-                            const response = await fetch(
-                                `${apiUrl}/api/v1/reviews/due?topic_id=${topic.id}`,
-                                {
-                                    headers: {
-                                        'Authorization': `Bearer ${token}`,
-                                        'Content-Type': 'application/json',
-                                    },
-                                }
-                            );
-
-                            if (response.ok) {
-                                const flashcards = await response.json();
-                                counts[topic.id] = Array.isArray(flashcards) ? flashcards.length : 0;
-                            } else {
-                                console.warn(`Failed to fetch flashcards for topic ${topic.id}: ${response.status}`);
-                                counts[topic.id] = 0;
-                            }
+                            const flashcards = await studyApi.getDueReviews(100, undefined, topic.id);
+                            counts[topic.id] = Array.isArray(flashcards) ? flashcards.length : 0;
                         } catch (error) {
                             console.error(`Failed to fetch flashcards for topic ${topic.id}:`, error);
                             counts[topic.id] = 0;
