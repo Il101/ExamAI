@@ -181,7 +181,7 @@ class QuizGenerator:
                                 temperature=0.3,
                                 system_prompt="You are an expert tutor creating study materials.",
                                 response_schema=FlashcardSetSchema,
-                                timeout=60.0
+                                timeout=120.0
                             )
                             
                             json_text = response.content
@@ -199,7 +199,7 @@ class QuizGenerator:
                             temperature=0.3,
                             system_prompt="You are an expert tutor creating study materials.",
                             response_schema=FlashcardSetSchema,
-                            timeout=60.0
+                            timeout=120.0
                         )
                         
                         json_text = response.content
@@ -219,7 +219,7 @@ class QuizGenerator:
                 temperature=0.3,
                 system_prompt="You are an expert tutor creating study materials.",
                 response_schema=FlashcardSetSchema,
-                timeout=60.0
+                timeout=120.0
             )
             
             json_text = response.content

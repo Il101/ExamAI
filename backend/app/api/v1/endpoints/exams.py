@@ -191,19 +191,20 @@ async def create_exam_v3(
             use_new_architecture = os.getenv("USE_UNIFIED_GENERATION", "false").lower() == "true"
             
             if use_new_architecture:
-                # NEW: Use unified architecture
-                logger.info(f"Using NEW unified architecture for exam {exam.id}")
-                from app.tasks.content_generation_tasks import generate_all_topics
+                # NEW: Unified architecture
+                # NOTE: Auto-start disabled per user request. User must click "Start Generation".
+                # logger.info(f"Using NEW unified architecture for exam {exam.id}")
+                # from app.tasks.content_generation_tasks import generate_all_topics
                 
-                # Start generation - task will fetch topics itself
-                generate_all_topics.delay(
-                    exam_id=str(exam.id),
-                    user_id=str(current_user.id),
-                    cache_name=exam.cache_name
-                )
+                # # Start generation - task will fetch topics itself
+                # generate_all_topics.delay(
+                #     exam_id=str(exam.id),
+                #     user_id=str(current_user.id),
+                #     cache_name=exam.cache_name
+                # )
                 logger.info(
-                    f"✅ NEW: Triggered unified generation for exam {exam.id} "
-                    f"(cache: {exam.cache_name or 'none'})"
+                    f"✅ NEW: Plan created for unified exam {exam.id} "
+                    f"(cache: {exam.cache_name or 'none'}). Waiting for manual start."
                 )
             else:
                 # OLD: Use legacy path (fallback)

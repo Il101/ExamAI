@@ -197,7 +197,9 @@ class ExamService:
             Tuple of (Updated exam, Task ID)
         """
         # Import tasks here to avoid circular import
+        # Import tasks here to avoid circular import
         from app.tasks.exam_tasks import generate_exam_content
+        import os
         
         exam = await self.exam_repo.get_by_user_and_id(user_id, exam_id)
         if not exam:
@@ -212,7 +214,17 @@ class ExamService:
         updated = await self.exam_repo.update(exam)
 
         # Start content generation task
-        task = generate_exam_content.apply_async(args=[str(exam_id), str(user_id)])
+        use_unified = os.getenv("USE_UNIFIED_GENERATION", "false").lower() == "true"
+        
+        if use_unified:
+             from app.tasks.content_generation_tasks import generate_all_topics
+             task = generate_all_topics.delay(
+                 exam_id=str(exam_id),
+                 user_id=str(user_id),
+                 cache_name=exam.cache_name
+             )
+        else:
+             task = generate_exam_content.apply_async(args=[str(exam_id), str(user_id)])
 
         return updated, task.id
 
