@@ -137,11 +137,6 @@ async def on_topic_viewed(
         "triggered": False
     }
 
-            "quiz_completed": topic.quiz_completed,
-            "triggered": False,
-            "error": str(e)
-        }
-
 
 @router.get("/{topic_id}/quiz")
 async def get_topic_quiz(
