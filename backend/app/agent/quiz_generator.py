@@ -76,60 +76,6 @@ class QuizGenerator:
         })
         
         # Use cache if available, otherwise use content directly
-        if cache_name:
-            try:
-                logger.debug("Using context cache for flashcard generation", extra={
-                    "component": "quiz_generator",
-                    "cache_name": cache_name
-                })
-                
-                # Use cache - remove content placeholder from prompt
-                import re
-                prompt_template = load_prompt('quiz/flashcards.txt', num_cards=num_cards, content="")
-                # Remove the content section since it's in cache
-                prompt = re.sub(
-                    r'## Source Content\s+\{content\}\s+---',
-                    '**IMPORTANT:** The source content is already loaded in the context cache. Analyze it to create flashcards.\n\n---',
-                    prompt_template,
-                    flags=re.DOTALL
-                )
-                
-                # Call with cache
-                from app.core.config import settings
-                import asyncio
-                logger.debug("Calling Gemini API with cache", extra={
-                    "component": "quiz_generator",
-                    "model": settings.GEMINI_MODEL,
-                    "cache_name": cache_name
-                })
-                
-                # Wrap in timeout (120s like topic content generation)
-                response = await asyncio.wait_for(
-                    self.llm.client.aio.models.generate_content(
-                        model=settings.GEMINI_MODEL,
-                        config={
-                            "cached_content": cache_name,
-                        },
-                        contents=[{"role": "user", "parts": [{"text": prompt}]}]
-                    ),
-                    timeout=120.0
-                )
-                
-                logger.debug("Received response from Gemini API", extra={
-                    "component": "quiz_generator",
-                    "response_length": len(response.text) if response.text else 0
-                })
-                
-                json_text = response.text
-            
-            except Exception as cache_error:
-                # Check if cache expired
-                error_str = str(cache_error).lower()
-                if "cache" in error_str and ("not found" in error_str or "expired" in error_str or "404" in error_str):
-                    logger.warning("Cache expired, attempting to recreate", extra={"component": "quiz_generator"})
-                    
-                    # Try to recreate cache if we have exam_id and content
-                    if exam_id and content:
         # NOTE: We intentionally do NOT use the cache here. 
         # The flashcards are generated from the provided 'content' string (the topic summary),
         # not the entire book. Passing the massive cache + the content causing redundancy 
