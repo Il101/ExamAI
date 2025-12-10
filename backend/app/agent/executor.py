@@ -57,7 +57,11 @@ class TopicExecutor:
             response.tokens_input, response.tokens_output, response.cost_usd
         )
 
-        return response.content.strip()
+        # Clean content (remove <thinking> tags)
+        from app.utils.content_cleaner import strip_thinking_tags
+        cleaned_content = strip_thinking_tags(response.content)
+
+        return cleaned_content.strip()
 
     def _build_previous_context(self, state: AgentState, current_step: PlanStep) -> str:
         """

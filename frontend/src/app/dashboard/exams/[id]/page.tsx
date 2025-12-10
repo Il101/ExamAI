@@ -10,7 +10,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { ExamWithTopics } from '@/lib/api/exams';
-import { useExams } from '@/lib/hooks/use-exams';
 import { Button } from '@/components/ui/button';
 
 export default function ExamDetailPage() {
@@ -18,7 +17,6 @@ export default function ExamDetailPage() {
     const examId = params.id as string;
 
     const { exam, isLoading, isError, error, refetch } = useExamDetail(examId);
-    const { createPlan, startGeneration, isPlanning, isGenerating } = useExams();
 
     if (isLoading) {
         return (
@@ -141,79 +139,6 @@ export default function ExamDetailPage() {
                     <p className="text-muted-foreground">
                         There was an error generating your exam. Please try again.
                     </p>
-                </div>
-            );
-        }
-
-        if (exam.status === 'draft') {
-            return (
-                <div className="text-center py-12">
-                    <div className="mb-6">
-                        <h3 className="text-lg font-semibold mb-2">Exam Draft Created</h3>
-                        <p className="text-muted-foreground max-w-md mx-auto">
-                            Your exam setup is ready. Next, we'll generate a study plan with topics based on your materials.
-                        </p>
-                    </div>
-                    <Button
-                        onClick={() => createPlan(exam.id)}
-                        disabled={isPlanning}
-                        size="lg"
-                    >
-                        {isPlanning ? (
-                            <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Planning...
-                            </>
-                        ) : (
-                            'Generate Study Plan'
-                        )}
-                    </Button>
-                </div>
-            );
-        }
-
-        if (exam.status === 'planned') {
-            return (
-                <div className="space-y-8">
-                    <div className="text-center py-8 border-b">
-                        <h3 className="text-lg font-semibold mb-2">Study Plan Ready</h3>
-                        <p className="text-muted-foreground mb-6">
-                            Review the topics below. When you're ready, start generating the full content.
-                        </p>
-                        <Button
-                            onClick={() => startGeneration(exam.id)}
-                            disabled={isGenerating}
-                            size="lg"
-                        >
-                            {isGenerating ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Starting...
-                                </>
-                            ) : (
-                                'Start Generation'
-                            )}
-                        </Button>
-                    </div>
-
-                    {/* Show topics preview if available */}
-                    <div className="opacity-70 pointer-events-none">
-                        <TopicList exam={{
-                            ...exam,
-                            topics: (exam as ExamWithTopics).topics?.length > 0
-                                ? (exam as ExamWithTopics).topics
-                                : (exam.plan_data?.blocks.flatMap((block, bIdx) =>
-                                    block.topics.map((topic, tIdx) => ({
-                                        id: topic.id,
-                                        topic_name: topic.title,
-                                        content: topic.description,
-                                        order_index: bIdx * 10 + tIdx,
-                                        difficulty_level: 1,
-                                        estimated_study_minutes: topic.estimated_paragraphs * 3
-                                    }))
-                                ) || [])
-                        } as ExamWithTopics} />
-                    </div>
                 </div>
             );
         }

@@ -31,29 +31,6 @@ export function useExams() {
     },
   });
 
-  const generateMutation = useMutation({
-    mutationFn: (examId: string) => examsApi.startGeneration(examId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['exams'] });
-      toast.success('Exam generation started');
-    },
-    onError: (error: unknown) => {
-      let message = 'Failed to start generation';
-
-      if (error instanceof Error && 'response' in error) {
-        const responseError = error as {
-          response?: { data?: { error?: { message?: string }; detail?: string } };
-        };
-        message =
-          responseError.response?.data?.error?.message ||
-          responseError.response?.data?.detail ||
-          'Failed to start generation';
-      }
-
-      toast.error(message);
-    },
-  });
-
   const deleteMutation = useMutation({
     mutationFn: (examId: string) => examsApi.delete(examId),
     onSuccess: () => {
@@ -74,33 +51,11 @@ export function useExams() {
     },
   });
 
-  const createPlanMutation = useMutation({
-    mutationFn: (examId: string) => examsApi.createPlan(examId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['exams'] });
-      toast.success('Planning started');
-    },
-    onError: (error: unknown) => {
-      let message = 'Failed to start planning';
-      if (error instanceof Error && 'response' in error) {
-        const responseError = error as { response?: { data?: { error?: { message?: string }, detail?: string } } };
-        message = responseError.response?.data?.error?.message ||
-          responseError.response?.data?.detail ||
-          'Failed to start planning';
-      }
-      toast.error(message);
-    },
-  });
-
   return {
     exams: data?.exams || [],
     isLoading,
     createExam: createMutation.mutate,
     deleteExam: deleteMutation.mutate,
-    startGeneration: generateMutation.mutate,
-    createPlan: createPlanMutation.mutate,
     isCreating: createMutation.isPending,
-    isGenerating: generateMutation.isPending,
-    isPlanning: createPlanMutation.isPending,
   };
 }

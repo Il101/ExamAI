@@ -190,16 +190,13 @@ class ExamService:
         self, user_id: UUID, exam_id: UUID
     ) -> Tuple[Exam, str]:
         """
-        Start content generation for exam (progressive generation step 2).
+        Start content generation for exam.
         Exam must be in 'planned' status (topics already created).
         
         Returns:
             Tuple of (Updated exam, Task ID)
         """
-        # Import tasks here to avoid circular import
-        # Import tasks here to avoid circular import
         from app.tasks.exam_tasks import generate_exam_content
-        import os
         
         exam = await self.exam_repo.get_by_user_and_id(user_id, exam_id)
         if not exam:
@@ -214,45 +211,6 @@ class ExamService:
         updated = await self.exam_repo.update(exam)
 
         # Start content generation task
-        use_unified = os.getenv("USE_UNIFIED_GENERATION", "false").lower() == "true"
-        
-        if use_unified:
-             from app.tasks.content_generation_tasks import generate_all_topics
-             task = generate_all_topics.delay(
-                 exam_id=str(exam_id),
-                 user_id=str(user_id),
-                 cache_name=exam.cache_name
-             )
-        else:
-             task = generate_exam_content.apply_async(args=[str(exam_id), str(user_id)])
+        task = generate_exam_content.apply_async(args=[str(exam_id), str(user_id)])
 
-        return updated, task.id
-
-    async def create_plan(
-        self, user_id: UUID, exam_id: UUID
-    ) -> Tuple[Exam, str]:
-        """
-        Create topic plan without generating content (progressive generation step 1).
-        
-        Returns:
-            Tuple of (Updated exam, Task ID)
-        """
-        # Import tasks here to avoid circular import
-        from app.tasks.exam_tasks import create_exam_plan
-        
-        exam = await self.exam_repo.get_by_user_and_id(user_id, exam_id)
-        if not exam:
-            raise ValueError("Exam not found")
-        
-        # Check if can create plan
-        if not exam.can_create_plan():
-            raise ValueError(f"Cannot create plan: status={exam.status}")
-        
-        # Mark as planning (task will mark as 'planned' when complete)
-        exam.start_planning()
-        updated = await self.exam_repo.update(exam)
-        
-        # Start plan creation task
-        task = create_exam_plan.apply_async(args=[str(exam_id), str(user_id)])
-        
         return updated, task.id

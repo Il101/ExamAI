@@ -83,16 +83,6 @@ export const examsApi = {
     await api.delete(`/exams/${examId}`);
   },
 
-  startGeneration: async (examId: string) => {
-    const response = await api.post(`/exams/${examId}/generate`);
-    return response.data;
-  },
-
-  createPlan: async (examId: string) => {
-    const response = await api.post(`/exams/${examId}/plan`);
-    return response.data;
-  },
-
   getTaskStatus: async (taskId: string) => {
     const response = await api.get(`/tasks/${taskId}`);
     return response.data;
