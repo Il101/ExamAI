@@ -128,24 +128,25 @@ class PlanAndExecuteAgent:
                         break # Success, exit retry loop
 
                     except Exception as e:
-                        error_msg = str(e)
-                        
-                        # Check if error is transient using exception types
-                        import asyncio
-                        from google.genai import errors as genai_errors
-                        is_transient = isinstance(e, (
-                            genai_errors.ResourceExhausted,  # 429 rate limit
-                            genai_errors.ServiceUnavailable,  # 503 service unavailable
-                            genai_errors.DeadlineExceeded,   # timeout
-                            asyncio.TimeoutError,            # asyncio timeout
-                        ))
-                        
-                        # Fallback to string matching for non-genai errors
-                        if not is_transient:
-                            is_transient = "503" in error_msg or "429" in error_msg or "overloaded" in error_msg.lower()
+                        error_msg = str(e).lower()
+                    
+                    # Check if error is transient
+                    # We check string content because GeminiProvider wraps errors in RuntimeError
+                    is_transient = (
+                        "429" in error_msg or 
+                        "resource exhausted" in error_msg or
+                        "quota" in error_msg or
+                        "503" in error_msg or 
+                        "service unavailable" in error_msg or
+                        "504" in error_msg or
+                        "deadline exceeded" in error_msg or
+                        "timed out" in error_msg or
+                        "timeout" in error_msg
+                    )
                         
                         if attempt < max_retries and is_transient:
                             wait_time = retry_delay * (2 ** attempt) # Exponential backoff: 2, 4, 8
+                            import asyncio
                             await self._notify_progress(
                                 progress_callback, 
                                 f"Topic '{current_step.title}' failed (attempt {attempt+1}/{max_retries+1}). Retrying in {wait_time}s...", 
