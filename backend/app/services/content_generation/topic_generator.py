@@ -184,6 +184,7 @@ class TopicContentGenerator:
         )
         
         # 7. Update topic
+        topic.start_generation()  # CRITICAL: Must transition to 'generating' first
         topic.mark_as_ready(content)
         await self.topic_repo.update(topic)
         
