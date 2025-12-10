@@ -181,18 +181,46 @@ async def create_exam_v3(
         )
         
         
-        # Trigger Async Content Generation (instead of deprecated extraction)
+        # Trigger Async Content Generation
         try:
             # Commit transaction explicitly to ensure exam exists in DB before task starts
             # This fixes race condition where Celery worker picks up task before API commits
             await exam_service.exam_repo.session.commit()
             
-            from app.tasks.exam_tasks import generate_exam_content
-            # Start generation immediately
-            generate_exam_content.delay(str(exam.id), str(current_user.id))
-            logger.info(f"Triggered background content generation for exam {exam.id}")
+            # Feature flag for new unified architecture (A/B testing)
+            use_new_architecture = os.getenv("USE_UNIFIED_GENERATION", "false").lower() == "true"
+            
+            if use_new_architecture:
+                # NEW: Use unified architecture
+                logger.info(f"Using NEW unified architecture for exam {exam.id}")
+                from app.tasks.content_generation_tasks import generate_all_topics
+                from app.repositories.topic_repository import TopicRepository
+                
+                # Get all topics
+                async with exam_service.exam_repo.session as session:
+                    topic_repo = TopicRepository(session)
+                    topics = await topic_repo.get_by_exam_id(exam.id)
+                
+                # Start generation with new task
+                generate_all_topics.delay(
+                    exam_id=str(exam.id),
+                    user_id=str(current_user.id),
+                    topic_ids=[str(t.id) for t in topics],
+                    cache_name=exam.cache_name
+                )
+                logger.info(
+                    f"✅ NEW: Triggered unified generation for exam {exam.id} "
+                    f"({len(topics)} topics, cache: {exam.cache_name or 'none'})"
+                )
+            else:
+                # OLD: Use legacy path (fallback)
+                logger.info(f"Using LEGACY architecture for exam {exam.id}")
+                from app.tasks.exam_tasks import generate_exam_content
+                generate_exam_content.delay(str(exam.id), str(current_user.id))
+                logger.info(f"Triggered legacy generation for exam {exam.id}")
+                
         except Exception as e:
-            logger.error(f"Failed to trigger generation task: {e}")
+            logger.error(f"Failed to trigger generation task: {e}", exc_info=True)
             
         # Save Metadata for File-Based Cache Recovery
         if storage_path:

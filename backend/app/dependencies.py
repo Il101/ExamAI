@@ -256,3 +256,69 @@ async def get_current_admin(
         )
 
     return current_user
+
+
+# --- Content Generation (New Unified Architecture) ---
+
+
+async def get_flashcard_generator(
+    llm_provider: LLMProvider = Depends(get_llm_provider),
+    review_repo: ReviewItemRepository = Depends(get_review_repo),
+):
+    """Get flashcard generator"""
+    from app.agent.quiz_generator import QuizGenerator
+    from app.services.content_generation.flashcard_generator import FlashcardGenerator
+    
+    quiz_gen = QuizGenerator(llm_provider)
+    return FlashcardGenerator(quiz_gen, review_repo)
+
+
+async def get_cache_fallback_service(
+    llm_provider: LLMProvider = Depends(get_llm_provider),
+    exam_repo: ExamRepository = Depends(get_exam_repo),
+):
+    """Get cache fallback service"""
+    from app.integrations.llm.cache_manager import ContextCacheManager
+    from app.integrations.storage.supabase_storage import SupabaseStorage
+    from app.services.cache_fallback import CacheFallbackService
+    
+    cache_manager = ContextCacheManager(llm_provider)
+    storage = SupabaseStorage(
+        url=settings.SUPABASE_URL,
+        key=settings.SUPABASE_KEY,
+        bucket=settings.SUPABASE_BUCKET
+    )
+    return CacheFallbackService(cache_manager, storage, exam_repo)
+
+
+async def get_topic_content_generator(
+    llm_provider: LLMProvider = Depends(get_llm_provider),
+    flashcard_gen = Depends(get_flashcard_generator),
+    fallback_service = Depends(get_cache_fallback_service),
+    topic_repo: TopicRepository = Depends(get_topic_repo),
+    exam_repo: ExamRepository = Depends(get_exam_repo),
+):
+    """Get topic content generator"""
+    from app.agent.executor import TopicExecutor
+    from app.services.content_generation.topic_generator import TopicContentGenerator
+    
+    executor = TopicExecutor(llm_provider)
+    return TopicContentGenerator(
+        executor, flashcard_gen, fallback_service, topic_repo, exam_repo
+    )
+
+
+async def get_content_generation_orchestrator(
+    topic_generator = Depends(get_topic_content_generator),
+    topic_repo: TopicRepository = Depends(get_topic_repo),
+):
+    """Get content generation orchestrator"""
+    from app.services.content_generation.orchestrator import ContentGenerationOrchestrator
+    from app.services.content_generation.strategies import BatchStrategy, IncrementalStrategy
+    
+    batch_strategy = BatchStrategy(topic_repo)
+    incremental_strategy = IncrementalStrategy(topic_repo, prefetch_count=2)
+    
+    return ContentGenerationOrchestrator(
+        topic_generator, batch_strategy, incremental_strategy
+    )
