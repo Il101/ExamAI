@@ -10,6 +10,8 @@ export interface Topic {
     estimated_study_minutes: number;
     created_at: string;
     updated_at: string;
+    // New field from backend optimization
+    flashcard_count?: number;
 }
 
 export interface QuizOption {

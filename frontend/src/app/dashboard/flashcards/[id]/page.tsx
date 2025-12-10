@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, ArrowLeft, Play, Brain, Layers } from 'lucide-react';
 import Link from 'next/link';
-import { studyApi } from '@/lib/api/study';
 
 export default function ExamFlashcardsPage() {
     const params = useParams();
@@ -16,45 +15,6 @@ export default function ExamFlashcardsPage() {
     const examId = params.id as string;
 
     const { exam, isLoading } = useExamDetail(examId);
-    const [flashcardCounts, setFlashcardCounts] = useState<Record<string, number>>({});
-    const [loadingCounts, setLoadingCounts] = useState(false);
-
-    // Fetch flashcard counts for all topics
-    useEffect(() => {
-        const fetchFlashcardCounts = async () => {
-            const topics = (exam as any)?.topics;
-            if (!exam || !topics || topics.length === 0) {
-                setLoadingCounts(false);
-                return;
-            }
-
-            setLoadingCounts(true);
-            const counts: Record<string, number> = {};
-
-            try {
-                // Fetch flashcard count for each topic
-                await Promise.all(
-                    topics.map(async (topic: any) => {
-                        try {
-                            const flashcards = await studyApi.getDueReviews(100, undefined, topic.id);
-                            counts[topic.id] = Array.isArray(flashcards) ? flashcards.length : 0;
-                        } catch (error) {
-                            console.error(`Failed to fetch flashcards for topic ${topic.id}:`, error);
-                            counts[topic.id] = 0;
-                        }
-                    })
-                );
-
-                setFlashcardCounts(counts);
-            } catch (error) {
-                console.error('Failed to fetch flashcard counts:', error);
-            } finally {
-                setLoadingCounts(false);
-            }
-        };
-
-        fetchFlashcardCounts();
-    }, [exam]);
 
     const handleStartReview = (topicId?: string) => {
         // Navigate directly to study session with flashcards
@@ -92,13 +52,9 @@ export default function ExamFlashcardsPage() {
                         <p className="text-muted-foreground mt-1 flex items-center gap-2">
                             <Layers className="h-4 w-4" />
                             {topics.length} Topics
-                            {!loadingCounts && (
-                                <>
-                                    <span className="text-gray-300">|</span>
-                                    <Brain className="h-4 w-4" />
-                                    {Object.values(flashcardCounts).reduce((sum, count) => sum + count, 0)} Total Cards
-                                </>
-                            )}
+                            <span className="text-gray-300">|</span>
+                            <Brain className="h-4 w-4" />
+                            {topics.reduce((sum: number, t: any) => sum + (t.flashcard_count || 0), 0)} Total Cards
                             <span className="text-gray-300">|</span>
                             <Link href={`/dashboard/exams/${exam.id}`} className="hover:underline">
                                 View Exam Details
@@ -108,7 +64,7 @@ export default function ExamFlashcardsPage() {
                     <Button
                         size="lg"
                         onClick={() => handleStartReview()}
-                        disabled={loadingCounts || Object.values(flashcardCounts).reduce((sum, count) => sum + count, 0) === 0}
+                        disabled={topics.reduce((sum: number, t: any) => sum + (t.flashcard_count || 0), 0) === 0}
                         className="shadow-lg"
                     >
                         <Play className="mr-2 h-4 w-4" />
@@ -132,17 +88,10 @@ export default function ExamFlashcardsPage() {
                                         <Badge variant="outline" className="font-normal">
                                             {topic.status === 'ready' ? 'Ready' : 'Pending'}
                                         </Badge>
-                                        {loadingCounts ? (
-                                            <span className="flex items-center gap-1 text-sm text-muted-foreground">
-                                                <Loader2 className="h-3 w-3 animate-spin" />
-                                                Loading...
-                                            </span>
-                                        ) : (
-                                            <Badge variant={flashcardCounts[topic.id] > 0 ? "default" : "secondary"}>
-                                                <Brain className="h-3 w-3 mr-1" />
-                                                {flashcardCounts[topic.id] || 0} cards
-                                            </Badge>
-                                        )}
+                                        <Badge variant={(topic.flashcard_count || 0) > 0 ? "default" : "secondary"}>
+                                            <Brain className="h-3 w-3 mr-1" />
+                                            {topic.flashcard_count || 0} cards
+                                        </Badge>
                                     </div>
                                 </div>
                             </div>
@@ -151,7 +100,7 @@ export default function ExamFlashcardsPage() {
                                 variant="secondary"
                                 size="lg"
                                 onClick={() => handleStartReview(topic.id)}
-                                disabled={loadingCounts || !flashcardCounts[topic.id] || flashcardCounts[topic.id] === 0}
+                                disabled={!topic.flashcard_count || topic.flashcard_count === 0}
                             >
                                 <Brain className="mr-2 h-4 w-4" />
                                 Study

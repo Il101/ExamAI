@@ -17,17 +17,30 @@ class TopicRepository(BaseRepository[Topic, TopicModel]):
         super().__init__(session, TopicModel, TopicMapper)
 
     async def get_by_exam_id(self, exam_id: UUID) -> List[Topic]:
-        """Get all topics for an exam ordered by index"""
+        """Get all topics for an exam ordered by index with flashcard counts"""
+        from sqlalchemy import func
+        from app.db.models.review import ReviewItemModel
+
         stmt = (
-            select(TopicModel)
+            select(TopicModel, func.count(ReviewItemModel.id).label("flashcard_count"))
+            .outerjoin(ReviewItemModel, TopicModel.id == ReviewItemModel.topic_id)
             .where(TopicModel.exam_id == exam_id)
+            .group_by(TopicModel.id)
             .order_by(TopicModel.order_index)
         )
 
         result = await self.session.execute(stmt)
-        models = result.scalars().all()
+        rows = result.all()
 
-        return [self.mapper.to_domain(m) for m in models]
+        # Map models and attach count manually (since it's not a model field)
+        topics = []
+        for model, count in rows:
+            # We treat flashcard_count as a dynamic attribute on the model instance
+            # The mapper will read it via getattr(model, "flashcard_count", 0)
+            setattr(model, "flashcard_count", count)
+            topics.append(self.mapper.to_domain(model))
+
+        return topics
 
     async def bulk_create(self, topics: List[Topic]) -> List[Topic]:
         """Create multiple topics at once"""

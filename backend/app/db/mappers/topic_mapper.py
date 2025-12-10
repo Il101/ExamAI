@@ -15,6 +15,7 @@ class TopicMapper:
             exam_id=model.exam_id,
             user_id=model.user_id,
             topic_name=model.topic_name,
+            flashcard_count=getattr(model, "flashcard_count", 0),
             content=model.content,
             file_context=model.file_context,
             quiz_data=model.quiz_data,
