@@ -212,6 +212,17 @@ class TopicExecutor:
             estimated_paragraphs=step.estimated_paragraphs,
             content_section=content_section
         )
+        
+        # DEBUG: Trace prompt size issues
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(
+            f"[DEBUG_TRACE] Building Prompt for {step.id}: "
+            f"CacheName={state.cache_name}, "
+            f"ContentSectionLen={len(content_section)}, "
+            f"PromptLen={len(prompt)}, "
+            f"PreviousContextLen={len(previous_context)}"
+        )
 
         return prompt
 
