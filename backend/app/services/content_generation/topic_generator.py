@@ -120,7 +120,7 @@ class TopicContentGenerator:
         plan_step = PlanStep(
             id=topic.order_index + 1,
             title=topic.topic_name,
-            description="",
+            description=f"Generate content for {topic.topic_name}",  # Must be >= 10 chars
             priority=Priority(topic.generation_priority) 
                 if topic.generation_priority in [1, 2, 3] 
                 else Priority.MEDIUM,

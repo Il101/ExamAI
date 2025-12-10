@@ -156,7 +156,18 @@ def generate_all_topics(
             # Mark exam as ready
             exam = await exam_repo.get_by_id(UUID(exam_id))
             if exam:
-                exam.mark_as_ready()
+                # Calculate summary from successful topics
+                successful_topics = [t for t in topics if t.status == 'ready']
+                ai_summary = f"Generated {len(successful_topics)}/{len(topics)} topics successfully"
+                
+                # Note: Token tracking would require aggregating from all topics
+                # For now, use placeholder values (TODO: implement proper tracking)
+                exam.mark_as_ready(
+                    ai_summary=ai_summary,
+                    token_input=0,  # TODO: aggregate from topics
+                    token_output=0,  # TODO: aggregate from topics
+                    cost=0.0  # TODO: aggregate from topics
+                )
                 await exam_repo.update(exam)
                 await session.commit()
                 
