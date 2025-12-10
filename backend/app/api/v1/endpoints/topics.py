@@ -107,7 +107,6 @@ async def on_topic_viewed(
     Used for progress tracking and progressive generation.
     """
     from datetime import datetime, timezone
-    from app.api.dependencies import get_generation_service
     from app.repositories.exam_repository import ExamRepository
     from app.agent.schemas import ExamPlan
     
@@ -127,54 +126,17 @@ async def on_topic_viewed(
     await topic_repo.update(topic)
     await session.commit()
     
-    # Get exam for v3.0 progressive generation
-    exam_repo = ExamRepository(session)
-    exam = await exam_repo.get_by_id(exam_id)
+    # NOTE: Progressive generation (trigger_next_block) removed as part of legacy cleanup
+    # All topics are now generated upfront via generate_exam_content Celery task
     
-    if not exam or exam.user_id != current_user.id:
-        return {
-            "message": "Topic marked as viewed",
-            "topic_id": str(topic_id),
-            "is_viewed": True,
-            "quiz_completed": topic.quiz_completed,
-            "triggered": False
-        }
-    
-    # Check if exam has plan_data for v3.0
-    if not exam.plan_data:
-        return {
-            "message": "Topic marked as viewed",
-            "topic_id": str(topic_id),
-            "is_viewed": True,
-            "quiz_completed": topic.quiz_completed,
-            "triggered": False
-        }
-    
-    try:
-        # Parse plan and trigger next block
-        plan = ExamPlan.model_validate(exam.plan_data)
-        
-        generation_service = get_generation_service()
-        await generation_service.trigger_next_block(
-            exam_id=exam.id,
-            current_topic_id=str(topic_id),
-            plan=plan,
-            cache_name=exam.cache_name
-        )
-        
-        return {
-            "message": "Topic marked as viewed",
-            "topic_id": str(topic_id),
-            "is_viewed": True,
-            "quiz_completed": topic.quiz_completed,
-            "triggered": True
-        }
-    
-    except Exception as e:
-        return {
-            "message": "Topic marked as viewed",
-            "topic_id": str(topic_id),
-            "is_viewed": True,
+    return {
+        "message": "Topic marked as viewed",
+        "topic_id": str(topic_id),
+        "is_viewed": True,
+        "quiz_completed": topic.quiz_completed,
+        "triggered": False
+    }
+
             "quiz_completed": topic.quiz_completed,
             "triggered": False,
             "error": str(e)
