@@ -91,8 +91,9 @@ def generate_all_topics(
                 key=settings.SUPABASE_KEY,
                 bucket=settings.SUPABASE_BUCKET
             )
+            # CORRECT: storage first, then cache_manager (2 args only)
             fallback_service = CacheFallbackService(
-                cache_manager, storage, exam_repo
+                storage, cache_manager
             )
             
             # Build topic generator
