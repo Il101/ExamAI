@@ -8,7 +8,13 @@ celery_app = Celery(
     "examai",
     broker=settings.CELERY_BROKER_URL,
     backend=settings.CELERY_RESULT_BACKEND,
-    include=["app.tasks.exam_tasks", "app.tasks.email_tasks", "app.tasks.periodic", "app.tasks.cleanup_tasks"],
+    include=[
+        "app.tasks.exam_tasks",
+        "app.tasks.email_tasks",
+        "app.tasks.periodic",
+        "app.tasks.cleanup_tasks",
+        "app.tasks.content_generation_tasks",  # NEW: Unified architecture
+    ],
 )
 
 # Configure Celery
