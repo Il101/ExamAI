@@ -102,6 +102,44 @@ export default function ExamDetailPage() {
             return renderReadyContent();
         }
 
+        if (exam.status === 'planned') {
+            // Show the plan and a button to start generation
+            return (
+                <div className="space-y-6">
+                    <Card>
+                        <CardContent className="pt-6">
+                            <div className="text-center mb-6">
+                                <h3 className="text-lg font-semibold mb-2">Study Plan Ready</h3>
+                                <p className="text-muted-foreground mb-4">
+                                    Your exam has been planned with {exam.topic_count} topics.
+                                    Content generation will start automatically.
+                                </p>
+                            </div>
+
+                            {exam.topics && exam.topics.length > 0 && (
+                                <div className="space-y-2">
+                                    <h4 className="font-medium mb-3">Topics to be generated:</h4>
+                                    <ul className="space-y-2">
+                                        {exam.topics.map((topic: any, index: number) => (
+                                            <li key={topic.id || index} className="flex items-start gap-2 text-sm">
+                                                <span className="text-muted-foreground">{index + 1}.</span>
+                                                <span>{topic.title}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    <div className="text-center text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
+                        Waiting for content generation to begin...
+                    </div>
+                </div>
+            );
+        }
+
         if (exam.status === 'generating') {
             const progress = exam.progress || 0;
             const currentStep = exam.current_step || 'Initializing...';
