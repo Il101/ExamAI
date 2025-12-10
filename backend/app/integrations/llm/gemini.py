@@ -90,7 +90,7 @@ class GeminiProvider(LLMProvider):
             # IMPORTANT: Reduced retry attempts to 2 (from 5) to prevent conflicts
             # with our application-level retry mechanism in executor.py
             http_options = types.HttpOptions(
-                timeout=120000,  # 120 seconds in milliseconds
+                timeout=240000,  # 240 seconds - must be > highest gen timeout (180s)
                 retry_options={
                     "attempts": 2,  # Only 2 SDK-level retries (reduced from 5)
                     "initial_delay": 1.0,  # Start with 1s delay (reduced from 2s)
@@ -100,7 +100,7 @@ class GeminiProvider(LLMProvider):
                 },
             )
             
-            print(f"[GeminiProvider] Initializing new shared client with timeout=120s and 2 retries...")
+            print(f"[GeminiProvider] Initializing new shared client with timeout=240s and 2 retries...")
             cls._shared_client = genai.Client(api_key=api_key, http_options=http_options)
             cls._shared_api_key = api_key
             

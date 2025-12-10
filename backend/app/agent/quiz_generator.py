@@ -95,14 +95,16 @@ class QuizGenerator:
         
         for attempt in range(max_retries):
             try:
-                # Generate with increased timeout (180s) to handle slow API responses
-                # We don't need cache_name here as 'content' has everything we need
+                # Generate with AGGRESSIVE timeout (50s) to fail fast on stuck requests
+                # Normal generation takes ~15s. If > 50s, it's likely stuck -> retry immediately.
+                # REMOVED response_schema to reduce prefill load and 504 errors.
+                # Using JSON mode instead.
                 response = await self.llm.generate(
                     prompt=prompt,
                     temperature=0.3,
                     system_prompt="You are an expert tutor creating study materials.",
-                    response_schema=FlashcardSetSchema,
-                    timeout=180.0
+                    response_mime_type="application/json",
+                    timeout=50.0  # Fail fast! Don't wait 3 minutes.
                 )
                 
                 json_text = response.content
@@ -132,13 +134,16 @@ class QuizGenerator:
                     
             except RuntimeError as e:
                 last_error = e
-                error_msg = str(e)
+                error_msg = str(e).lower()
                 
-                # Retry only on 504 DEADLINE_EXCEEDED (transient server overload)
-                if ("504" in error_msg or "DEADLINE_EXCEEDED" in error_msg) and attempt < max_retries - 1:
-                    wait_time = 5 * (2 ** attempt)  # 5s, 10s, 20s
+                # Retry on:
+                # 1. 504 DEADLINE_EXCEEDED (Server timeout)
+                # 2. "timed out" (Our local 50s fail-fast timeout)
+                if ("504" in error_msg or "deadline_exceeded" in error_msg or "timed out" in error_msg) and attempt < max_retries - 1:
+                    wait_time = 2 * (2 ** attempt)  # Reduced wait: 2s, 4s, 8s (fail fast, retry fast)
                     logger.warning(
-                        "Flashcard generation timeout (504), retry %s/%s in %ss",
+                        "Flashcard generation issue (%s), retry %s/%s in %ss",
+                        "TIMEOUT" if "timed out" in error_msg else "504",
                         attempt + 1, max_retries, wait_time,
                         extra={"component": "quiz_generator", "attempt": attempt + 1, "wait_time": wait_time}
                     )
@@ -146,7 +151,7 @@ class QuizGenerator:
                     await asyncio.sleep(wait_time)
                     continue
                 else:
-                    # Non-504 error or final attempt - raise immediately
+                    # Non-retriable error or final attempt - raise immediately
                     raise
         
         # All retries exhausted
