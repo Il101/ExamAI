@@ -88,14 +88,14 @@ class QuizGenerator:
             content=content
         )
         
-        # Generate with safer timeout (120s)
+        # Generate with increased timeout (180s) to handle slow API responses
         # We don't need cache_name here as 'content' has everything we need
         response = await self.llm.generate(
             prompt=prompt,
             temperature=0.3,
             system_prompt="You are an expert tutor creating study materials.",
             response_schema=FlashcardSetSchema,
-            timeout=120.0
+            timeout=180.0
         )
         
         json_text = response.content
@@ -303,7 +303,7 @@ class QuizGenerator:
                                 temperature=0.4,
                                 system_prompt="You are an expert tutor creating educational assessments.",
                                 response_schema=MCQQuizSchema,
-                                timeout=60.0
+                                timeout=180.0
                             )
                             
                             json_text = response.content
@@ -321,7 +321,7 @@ class QuizGenerator:
                             temperature=0.4,
                             system_prompt="You are an expert tutor creating educational assessments.",
                             response_schema=MCQQuizSchema,
-                            timeout=60.0
+                            timeout=180.0
                         )
                         
                         json_text = response.content
@@ -341,7 +341,7 @@ class QuizGenerator:
                 temperature=0.4,
                 system_prompt="You are an expert tutor creating educational assessments.",
                 response_schema=MCQQuizSchema,
-                timeout=60.0
+                timeout=180.0
             )
             
             json_text = response.content
