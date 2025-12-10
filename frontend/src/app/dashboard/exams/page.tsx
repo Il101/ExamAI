@@ -11,7 +11,7 @@ import { useState } from 'react';
 import type { Exam } from '@/lib/api/exams';
 
 export default function ExamsPage() {
-    const { exams, isLoading, startGeneration, deleteExam } = useExams();
+    const { exams, isLoading, deleteExam } = useExams();
     const [searchQuery, setSearchQuery] = useState('');
 
     const filteredExams = exams?.filter((exam: Exam) =>
@@ -65,7 +65,6 @@ export default function ExamsPage() {
                         <ExamCard
                             key={exam.id}
                             exam={exam}
-                            onGenerate={() => startGeneration(exam.id)}
                             onDelete={() => {
                                 if (window.confirm('Are you sure you want to delete this exam? This action cannot be undone.')) {
                                     deleteExam(exam.id);
