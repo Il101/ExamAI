@@ -95,6 +95,11 @@ def generate_exam_content(self, exam_id: str, user_id: str):
                 exam_id=UUID(exam_id), user_id=UUID(user_id), task=self
             )
             print(f"[CELERY] Generation completed successfully for exam {exam_id}")
+            
+            # Log API metrics summary
+            from app.integrations.llm.metrics import log_metrics_summary
+            log_metrics_summary()
+            
             return result
             
         except Exception as e:

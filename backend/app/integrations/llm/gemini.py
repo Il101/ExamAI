@@ -7,6 +7,7 @@ from google import genai
 from google.genai import types, errors
 
 from app.integrations.llm.base import LLMProvider, LLMResponse
+from app.integrations.llm.metrics import get_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -187,6 +188,15 @@ class GeminiProvider(LLMProvider):
             if response.candidates and response.candidates[0].finish_reason:
                 finish_reason = response.candidates[0].finish_reason.lower()
 
+            # Record metrics
+            metrics = get_metrics()
+            metrics.record_success(
+                tokens_in=tokens_input,
+                tokens_out=tokens_output,
+                cost=cost,
+                duration_ms=total_time * 1000
+            )
+
             return LLMResponse(
                 content=response.text,
                 model=self.model_name,
@@ -205,6 +215,11 @@ class GeminiProvider(LLMProvider):
             import sys
             sys.stderr.write(f"{error_msg}\n")
             sys.stderr.flush()
+            
+            # Record timeout metrics
+            metrics = get_metrics()
+            metrics.record_failure(is_timeout=True)
+            
             raise RuntimeError(f"Gemini API request timed out after {timeout} seconds")
         
         except errors.APIError as e:
@@ -212,6 +227,11 @@ class GeminiProvider(LLMProvider):
             print(
                 f"[GeminiProvider] API ERROR after {elapsed:.2f}s: code={e.code}, message={e.message}"
             )
+            
+            # Record failure metrics
+            metrics = get_metrics()
+            metrics.record_failure(is_timeout=False)
+            
             raise RuntimeError(f"Gemini API error [{e.code}]: {e.message}")
         
         except Exception as e:
