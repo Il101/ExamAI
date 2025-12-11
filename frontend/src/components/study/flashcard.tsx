@@ -96,8 +96,8 @@ export function Flashcard({ item, onResult, className }: FlashcardProps) {
                 )}>
                     <div className="p-16 min-h-[500px] flex flex-col items-center justify-center">
                         <p className="text-sm text-muted-foreground uppercase tracking-wide mb-8">Question</p>
-                        <h2 className="text-4xl font-normal text-center leading-relaxed mb-12">
-                            {cleanText(item.question)}
+                        <h2 className="text-4xl font-normal text-center leading-relaxed mb-12 whitespace-pre-line">
+                            {formatText(item.question)}
                         </h2>
                         <Button
                             size="lg"
@@ -119,8 +119,8 @@ export function Flashcard({ item, onResult, className }: FlashcardProps) {
                     <div className="p-16 min-h-[500px] flex flex-col items-center justify-between">
                         <div className="flex flex-col items-center flex-1 justify-center w-full">
                             <p className="text-sm text-muted-foreground uppercase tracking-wide mb-8">Answer</p>
-                            <p className="text-3xl font-normal text-center leading-relaxed">
-                                {cleanText(item.answer)}
+                            <p className="text-3xl font-normal text-center leading-relaxed whitespace-pre-line">
+                                {formatText(item.answer)}
                             </p>
                         </div>
 
