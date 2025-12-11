@@ -66,9 +66,19 @@ export function Flashcard({ item, onResult, className }: FlashcardProps) {
         };
     }, [handleKeyDown]);
 
-    // Clean text - remove excessive line breaks
-    const cleanText = (text: string) => {
-        return text.replace(/\n+/g, ' ').trim();
+    // Clean and format text - handle structured answers from AI
+    const formatText = (text: string) => {
+        // Remove excessive newlines (more than 2 in a row)
+        let cleaned = text.replace(/\n{3,}/g, '\n\n');
+
+        // Convert bullet points to readable format
+        cleaned = cleaned.replace(/\n•\s*/g, ', ');
+        cleaned = cleaned.replace(/^•\s*/gm, '• ');
+
+        // Clean up whitespace
+        cleaned = cleaned.trim();
+
+        return cleaned;
     };
 
     return (
