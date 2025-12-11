@@ -6,7 +6,6 @@ import { SidebarProvider, useSidebar } from '@/lib/contexts/sidebar-context';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
 import { MobileNav } from '@/components/layout/mobile-nav';
-import { TimerWidget } from '@/components/study/timer-widget';
 import { useRouter, usePathname } from 'next/navigation';
 
 function DashboardLayoutContent({
@@ -75,8 +74,7 @@ function DashboardLayoutContent({
         </main>
       </div>
 
-      {/* Global Pomodoro Timer */}
-      <TimerWidget sessionId={activeSessionId} />
+
     </div>
   );
 }

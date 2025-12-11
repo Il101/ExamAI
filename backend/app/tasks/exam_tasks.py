@@ -372,6 +372,10 @@ async def _generate_topic_content_async(topic_id: UUID, user_id: UUID):
         from app.agent.state import AgentState, PlanStep
         from app.domain.priority import Priority
         
+        # Ensure topic is in generating state
+        topic.start_generation()
+        await topic_repo.update(topic)
+        
         state = AgentState(
             user_request=f"Generate content for topic: {topic.topic_name}",
             subject=exam.subject,
@@ -383,19 +387,21 @@ async def _generate_topic_content_async(topic_id: UUID, user_id: UUID):
         plan_step = PlanStep(
             id=topic.order_index + 1,
             title=topic.topic_name,
-            description="",
+            description=f"Generate content for topic: {topic.topic_name}",
             priority=Priority(topic.generation_priority) if topic.generation_priority in [1,2,3] else Priority.MEDIUM,
             estimated_paragraphs=5,
             dependencies=[],
         )
         
+        
+        state.plan = [plan_step]
+        state.current_step_index = 0
+        
         executor = TopicExecutor(llm_provider)
-        step_result = await executor.execute_step(state, plan_step, {})
+        # execute_step returns str directly and raises detailed exceptions on failure
+        content = await executor.execute_step(state)
         
-        if not step_result.success:
-            raise ValueError(f"Failed to generate topic: {step_result.error_message}")
-        
-        topic.mark_as_ready(step_result.content)
+        topic.mark_as_ready(content)
         await topic_repo.update(topic)
         
         await cost_guard.log_usage(

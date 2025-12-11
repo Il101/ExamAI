@@ -14,6 +14,7 @@ import {
 import { useAuth } from '@/lib/hooks/use-auth';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { HeaderTimer } from './header-timer';
 
 interface HeaderProps {
     onMenuClick: () => void;
@@ -50,6 +51,9 @@ export function Header({ onMenuClick }: HeaderProps) {
                 <div className="flex items-center gap-x-4 lg:gap-x-6">
                     {/* Theme toggle */}
                     <ThemeToggle />
+
+                    {/* Timer */}
+                    <HeaderTimer />
 
                     {/* Notifications */}
                     <Button
