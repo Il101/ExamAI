@@ -94,11 +94,11 @@ export function StudySession({ examId }: StudySessionProps) {
                     You&apos;ve reviewed all scheduled cards for now. Great job keeping up with your spaced repetition!
                 </p>
                 <div className="flex gap-4">
-                    <Button onClick={() => router.push('/dashboard')}>
-                        Back to Dashboard
+                    <Button onClick={() => router.back()}>
+                        Back
                     </Button>
-                    <Button variant="outline" onClick={() => router.push(`/exams/${examId}`)}>
-                        Back to Exam
+                    <Button variant="outline" onClick={() => router.back()}>
+                        Back
                     </Button>
                 </div>
             </div>
@@ -113,8 +113,8 @@ export function StudySession({ examId }: StudySessionProps) {
                 <p className="text-muted-foreground mb-8">
                     You&apos;re all caught up! Check back later for more reviews.
                 </p>
-                <Button onClick={() => router.push(`/exams/${examId}`)}>
-                    Back to Exam
+                <Button onClick={() => router.back()}>
+                    Back
                 </Button>
             </div>
         );

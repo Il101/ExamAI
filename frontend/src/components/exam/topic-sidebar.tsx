@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { ExamWithTopics } from '@/lib/api/exams';
 import { ChevronLeft, ChevronRight, CheckCircle2, BookOpen, Circle, RotateCw } from 'lucide-react';
@@ -18,6 +18,7 @@ interface TopicSidebarProps {
 export function TopicSidebar({ exam, currentTopicId, className }: TopicSidebarProps) {
     const [collapsed, setCollapsed] = useState(false);
     const params = useParams();
+    const router = useRouter();
 
     const topics = exam.topics || [];
     const completedCount = topics.filter(t => t.status === 'ready').length;
@@ -127,12 +128,15 @@ export function TopicSidebar({ exam, currentTopicId, className }: TopicSidebarPr
 
             {/* Footer */}
             <div className="p-3 border-t border-border/30 bg-muted/5">
-                <Link href={`/dashboard/exams/${exam.id}`}>
-                    <Button variant="ghost" size="sm" className="w-full text-xs text-muted-foreground hover:text-foreground justify-start px-2">
-                        <ChevronLeft className="h-3 w-3 mr-2" />
-                        Back to Exam Overview
-                    </Button>
-                </Link>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full text-xs text-muted-foreground hover:text-foreground justify-start px-2"
+                    onClick={() => router.back()}
+                >
+                    <ChevronLeft className="h-3 w-3 mr-2" />
+                    Back
+                </Button>
             </div>
         </aside>
     );

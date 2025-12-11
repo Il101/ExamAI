@@ -25,7 +25,9 @@ export function ExamCard({ exam, onDelete }: ExamCardProps) {
         <div className="flex items-start justify-between">
           <div>
             <CardTitle className="text-lg font-semibold">{exam.title}</CardTitle>
-            <p className="text-sm text-gray-500 mt-1 line-clamp-1">{exam.description || "No description"}</p>
+            {exam.description && (
+              <p className="text-sm text-gray-500 mt-1 line-clamp-1">{exam.description}</p>
+            )}
           </div>
           <Badge className={statusColors[exam.status] || 'bg-gray-100'}>
             {exam.status}

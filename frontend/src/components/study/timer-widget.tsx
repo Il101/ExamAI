@@ -96,30 +96,30 @@ export function TimerWidget({ sessionId, onCompletePomodoro, className }: TimerW
     return (
         <div
             className={cn(
-                "fixed right-0 top-24 z-50 transition-all duration-300 ease-in-out",
-                isExpanded ? "translate-x-0" : "translate-x-[calc(100%-60px)] hover:translate-x-0",
+                "fixed right-0 top-32 z-50 transition-all duration-300 ease-in-out",
+                isExpanded ? "translate-x-0" : "translate-x-[calc(100%-48px)] hover:translate-x-0",
                 className
             )}
             onMouseEnter={() => setIsExpanded(true)}
             onMouseLeave={() => !isActive && timeLeft > 0 && setIsExpanded(false)} // Keep expanded if timer finished
         >
-            <Card className="flex overflow-hidden shadow-lg border-l-4 border-l-blue-500 rounded-l-xl bg-white dark:bg-gray-900 w-[300px]">
+            <Card className="flex overflow-hidden shadow-lg border-l-4 border-l-blue-500 rounded-l-xl bg-white dark:bg-gray-900 w-[220px]">
                 {/* Collapsed View (Visible Tab) */}
-                <div className="flex flex-col items-center justify-center w-[60px] bg-gray-100 dark:bg-gray-800 p-2 cursor-pointer h-[120px]">
+                <div className="flex flex-col items-center justify-center w-[48px] bg-gray-100 dark:bg-gray-800 p-2 cursor-pointer h-[100px]">
                     {timerState === 'work' ? (
-                        <Brain className={cn("h-6 w-6 mb-2", isActive ? "animate-pulse text-red-500" : "text-gray-500")} />
+                        <Brain className={cn("h-5 w-5 mb-1", isActive ? "animate-pulse text-red-500" : "text-gray-500")} />
                     ) : (
-                        <Coffee className="h-6 w-6 mb-2 text-green-500" />
+                        <Coffee className="h-5 w-5 mb-1 text-green-500" />
                     )}
-                    <span className="text-xs font-mono font-bold rotate-90 whitespace-nowrap">
+                    <span className="text-[10px] font-mono font-bold rotate-90 whitespace-nowrap">
                         {formatTime(timeLeft)}
                     </span>
                 </div>
 
                 {/* Expanded View */}
-                <div className="flex-1 p-4 flex flex-col items-center justify-between">
+                <div className="flex-1 p-3 flex flex-col items-center justify-between">
                     <div className="flex items-center justify-between w-full mb-2">
-                        <span className="text-sm font-medium text-gray-500 uppercase tracking-wider">
+                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
                             {timerState === 'work' ? 'Focus' : 'Break'}
                         </span>
                         <div className="flex gap-1">
@@ -127,7 +127,7 @@ export function TimerWidget({ sessionId, onCompletePomodoro, className }: TimerW
                                 <div
                                     key={i}
                                     className={cn(
-                                        "w-2 h-2 rounded-full",
+                                        "w-1.5 h-1.5 rounded-full",
                                         i < pomodorosCompleted % 4 ? "bg-red-500" : "bg-gray-200"
                                     )}
                                 />
@@ -135,13 +135,13 @@ export function TimerWidget({ sessionId, onCompletePomodoro, className }: TimerW
                         </div>
                     </div>
 
-                    <div className="relative mb-4">
+                    <div className="relative mb-3">
                         {/* Tomato Image Placeholder or Icon */}
-                        <div className={cn("relative flex items-center justify-center w-20 h-20 rounded-full bg-red-100 dark:bg-red-900/20", isShake && "animate-shake")}>
+                        <div className={cn("relative flex items-center justify-center w-14 h-14 rounded-full bg-red-100 dark:bg-red-900/20", isShake && "animate-shake")}>
                             {timerState === 'work' ? (
-                                <span className="text-4xl">🍅</span>
+                                <span className="text-2xl">🍅</span>
                             ) : (
-                                <span className="text-4xl">☕</span>
+                                <span className="text-2xl">☕</span>
                             )}
                         </div>
                         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
@@ -149,7 +149,7 @@ export function TimerWidget({ sessionId, onCompletePomodoro, className }: TimerW
                         </div>
                     </div>
 
-                    <div className="text-3xl font-mono font-bold mb-4">
+                    <div className="text-xl font-mono font-bold mb-3">
                         {formatTime(timeLeft)}
                     </div>
 

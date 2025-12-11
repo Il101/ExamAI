@@ -3,6 +3,7 @@
 import { ArrowLeft, Calendar, BookOpen, Play, Download } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
@@ -25,6 +26,7 @@ export function ExamHeader({
     createdAt,
     updatedAt,
 }: ExamHeaderProps) {
+    const router = useRouter();
     const statusColors = {
         draft: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200',
         planned: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
@@ -36,12 +38,10 @@ export function ExamHeader({
     return (
         <div className="border-b pb-6 mb-6">
             <div className="flex items-center justify-between mb-4">
-                <Link href="/dashboard">
-                    <Button variant="ghost" size="sm">
-                        <ArrowLeft className="h-4 w-4 mr-2" />
-                        Back to Exams
-                    </Button>
-                </Link>
+                <Button variant="ghost" size="sm" onClick={() => router.back()}>
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back
+                </Button>
 
                 <div className="flex gap-2">
                     {status === 'ready' && (

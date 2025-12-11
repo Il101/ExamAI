@@ -54,12 +54,12 @@ export function Sidebar({ isAdmin = false }: SidebarProps) {
         <div
             className={cn(
                 "hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:flex-col transition-all duration-300 ease-in-out",
-                isExpanded ? "lg:w-72" : "lg:w-20"
+                isExpanded ? "lg:w-56" : "lg:w-20"
             )}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
         >
-            <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-white/10 bg-card/30 backdrop-blur-xl px-6 pb-4">
+            <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-white/10 bg-card/30 backdrop-blur-xl px-4 pb-4">
                 <div className="flex h-16 shrink-0 items-center">
                     <Link href="/dashboard">
                         <h1 className={cn(
