@@ -50,6 +50,7 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str
     GEMINI_MODEL: str = "gemini-1.5-flash"  # For exam generation (quality)
     GEMINI_CHAT_MODEL: str = "gemini-1.5-flash-8b"  # For chat tutor (speed + economy)
+    GEMINI_FALLBACK_MODEL: str = "gemini-1.5-flash"  # Fallback for 503 errors
     OPENAI_API_KEY: str = ""
     OPENAI_MODEL: str = "gpt-4o-mini"
     LLM_PROVIDER: Literal["gemini", "openai"] = "gemini"  # Which LLM to use

@@ -5,6 +5,9 @@ from typing import List, Any
 from pydantic import BaseModel, Field
 
 from app.integrations.llm.base import LLMProvider
+from app.core.config import settings
+from google.genai import types
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -92,6 +95,7 @@ class QuizGenerator:
         # First attempt may hit overloaded servable, retry gets routed to different server
         max_retries = 3
         last_error = None
+        current_model = settings.GEMINI_MODEL
         
         for attempt in range(max_retries):
             try:
@@ -99,15 +103,22 @@ class QuizGenerator:
                 # Normal generation takes ~15s. If > 50s, it's likely stuck -> retry immediately.
                 # REMOVED response_schema to reduce prefill load and 504 errors.
                 # Using JSON mode instead.
-                response = await self.llm.generate(
-                    prompt=prompt,
+                config = types.GenerateContentConfig(
                     temperature=0.3,
-                    system_prompt="You are an expert tutor creating study materials.",
-                    response_mime_type="application/json",
+                    system_instruction="You are an expert tutor creating study materials.",
+                    response_mime_type="application/json"
+                )
+
+                response = await asyncio.wait_for(
+                    self.llm.client.aio.models.generate_content(
+                        model=current_model,
+                        contents=prompt,
+                        config=config
+                    ),
                     timeout=50.0  # Fail fast! Don't wait 3 minutes.
                 )
                 
-                json_text = response.content
+                json_text = response.text
 
                 # Parse response
                 try:
@@ -139,15 +150,22 @@ class QuizGenerator:
                 # Retry on:
                 # 1. 504 DEADLINE_EXCEEDED (Server timeout)
                 # 2. "timed out" (Our local 50s fail-fast timeout)
-                if ("504" in error_msg or "deadline_exceeded" in error_msg or "timed out" in error_msg) and attempt < max_retries - 1:
+                if ("504" in error_msg or "deadline_exceeded" in error_msg or "timed out" in error_msg or "503" in error_msg or "overloaded" in error_msg) and attempt < max_retries - 1:
+                    # Switch to fallback model on overload
+                    if ("503" in error_msg or "overloaded" in error_msg) and current_model != settings.GEMINI_FALLBACK_MODEL:
+                        logger.warning(
+                            f"Flashcard generation overload on {current_model}, switching to fallback {settings.GEMINI_FALLBACK_MODEL}",
+                            extra={"component": "quiz_generator"}
+                        )
+                        current_model = settings.GEMINI_FALLBACK_MODEL
+
                     wait_time = 2 * (2 ** attempt)  # Reduced wait: 2s, 4s, 8s (fail fast, retry fast)
                     logger.warning(
                         "Flashcard generation issue (%s), retry %s/%s in %ss",
-                        "TIMEOUT" if "timed out" in error_msg else "504",
+                        "TIMEOUT" if "timed out" in error_msg else "API ERROR",
                         attempt + 1, max_retries, wait_time,
-                        extra={"component": "quiz_generator", "attempt": attempt + 1, "wait_time": wait_time}
+                        extra={"component": "quiz_generator", "attempt": attempt + 1, "wait_time": wait_time, "model": current_model}
                     )
-                    import asyncio
                     await asyncio.sleep(wait_time)
                     continue
                 else:
@@ -238,6 +256,7 @@ class QuizGenerator:
         # Retry mechanism for transient errors (similar to flashcards)
         max_retries = 3
         last_error = None
+        current_model = settings.GEMINI_MODEL
         
         for attempt in range(max_retries):
             try:
@@ -274,7 +293,7 @@ class QuizGenerator:
                         import asyncio
                         response = await asyncio.wait_for(
                             self.llm.client.aio.models.generate_content(
-                                model=settings.GEMINI_MODEL,
+                                model=current_model,
                                 config={
                                     "cached_content": cache_name,
                                 },
@@ -346,23 +365,24 @@ class QuizGenerator:
                             # Not a cache error, re-raise (will be caught by outer loop or bubble up)
                             raise
 
-                else:
                     # No cache - use full content (no truncation)
-                    prompt = load_prompt(
-                        'quiz/mcq_questions.txt',
-                        num_questions=num_questions,
-                        content=content
-                    )
-                    
-                    response = await self.llm.generate(
-                        prompt=prompt,
+                    config = types.GenerateContentConfig(
                         temperature=0.4,
-                        system_prompt="You are an expert tutor creating educational assessments.",
+                        response_mime_type="application/json",
                         response_schema=MCQQuizSchema,
-                        timeout=50.0 # Fail fast
+                        system_instruction="You are an expert tutor creating educational assessments.",
                     )
                     
-                    json_text = response.content
+                    response = await asyncio.wait_for(
+                        self.llm.client.aio.models.generate_content(
+                            model=current_model,
+                            contents=prompt,
+                            config=config
+                        ),
+                        timeout=50.0
+                    )
+                    
+                    json_text = response.text
 
                 # If successful, break retry loop
                 break
@@ -387,14 +407,21 @@ class QuizGenerator:
                 # This outer loop is strictly for network/API overloading.
 
                 if is_retryable and attempt < max_retries - 1:
+                    # Switch to fallback model on overload
+                    if ("503" in error_msg or "overloaded" in error_msg) and current_model != settings.GEMINI_FALLBACK_MODEL:
+                        logger.warning(
+                            f"MCQ generation overload on {current_model}, switching to fallback {settings.GEMINI_FALLBACK_MODEL}",
+                            extra={"component": "quiz_generator"}
+                        )
+                        current_model = settings.GEMINI_FALLBACK_MODEL
+
                     wait_time = 2 * (2 ** attempt)
                     logger.warning(
                         "MCQ generation issue (%s), retry %s/%s in %ss",
                         "TIMEOUT/OVERLOAD",
                         attempt + 1, max_retries, wait_time,
-                        extra={"component": "quiz_generator", "attempt": attempt + 1, "wait_time": wait_time}
+                        extra={"component": "quiz_generator", "attempt": attempt + 1, "wait_time": wait_time, "model": current_model}
                     )
-                    import asyncio
                     await asyncio.sleep(wait_time)
                     continue
                 else:
