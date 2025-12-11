@@ -24,9 +24,9 @@ class Settings(BaseSettings):
     API_V1_PREFIX: str = "/api/v1"
     ALLOWED_ORIGINS: List[str] = [
         "http://localhost:3000",
+        "https://exam-ai-hzzw.vercel.app",  # Production URL
         "https://exam-ai-hzzw-5wcpiuwsd-ilias-projects-774295b7.vercel.app",
-        "https://exam-ai-hzzw-oy52erqht-ilias-projects-774295b7.vercel.app",
-        "https://exam-ai-hzzw.vercel.app",
+        "https://exam-ai-hzzw-oy52erqht-ilias-projects-774295b7.vercel.app"
     ]
 
     @field_validator("ALLOWED_ORIGINS", mode="before")
@@ -42,9 +42,9 @@ class Settings(BaseSettings):
                 return [origin.strip() for origin in v.split(",") if origin.strip()]
         return v
 
-    # CORS Regex for Vercel Preview Deployments
-    # Matches: https://exam-ai-*-ilias-projects-774295b7.vercel.app
-    CORS_ORIGIN_REGEX: str = r"https://exam-ai-.*-ilias-projects-774295b7\.vercel\.app"
+    # CORS Regex for Vercel Deployments (both production and previews)
+    # Matches: https://exam-ai-hzzw.vercel.app and https://exam-ai-*-ilias-projects-774295b7.vercel.app
+    CORS_ORIGIN_REGEX: str = r"https://exam-ai-[a-z0-9-]*\.vercel\.app"
 
     # AI Configuration
     GEMINI_API_KEY: str
