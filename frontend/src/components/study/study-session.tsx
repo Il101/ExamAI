@@ -124,15 +124,7 @@ export function StudySession({ examId }: StudySessionProps) {
     const progress = ((currentIndex) / queue.length) * 100;
 
     return (
-        <div className="flex flex-col items-center max-w-4xl mx-auto py-8 px-4">
-            <div className="w-full mb-8">
-                <div className="flex justify-between text-sm text-muted-foreground mb-2">
-                    <span>Progress</span>
-                    <span>{currentIndex + 1} / {queue.length}</span>
-                </div>
-                <Progress value={progress} className="h-2" />
-            </div>
-
+        <div className="flex flex-col items-center max-w-5xl mx-auto py-8 px-4">
             <Flashcard
                 key={currentItem.id}
                 item={currentItem}

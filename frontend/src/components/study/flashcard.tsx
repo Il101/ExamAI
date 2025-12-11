@@ -1,11 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ReviewItem } from '@/lib/api/study';
 import { cn } from '@/lib/utils';
-import { Eye, RotateCcw, ThumbsUp, Trophy, AlertCircle } from 'lucide-react';
 
 interface FlashcardProps {
     item: ReviewItem;
@@ -31,16 +30,16 @@ export function Flashcard({ item, onResult, className }: FlashcardProps) {
             } else {
                 switch (event.key) {
                     case '1':
-                        onResult(1); // Again
+                        onResult(1);
                         break;
                     case '2':
-                        onResult(2); // Hard
+                        onResult(2);
                         break;
                     case '3':
-                        onResult(3); // Good
+                        onResult(3);
                         break;
                     case '4':
-                        onResult(4); // Easy
+                        onResult(4);
                         break;
                 }
             }
@@ -55,116 +54,89 @@ export function Flashcard({ item, onResult, className }: FlashcardProps) {
         };
     }, [handleKeyDown]);
 
+    // Clean text - remove excessive line breaks
+    const cleanText = (text: string) => {
+        return text.replace(/\n+/g, ' ').trim();
+    };
+
     return (
-        <div className={cn('w-full max-w-4xl mx-auto perspective-1000', className)}>
-            <div
-                className={cn(
-                    'relative w-full transition-all duration-500 transform-style-3d cursor-pointer',
-                    isFlipped && 'rotate-y-180'
-                )}
-                onClick={() => setIsFlipped(!isFlipped)}
-            >
-                {/* Front of Card */}
-                <Card className={cn(
-                    "w-full h-full absolute inset-0 backface-hidden shadow-xl border-2 border-primary/5"
-                )}>
-                    <CardContent className="flex flex-col items-center justify-center p-12 md:p-16 min-h-[400px]">
-                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-8">
-                            Question
-                        </span>
-                        <h3 className="text-2xl md:text-3xl font-medium leading-normal text-center mb-12">
-                            {item.question}
-                        </h3>
+        <div className={cn('w-full max-w-5xl mx-auto', className)}>
+            {!isFlipped ? (
+                // Front of card
+                <Card className="shadow-lg border-2 hover:shadow-xl transition-shadow">
+                    <div className="p-16 min-h-[500px] flex flex-col items-center justify-center">
+                        <p className="text-sm text-muted-foreground uppercase tracking-wide mb-8">Question</p>
+                        <h2 className="text-4xl font-normal text-center leading-relaxed mb-12">
+                            {cleanText(item.question)}
+                        </h2>
                         <Button
-                            className="group"
                             size="lg"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setIsFlipped(true);
-                            }}
+                            onClick={() => setIsFlipped(true)}
+                            className="px-8"
                         >
-                            <Eye className="mr-2 h-4 w-4 group-hover:scale-110 transition-transform" />
                             Show Answer
-                            <span className="ml-2 text-xs opacity-50 font-normal hidden md:inline">
-                                (Space)
-                            </span>
                         </Button>
-                    </CardContent>
+                    </div>
                 </Card>
-
-                {/* Back of Card */}
-                <Card className={cn(
-                    "w-full h-full absolute inset-0 backface-hidden rotate-y-180 shadow-xl border-2 border-primary/5"
-                )}>
-                    <CardContent className="flex flex-col items-center justify-center p-12 md:p-16 min-h-[400px]">
-                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-8">
-                            Answer
-                        </span>
-                        <p className="text-xl md:text-2xl leading-normal text-center mb-12">
-                            {item.answer}
-                        </p>
-
-                        <div className="w-full max-w-2xl grid grid-cols-2 md:grid-cols-4 gap-3">
-                            <Button
-                                variant="outline"
-                                className="border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-red-900/50 dark:hover:bg-red-900/20"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onResult(1);
-                                }}
-                            >
-                                <div className="flex flex-col items-center py-1">
-                                    <RotateCcw className="h-4 w-4 mb-1" />
-                                    <span>Again</span>
-                                    <span className="text-[10px] opacity-50 font-normal">1 min</span>
-                                </div>
-                            </Button>
-                            <Button
-                                variant="outline"
-                                className="border-orange-200 hover:bg-orange-50 hover:text-orange-600 dark:border-orange-900/50 dark:hover:bg-orange-900/20"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onResult(2);
-                                }}
-                            >
-                                <div className="flex flex-col items-center py-1">
-                                    <AlertCircle className="h-4 w-4 mb-1" />
-                                    <span>Hard</span>
-                                    <span className="text-[10px] opacity-50 font-normal">2 days</span>
-                                </div>
-                            </Button>
-                            <Button
-                                variant="outline"
-                                className="border-blue-200 hover:bg-blue-50 hover:text-blue-600 dark:border-blue-900/50 dark:hover:bg-blue-900/20"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onResult(3);
-                                }}
-                            >
-                                <div className="flex flex-col items-center py-1">
-                                    <ThumbsUp className="h-4 w-4 mb-1" />
-                                    <span>Good</span>
-                                    <span className="text-[10px] opacity-50 font-normal">4 days</span>
-                                </div>
-                            </Button>
-                            <Button
-                                variant="outline"
-                                className="border-green-200 hover:bg-green-50 hover:text-green-600 dark:border-green-900/50 dark:hover:bg-green-900/20"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onResult(4);
-                                }}
-                            >
-                                <div className="flex flex-col items-center py-1">
-                                    <Trophy className="h-4 w-4 mb-1" />
-                                    <span>Easy</span>
-                                    <span className="text-[10px] opacity-50 font-normal">7 days</span>
-                                </div>
-                            </Button>
+            ) : (
+                // Back of card
+                <Card className="shadow-lg border-2">
+                    <div className="p-16 min-h-[500px] flex flex-col items-center justify-between">
+                        <div className="flex flex-col items-center flex-1 justify-center w-full">
+                            <p className="text-sm text-muted-foreground uppercase tracking-wide mb-8">Answer</p>
+                            <p className="text-3xl font-normal text-center leading-relaxed">
+                                {cleanText(item.answer)}
+                            </p>
                         </div>
-                    </CardContent>
+
+                        <div className="w-full max-w-3xl">
+                            <p className="text-center text-sm text-muted-foreground mb-4">How well did you know this?</p>
+                            <div className="grid grid-cols-4 gap-3">
+                                <Button
+                                    size="lg"
+                                    variant="outline"
+                                    className="h-20 flex-col gap-1 border-2 hover:border-red-500 hover:bg-red-50 dark:hover:bg-red-950"
+                                    onClick={() => onResult(1)}
+                                >
+                                    <span className="text-3xl">😞</span>
+                                    <span className="font-semibold">Again</span>
+                                    <span className="text-xs opacity-60">1 min</span>
+                                </Button>
+                                <Button
+                                    size="lg"
+                                    variant="outline"
+                                    className="h-20 flex-col gap-1 border-2 hover:border-orange-500 hover:bg-orange-50 dark:hover:bg-orange-950"
+                                    onClick={() => onResult(2)}
+                                >
+                                    <span className="text-3xl">😐</span>
+                                    <span className="font-semibold">Hard</span>
+                                    <span className="text-xs opacity-60">2 days</span>
+                                </Button>
+                                <Button
+                                    size="lg"
+                                    variant="outline"
+                                    className="h-20 flex-col gap-1 border-2 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950"
+                                    onClick={() => onResult(3)}
+                                >
+                                    <span className="text-3xl">🙂</span>
+                                    <span className="font-semibold">Good</span>
+                                    <span className="text-xs opacity-60">4 days</span>
+                                </Button>
+                                <Button
+                                    size="lg"
+                                    variant="outline"
+                                    className="h-20 flex-col gap-1 border-2 hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-950"
+                                    onClick={() => onResult(4)}
+                                >
+                                    <span className="text-3xl">😄</span>
+                                    <span className="font-semibold">Easy</span>
+                                    <span className="text-xs opacity-60">7 days</span>
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
                 </Card>
-            </div>
+            )}
         </div>
     );
 }
