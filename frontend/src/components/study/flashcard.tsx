@@ -56,7 +56,7 @@ export function Flashcard({ item, onResult, className }: FlashcardProps) {
     }, [handleKeyDown]);
 
     return (
-        <div className={cn('w-full max-w-3xl mx-auto perspective-1000', className)}>
+        <div className={cn('w-full max-w-4xl mx-auto perspective-1000', className)}>
             <div
                 className={cn(
                     'relative w-full transition-all duration-500 transform-style-3d cursor-pointer',
@@ -66,49 +66,45 @@ export function Flashcard({ item, onResult, className }: FlashcardProps) {
             >
                 {/* Front of Card */}
                 <Card className={cn(
-                    "w-full h-full absolute inset-0 backface-hidden flex flex-col shadow-xl border-2 border-primary/5"
+                    "w-full h-full absolute inset-0 backface-hidden shadow-xl border-2 border-primary/5"
                 )}>
-                    <CardContent className="flex flex-col p-8 md:p-10">
-                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-6 text-center">
+                    <CardContent className="flex flex-col items-center justify-center p-12 md:p-16 min-h-[400px]">
+                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-8">
                             Question
                         </span>
-                        <div className="flex-1 flex items-center justify-center py-8 px-4">
-                            <h3 className="text-2xl md:text-3xl font-semibold leading-relaxed text-center max-w-2xl whitespace-pre-wrap">
-                                {item.question}
-                            </h3>
-                        </div>
-                        <div className="w-full flex justify-center pt-6">
-                            <Button
-                                className="w-full max-w-xs group"
-                                size="lg"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setIsFlipped(true);
-                                }}
-                            >
-                                <Eye className="mr-2 h-4 w-4 group-hover:scale-110 transition-transform" />
-                                Show Answer
-                                <span className="ml-2 text-xs opacity-50 font-normal hidden md:inline">
-                                    (Space)
-                                </span>
-                            </Button>
-                        </div>
+                        <h3 className="text-2xl md:text-3xl font-medium leading-normal text-center mb-12">
+                            {item.question}
+                        </h3>
+                        <Button
+                            className="group"
+                            size="lg"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setIsFlipped(true);
+                            }}
+                        >
+                            <Eye className="mr-2 h-4 w-4 group-hover:scale-110 transition-transform" />
+                            Show Answer
+                            <span className="ml-2 text-xs opacity-50 font-normal hidden md:inline">
+                                (Space)
+                            </span>
+                        </Button>
                     </CardContent>
                 </Card>
 
                 {/* Back of Card */}
                 <Card className={cn(
-                    "w-full h-full absolute inset-0 backface-hidden rotate-y-180 flex flex-col shadow-xl border-2 border-primary/5"
+                    "w-full h-full absolute inset-0 backface-hidden rotate-y-180 shadow-xl border-2 border-primary/5"
                 )}>
-                    <CardContent className="flex flex-col p-8 md:p-10">
-                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-6 text-center">
+                    <CardContent className="flex flex-col items-center justify-center p-12 md:p-16 min-h-[400px]">
+                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-8">
                             Answer
                         </span>
-                        <div className="flex-1 flex items-center justify-center py-8 px-4">
-                            <p className="text-xl md:text-2xl leading-relaxed text-center max-w-2xl whitespace-pre-wrap">{item.answer}</p>
-                        </div>
+                        <p className="text-xl md:text-2xl leading-normal text-center mb-12">
+                            {item.answer}
+                        </p>
 
-                        <div className="w-full grid grid-cols-2 md:grid-cols-4 gap-3 pt-6">
+                        <div className="w-full max-w-2xl grid grid-cols-2 md:grid-cols-4 gap-3">
                             <Button
                                 variant="outline"
                                 className="border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-red-900/50 dark:hover:bg-red-900/20"
