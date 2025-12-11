@@ -56,7 +56,7 @@ export function Flashcard({ item, onResult, className }: FlashcardProps) {
     }, [handleKeyDown]);
 
     return (
-        <div className={cn('w-full max-w-2xl mx-auto perspective-1000', className)}>
+        <div className={cn('w-full max-w-3xl mx-auto perspective-1000', className)}>
             <div
                 className={cn(
                     'relative w-full transition-all duration-500 transform-style-3d cursor-pointer',
@@ -68,16 +68,18 @@ export function Flashcard({ item, onResult, className }: FlashcardProps) {
                 <Card className={cn(
                     "w-full h-full absolute inset-0 backface-hidden flex flex-col shadow-xl border-2 border-primary/5"
                 )}>
-                    <CardContent className="flex flex-col items-center justify-between p-6 md:p-8 text-center min-h-[300px]">
-                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-4">
+                    <CardContent className="flex flex-col p-8 md:p-10">
+                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-6 text-center">
                             Question
                         </span>
-                        <h3 className="text-xl md:text-2xl font-semibold leading-relaxed flex-1 flex items-center justify-center">
-                            {item.question}
-                        </h3>
-                        <div className="w-full mt-4">
+                        <div className="flex-1 flex items-center justify-center py-8">
+                            <h3 className="text-2xl md:text-3xl font-semibold leading-normal text-center max-w-2xl">
+                                {item.question}
+                            </h3>
+                        </div>
+                        <div className="w-full flex justify-center pt-6">
                             <Button
-                                className="w-full max-w-xs mx-auto group"
+                                className="w-full max-w-xs group"
                                 size="lg"
                                 onClick={(e) => {
                                     e.stopPropagation();
@@ -98,15 +100,17 @@ export function Flashcard({ item, onResult, className }: FlashcardProps) {
                 <Card className={cn(
                     "w-full h-full absolute inset-0 backface-hidden rotate-y-180 flex flex-col shadow-xl border-2 border-primary/5"
                 )}>
-                    <CardContent className="flex flex-col items-center justify-between p-6 md:p-8 text-center min-h-[300px]">
-                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-4">
+                    <CardContent className="flex flex-col p-8 md:p-10">
+                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-6 text-center">
                             Answer
                         </span>
-                        <div className="prose prose-lg dark:prose-invert flex-1 flex items-center justify-center">
-                            <p className="text-lg md:text-xl leading-relaxed">{item.answer}</p>
+                        <div className="flex-1 flex items-center justify-center py-8">
+                            <div className="prose prose-lg dark:prose-invert max-w-2xl">
+                                <p className="text-xl md:text-2xl leading-normal text-center">{item.answer}</p>
+                            </div>
                         </div>
 
-                        <div className="w-full mt-4 grid grid-cols-2 md:grid-cols-4 gap-2">
+                        <div className="w-full grid grid-cols-2 md:grid-cols-4 gap-3 pt-6">
                             <Button
                                 variant="outline"
                                 className="border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-red-900/50 dark:hover:bg-red-900/20"
