@@ -206,10 +206,15 @@ async def create_exam_v3(
                 )
             else:
                 # OLD: Use legacy path (fallback)
-                logger.info(f"Using LEGACY architecture for exam {exam.id}")
-                from app.tasks.exam_tasks import generate_exam_content
-                generate_exam_content.delay(str(exam.id), str(current_user.id))
-                logger.info(f"Triggered legacy generation for exam {exam.id}")
+                # NOTE: Auto-start disabled to prevent 504 timeouts. User must click "Start Generation".
+                logger.info(
+                    f"✅ LEGACY: Plan created for exam {exam.id} "
+                    f"(cache: {exam.cache_name or 'none'}). Waiting for manual start."
+                )
+                # Auto-start disabled - causes 504 Gateway Timeout when Gemini takes 2+ minutes
+                # from app.tasks.exam_tasks import generate_exam_content
+                # generate_exam_content.delay(str(exam.id), str(current_user.id))
+                # logger.info(f"Triggered legacy generation for exam {exam.id}")
                 
         except Exception as e:
             logger.error(f"Failed to trigger generation task: {e}", exc_info=True)
