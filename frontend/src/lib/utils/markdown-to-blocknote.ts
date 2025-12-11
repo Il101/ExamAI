@@ -2,10 +2,7 @@ import { Block } from '@blocknote/core';
 
 /**
  * Converts Markdown string to BlockNote JSON format
- * Preserves pedagogical structure and formatting
- * 
- * Note: This is a simplified implementation that converts Markdown to plain blocks.
- * For production use, consider using BlockNote's built-in HTML/Markdown parsers.
+ * Preserves pedagogical structure and formatting including bold, italic, code
  */
 export async function markdownToBlockNote(markdown: string): Promise<Block[]> {
     if (!markdown || markdown.trim() === '') {
@@ -13,13 +10,11 @@ export async function markdownToBlockNote(markdown: string): Promise<Block[]> {
     }
 
     try {
-        // Simple conversion: split by lines and convert to paragraphs
-        // Headers, lists, and code blocks will be detected and converted
         const lines = markdown.split('\n');
         const blocks: any[] = [];
-        let currentBlock: any = null;
         let codeBlock: string[] = [];
         let inCodeBlock = false;
+        let codeLanguage = 'plaintext';
 
         for (const line of lines) {
             // Code block detection
@@ -27,17 +22,14 @@ export async function markdownToBlockNote(markdown: string): Promise<Block[]> {
                 if (!inCodeBlock) {
                     inCodeBlock = true;
                     codeBlock = [];
-                    const language = line.trim().slice(3).trim() || 'plaintext';
-                    currentBlock = {
-                        type: 'codeBlock',
-                        props: { language },
-                        content: [],
-                    };
+                    codeLanguage = line.trim().slice(3).trim() || 'plaintext';
                 } else {
                     inCodeBlock = false;
-                    currentBlock.content = [{ type: 'text', text: codeBlock.join('\n'), styles: {} }];
-                    blocks.push(currentBlock);
-                    currentBlock = null;
+                    blocks.push({
+                        type: 'codeBlock',
+                        props: { language: codeLanguage },
+                        content: [{ type: 'text', text: codeBlock.join('\n'), styles: {} }],
+                    });
                 }
                 continue;
             }
@@ -53,7 +45,7 @@ export async function markdownToBlockNote(markdown: string): Promise<Block[]> {
                 blocks.push({
                     type: 'heading',
                     props: { level: headingMatch[1].length as 1 | 2 | 3 },
-                    content: [{ type: 'text', text: headingMatch[2], styles: {} }],
+                    content: parseInlineFormatting(headingMatch[2]),
                 });
                 continue;
             }
@@ -63,7 +55,7 @@ export async function markdownToBlockNote(markdown: string): Promise<Block[]> {
             if (listMatch) {
                 blocks.push({
                     type: 'bulletListItem',
-                    content: [{ type: 'text', text: listMatch[1], styles: {} }],
+                    content: parseInlineFormatting(listMatch[1]),
                 });
                 continue;
             }
@@ -72,20 +64,29 @@ export async function markdownToBlockNote(markdown: string): Promise<Block[]> {
             if (numberedListMatch) {
                 blocks.push({
                     type: 'numberedListItem',
-                    content: [{ type: 'text', text: numberedListMatch[1], styles: {} }],
+                    content: parseInlineFormatting(numberedListMatch[1]),
                 });
                 continue;
             }
 
-            // Empty line
+            // Horizontal rule
+            if (line.trim() === '---' || line.trim() === '***') {
+                blocks.push({
+                    type: 'paragraph',
+                    content: [{ type: 'text', text: '---', styles: {} }],
+                });
+                continue;
+            }
+
+            // Empty line - skip
             if (line.trim() === '') {
                 continue;
             }
 
-            // Default: paragraph
+            // Default: paragraph with inline formatting
             blocks.push({
                 type: 'paragraph',
-                content: [{ type: 'text', text: line, styles: {} }],
+                content: parseInlineFormatting(line),
             });
         }
 
@@ -94,6 +95,146 @@ export async function markdownToBlockNote(markdown: string): Promise<Block[]> {
         console.error('Error converting markdown to BlockNote:', error);
         return [];
     }
+}
+
+/**
+ * Parse inline formatting (bold, italic, code, strikethrough)
+ */
+function parseInlineFormatting(text: string): any[] {
+    const content: any[] = [];
+    let currentText = '';
+    let i = 0;
+
+    while (i < text.length) {
+        // Bold with ** or __
+        if ((text[i] === '*' && text[i + 1] === '*') || (text[i] === '_' && text[i + 1] === '_')) {
+            if (currentText) {
+                content.push({ type: 'text', text: currentText, styles: {} });
+                currentText = '';
+            }
+
+            const delimiter = text.slice(i, i + 2);
+            i += 2;
+            let boldText = '';
+            let foundEnd = false;
+
+            while (i < text.length - 1) {
+                if (text.slice(i, i + 2) === delimiter) {
+                    foundEnd = true;
+                    i += 2;
+                    break;
+                }
+                boldText += text[i];
+                i++;
+            }
+
+            if (foundEnd && boldText) {
+                content.push({ type: 'text', text: boldText, styles: { bold: true } });
+            } else {
+                currentText += delimiter + boldText;
+            }
+            continue;
+        }
+
+        // Italic with * or _
+        if (text[i] === '*' || text[i] === '_') {
+            if (currentText) {
+                content.push({ type: 'text', text: currentText, styles: {} });
+                currentText = '';
+            }
+
+            const delimiter = text[i];
+            i++;
+            let italicText = '';
+            let foundEnd = false;
+
+            while (i < text.length) {
+                if (text[i] === delimiter && (i === text.length - 1 || text[i + 1] !== delimiter)) {
+                    foundEnd = true;
+                    i++;
+                    break;
+                }
+                italicText += text[i];
+                i++;
+            }
+
+            if (foundEnd && italicText) {
+                content.push({ type: 'text', text: italicText, styles: { italic: true } });
+            } else {
+                currentText += delimiter + italicText;
+            }
+            continue;
+        }
+
+        // Inline code with `
+        if (text[i] === '`') {
+            if (currentText) {
+                content.push({ type: 'text', text: currentText, styles: {} });
+                currentText = '';
+            }
+
+            i++;
+            let codeText = '';
+            let foundEnd = false;
+
+            while (i < text.length) {
+                if (text[i] === '`') {
+                    foundEnd = true;
+                    i++;
+                    break;
+                }
+                codeText += text[i];
+                i++;
+            }
+
+            if (foundEnd) {
+                content.push({ type: 'text', text: codeText, styles: { code: true } });
+            } else {
+                currentText += '`' + codeText;
+            }
+            continue;
+        }
+
+        // Strikethrough with ~~
+        if (text[i] === '~' && text[i + 1] === '~') {
+            if (currentText) {
+                content.push({ type: 'text', text: currentText, styles: {} });
+                currentText = '';
+            }
+
+            i += 2;
+            let strikeText = '';
+            let foundEnd = false;
+
+            while (i < text.length - 1) {
+                if (text[i] === '~' && text[i + 1] === '~') {
+                    foundEnd = true;
+                    i += 2;
+                    break;
+                }
+                strikeText += text[i];
+                i++;
+            }
+
+            if (foundEnd && strikeText) {
+                content.push({ type: 'text', text: strikeText, styles: { strikethrough: true } });
+            } else {
+                currentText += '~~' + strikeText;
+            }
+            continue;
+        }
+
+        // Regular character
+        currentText += text[i];
+        i++;
+    }
+
+    // Add remaining text
+    if (currentText) {
+        content.push({ type: 'text', text: currentText, styles: {} });
+    }
+
+    return content.length > 0 ? content : [{ type: 'text', text: '', styles: {} }];
 }
 
 /**
@@ -117,6 +258,11 @@ export function blockNoteToMarkdown(blocks: Block[]): string {
  * Convert single block to Markdown
  */
 function convertBlockToMarkdown(block: any): string {
+    // Skip MCQ blocks when converting to Markdown
+    if (block.type === 'mcq') {
+        return '';
+    }
+
     const content = extractTextContent(block.content || []);
 
     switch (block.type) {
@@ -143,7 +289,7 @@ function convertBlockToMarkdown(block: any): string {
 }
 
 /**
- * Extract text content from inline content array
+ * Extract text content from inline content array with formatting
  */
 function extractTextContent(content: any[]): string {
     if (!Array.isArray(content)) return '';
@@ -154,10 +300,12 @@ function extractTextContent(content: any[]): string {
                 let text = item.text || '';
                 const styles = item.styles || {};
 
-                if (styles.bold) text = `**${text}**`;
-                if (styles.italic) text = `*${text}*`;
-                if (styles.code) text = `\`${text}\``;
-                if (styles.strikethrough) text = `~~${text}~~`;
+                // Apply formatting in correct order
+                if (styles.code) return `\`${text}\``;
+                if (styles.bold && styles.italic) return `***${text}***`;
+                if (styles.bold) return `**${text}**`;
+                if (styles.italic) return `*${text}*`;
+                if (styles.strikethrough) return `~~${text}~~`;
 
                 return text;
             }

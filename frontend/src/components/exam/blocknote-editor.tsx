@@ -90,11 +90,97 @@ export function BlockNoteEditor({
 
     return (
         <div className="blocknote-wrapper">
+            <style jsx global>{`
+                /* Dark theme support for BlockNote */
+                .blocknote-wrapper .bn-container[data-theme="dark"] {
+                    --bn-colors-editor-background: hsl(var(--background));
+                    --bn-colors-editor-text: hsl(var(--foreground));
+                    --bn-colors-menu-background: hsl(var(--popover));
+                    --bn-colors-menu-text: hsl(var(--popover-foreground));
+                    --bn-colors-tooltip-background: hsl(var(--popover));
+                    --bn-colors-tooltip-text: hsl(var(--popover-foreground));
+                    --bn-colors-hovered-background: hsl(var(--accent));
+                    --bn-colors-hovered-text: hsl(var(--accent-foreground));
+                    --bn-colors-selected-background: hsl(var(--accent));
+                    --bn-colors-selected-text: hsl(var(--accent-foreground));
+                    --bn-colors-disabled-background: hsl(var(--muted));
+                    --bn-colors-disabled-text: hsl(var(--muted-foreground));
+                    --bn-colors-shadow: hsl(var(--border));
+                    --bn-colors-border: hsl(var(--border));
+                    --bn-colors-side-menu: hsl(var(--muted-foreground));
+                    --bn-colors-highlights-gray-background: hsl(var(--muted));
+                    --bn-colors-highlights-gray-text: hsl(var(--muted-foreground));
+                    --bn-colors-highlights-brown-background: hsl(30 60% 50% / 0.2);
+                    --bn-colors-highlights-brown-text: hsl(30 60% 70%);
+                    --bn-colors-highlights-red-background: hsl(0 70% 50% / 0.2);
+                    --bn-colors-highlights-red-text: hsl(0 70% 70%);
+                    --bn-colors-highlights-orange-background: hsl(25 80% 50% / 0.2);
+                    --bn-colors-highlights-orange-text: hsl(25 80% 70%);
+                    --bn-colors-highlights-yellow-background: hsl(50 80% 50% / 0.2);
+                    --bn-colors-highlights-yellow-text: hsl(50 80% 70%);
+                    --bn-colors-highlights-green-background: hsl(120 50% 50% / 0.2);
+                    --bn-colors-highlights-green-text: hsl(120 50% 70%);
+                    --bn-colors-highlights-blue-background: hsl(210 70% 50% / 0.2);
+                    --bn-colors-highlights-blue-text: hsl(210 70% 70%);
+                    --bn-colors-highlights-purple-background: hsl(270 60% 50% / 0.2);
+                    --bn-colors-highlights-purple-text: hsl(270 60% 70%);
+                    --bn-colors-highlights-pink-background: hsl(330 70% 50% / 0.2);
+                    --bn-colors-highlights-pink-text: hsl(330 70% 70%);
+                }
+
+                /* Light theme support */
+                .blocknote-wrapper .bn-container[data-theme="light"] {
+                    --bn-colors-editor-background: hsl(var(--background));
+                    --bn-colors-editor-text: hsl(var(--foreground));
+                    --bn-colors-menu-background: hsl(var(--popover));
+                    --bn-colors-menu-text: hsl(var(--popover-foreground));
+                }
+
+                /* Improve typography */
+                .blocknote-wrapper .bn-block-content {
+                    line-height: 1.7;
+                }
+
+                .blocknote-wrapper .bn-block-content h1 {
+                    font-size: 2em;
+                    font-weight: 700;
+                    margin-top: 1em;
+                    margin-bottom: 0.5em;
+                }
+
+                .blocknote-wrapper .bn-block-content h2 {
+                    font-size: 1.5em;
+                    font-weight: 600;
+                    margin-top: 0.8em;
+                    margin-bottom: 0.4em;
+                }
+
+                .blocknote-wrapper .bn-block-content h3 {
+                    font-size: 1.25em;
+                    font-weight: 600;
+                    margin-top: 0.6em;
+                    margin-bottom: 0.3em;
+                }
+
+                .blocknote-wrapper .bn-block-content code {
+                    background: hsl(var(--muted));
+                    padding: 0.2em 0.4em;
+                    border-radius: 0.25rem;
+                    font-size: 0.9em;
+                }
+
+                .blocknote-wrapper .bn-block-content pre {
+                    background: hsl(var(--muted));
+                    border: 1px solid hsl(var(--border));
+                    border-radius: 0.5rem;
+                    padding: 1em;
+                    overflow-x: auto;
+                }
+            `}</style>
             <BlockNoteView
                 editor={editor}
                 editable={editable}
                 theme={theme === 'dark' ? 'dark' : 'light'}
-                data-theming-css-variables-demo
             />
             {isSaving && (
                 <div className="text-xs text-muted-foreground mt-2">
