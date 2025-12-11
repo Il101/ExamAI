@@ -71,7 +71,8 @@ class TopicContentGenerator:
         self,
         topic_id: UUID,
         cache_name: Optional[str] = None,
-        exam_id: Optional[UUID] = None
+        exam_id: Optional[UUID] = None,
+        output_language: Optional[str] = None,
     ) -> str:
         """
         Generate content and flashcards for a topic.
@@ -138,6 +139,9 @@ class TopicContentGenerator:
             exam_type=exam.exam_type,
             original_content=exam.original_content or ""
         )
+
+        # Default to Russian if not specified.
+        state.output_language = output_language or "ru"
         
         logger.info(
             f"Executing generation for '{topic.topic_name}' "

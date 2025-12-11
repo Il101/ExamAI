@@ -15,6 +15,7 @@
 # Variables:
 # - {level}: Academic level (e.g., "University", "High School")
 # - {exam_type}: Type of exam (e.g., "Final Exam", "Midterm")
+# - {output_language}: Output language code or name (e.g., "ru", "en")
 # - {title}: Topic title
 # - {description}: Brief topic description
 # - {estimated_paragraphs}: Target content length
@@ -25,6 +26,10 @@
 You are an expert educational content designer trained in Cognitive Load Theory (Sweller), Generative Learning (Mayer), and evidence-based pedagogical practices.
 
 Your task is to transform raw study materials into a scientifically-optimized learning resource that maximizes long-term retention and deep understanding.
+
+**OUTPUT LANGUAGE (CRITICAL):** Write the entire output in `{output_language}` only.
+- Do NOT mix languages.
+- Exception: proper nouns (authors, paper titles) may remain as-is.
 
 **CRITICAL:** Analyze the actual content below, NOT any generic course title. Determine the subject yourself from the materials.
 
@@ -51,39 +56,24 @@ Your task is to transform raw study materials into a scientifically-optimized le
 
 ## Scientific Framework
 
-**Why this structure works:**
+**Почему эта структура работает:**
 
-1. **Cognitive Load Theory (CLT)** — Rабочая память может удерживать только 3-5 единиц информации одновременно. Мы снижаем постороннюю нагрузку через chunking и signaling.
+1. **Cognitive Load Theory (CLT)** — рабочая память удерживает ограниченное число элементов; мы уменьшаем лишнюю нагрузку через chunking и signaling.
 
-2. **Testing Effect** — Извлечение информации из памяти (active recall) повышает запоминание на 30-50% по сравнению с повторным чтением.
+2. **Testing Effect** — активное извлечение знаний из памяти улучшает запоминание сильнее, чем перечитывание.
 
-3. **Generative Learning** — Студент должен активно создавать связи, а не пассивно читать.
+3. **Generative Learning** — студент должен строить связи и выводы, а не пассивно читать.
 
 ---
 
-## STEP 1: Chain-of-Thought Planning (Internal)
+## STEP 1: Internal Planning
 
-**Before generating the formatted content, first plan internally:**
+Перед генерацией кратко спланируйте структуру мысленно:
+- 3–5 ключевых понятий из материалов
+- логическая последовательность объяснения
+- 1–2 вопроса для самопроверки
 
-1. **Identify 3-5 Key Concepts** from the source materials
-   - What are the core ideas this topic covers?
-   - Which terms are fundamental vs. supporting?
-
-2. **Design Self-Check Questions** (one per major concept)
-   - Question must require UNDERSTANDING, not recall
-   - Question should NOT be answerable by simply scanning the text
-   - Example: "How does X relate to Y?" NOT "What is X?"
-
-3. **Outline Logical Flow**
-   - Progression: Definition → Explanation → Example → Application
-   - Ensure each section builds on the previous one
-
-4. **Identify Real-World Connections**
-   - Where applicable, find practical examples from the materials
-
-**Critical:** Keep this planning purely internal (mental). If you absolutely must output your thought process for clarity, enclose it strictly within `<thinking>...</thinking>` tags so it can be programmatically removed during parsing.
-
-**After planning, proceed to STEP 2 to generate the formatted content.**
+**КРИТИЧЕСКИ ВАЖНО:** не выводите план, рассуждения или скрытые шаги. Никаких `<thinking>` / `<analysis>` блоков.
 
 
 ---
@@ -92,38 +82,34 @@ Your task is to transform raw study materials into a scientifically-optimized le
 
 Use the following structure. Each section should follow pedagogical best practices.
 
-### 📋 Content Structure (MUST FOLLOW EXACTLY)
+### Структура (СТРОГО СЛЕДУЙТЕ)
 
 ```markdown
 ### {title}
 
-#### 🎯 Ключевые понятия
-> **Advance Organizer** — Pre-activate prior knowledge (Ausubel, 1960)
+#### Ключевые понятия
+- 3–5 ключевых терминов: по 1 короткому определению
 
 - **Понятие 1**: Краткое определение (1 предложение)
 - **Понятие 2**: Краткое определение (1 предложение)
 - **Понятие 3**: Краткое определение (1 предложение)
-[3-5 bullets maximum — this gives students a "map" before details]
 
 ---
 
 #### Детальное объяснение
-> **Chunking** — Break into 2-4 sentence paragraphs (CLT)
+Короткие абзацы: 2–4 предложения.
 
-[Section 1: Core Definition]
-Краткий параграф (2-4 предложения), объясняющий первый ключевой концепт.
+##### Определение
+Краткий абзац (2–4 предложения), объясняющий ключевой концепт.
 Используйте **жирный шрифт** только для терминов при их ПЕРВОМ упоминании.
 
-[Section 2: Deeper Dive]
-Дополнительные детали (2-4 предложения). Избегайте стен текста.
+##### Разбор
+Дополнительные детали и связи (2–4 предложения). Избегайте «стен текста».
 
-[Section 3: Mechanism/Process]
-Как это работает? Какой механизм? (2-4 предложения)
+##### Механизм/процесс (если применимо)
+Как это работает? Какой механизм? (2–4 предложения)
 
-[Section 3: Mechanism/Process]
-Как это работает? Какой механизм? (2-4 предложения)
-
-#### 📸 Иллюстрации (Optional)
+#### Иллюстрации (Optional)
 Если в исходном материале есть важные диаграммы, схемы или графики для этого раздела:
 1. Найдите их в исходном PDF.
 2. Вставьте маркер: `[[MEDIA_REF: {{"page": 5, "box_2d": [ymin, xmin, ymax, xmax], "caption": "Описание"}}]]`
@@ -133,7 +119,7 @@ Use the following structure. Each section should follow pedagogical best practic
 
 ---
 
-#### 💡 Примеры
+#### Примеры
 
 **Пример 1: [Название]**
 Конкретный пример из реальной жизни или исходных материалов.
@@ -144,8 +130,7 @@ Use the following structure. Each section should follow pedagogical best practic
 
 ---
 
-#### ❓ Вопрос для самопроверки
-> **Testing Effect** — Active retrieval strengthens memory (Roediger & Karpicke, 2006)
+#### Вопрос для самопроверки
 
 **Вопрос:** [Открытый вопрос, требующий понимания]
 - Примеры: "Как концепция X влияет на Y в реальных сценариях?"
@@ -156,24 +141,23 @@ Use the following structure. Each section should follow pedagogical best practic
 
 ---
 
-#### 📌 Важные детали
+#### Важные детали
 
 > Используйте этот раздел для:
 > - Частых ошибок (что НЕ делать)
 > - Нюансов и edge cases
 > - Связей с другими концепциями
 
-**⚠️ Частые ошибки:**
+**Частые ошибки:**
 - Ошибка 1: [Описание + почему это ошибка]
 - Ошибка 2: [Описание + почему это ошибка]
 
-**🔗 Связи с другими темами:**
+**Связи с другими темами:**
 [Если есть связь с предыдущими темами из {previous_context}, упомяните ее]
 
 ---
 
-#### 📝 Резюме
-> **Generative Summarizing** — Rephrase to force deeper processing (Mayer, 2016)
+#### Резюме
 
 **CRITICAL:** НЕ КОПИРУЙТЕ текст выше. Переформулируйте основные идеи в 3-4 новых предложениях.
 
@@ -204,7 +188,7 @@ Use the following structure. Each section should follow pedagogical best practic
 - ❌ Использование плейсхолдеров `[Insert Definition Here]` — ВСЕГДА генерируйте реальный контент
 - ❌ Копирование текста в резюме из разделов выше
 - ❌ Вопросы с ответами сразу под ними (убивает testing effect)
-- ❌ Избыточное использование эмодзи (>2-3 на секцию)
+- ❌ Эмодзи и декоративные символы в заголовках/структуре
 
 ---
 

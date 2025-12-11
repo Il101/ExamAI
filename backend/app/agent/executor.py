@@ -44,18 +44,49 @@ class TopicExecutor:
         last_error = None
         for attempt in range(max_retries):
             try:
+                output_language = getattr(state, "output_language", "ru") or "ru"
+                output_language_lower = str(output_language).lower()
+                if output_language_lower.startswith("ru"):
+                    language_name = "Russian"
+                elif output_language_lower.startswith("en"):
+                    language_name = "English"
+                else:
+                    language_name = str(output_language)
+
+                # Dynamic output budget: the topic template is fairly structured
+                # (many sections), so 2000 tokens is often too small and leads
+                # to truncated topics.
+                estimated_sections = getattr(current_step, "estimated_paragraphs", 5) or 5
+                max_tokens = min(8000, max(4000, 2500 + int(estimated_sections) * 700))
+                if attempt > 0:
+                    # On retries, increase output budget to avoid repeated truncation.
+                    max_tokens = min(12000, int(max_tokens * (1.6 ** attempt)))
+
                 # Call LLM with cache if available
                 response = await self.llm.generate(
                     prompt=prompt,
                     temperature=0.7,  # Higher temperature for creative content
-                    max_tokens=2000,  # Limit per topic
-                    system_prompt="You are an expert educator writing study notes.",
+                    max_tokens=max_tokens,
+                    system_prompt=(
+                        f"You are an expert educator writing study notes in {language_name}. "
+                        "Do not reveal hidden reasoning."
+                    ),
                     cache_name=state.cache_name,  # CRITICAL: Use cache to reduce input tokens
                 )
 
                 print(
                     f"[Executor] Content generated for topic {current_step.id}. Tokens: {response.tokens_input}/{response.tokens_output}"
                 )
+
+                # If the model stopped due to output length, retry with a larger budget.
+                finish_reason = (response.finish_reason or "").lower()
+                if finish_reason in {"max_tokens", "length", "max_output_tokens"}:
+                    print(
+                        f"[Executor] ⚠️ Topic {current_step.id} likely truncated (finish_reason={finish_reason}). "
+                        f"Retrying with higher max_tokens..."
+                    )
+                    if attempt < max_retries - 1:
+                        continue
 
                 # Track usage
                 state.add_token_usage(
@@ -173,6 +204,15 @@ class TopicExecutor:
         """Build prompt for topic content generation"""
         from app.prompts import load_prompt
 
+        output_language = getattr(state, "output_language", "ru") or "ru"
+        output_language_lower = str(output_language).lower()
+        if output_language_lower.startswith("ru"):
+            output_language_label = "Russian"
+        elif output_language_lower.startswith("en"):
+            output_language_label = "English"
+        else:
+            output_language_label = str(output_language)
+
         # Prepare content section
         content_section = ""
         
@@ -238,6 +278,7 @@ class TopicExecutor:
         # Load prompt template and substitute variables
         prompt = load_prompt(
             'executor/topic_content.txt',
+            output_language=output_language_label,
             level=state.level,
             exam_type=state.exam_type,
             previous_context=previous_context,

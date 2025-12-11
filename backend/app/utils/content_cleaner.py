@@ -23,15 +23,24 @@ def strip_thinking_tags(content: str) -> str:
     """
     if not content:
         return content
-    
-    # Remove thinking blocks (case-insensitive, multiline)
+
+    # Remove <thinking> blocks. If the closing tag is missing, stop at the next
+    # Markdown heading (likely the start of actual content), otherwise to EOF.
     cleaned = re.sub(
-        r'<thinking>.*?</thinking>',
-        '',
+        r"<thinking\b[^>]*>.*?(</thinking>|(?=^\s*#{1,6}\s)|\Z)",
+        "",
         content,
-        flags=re.DOTALL | re.IGNORECASE
+        flags=re.DOTALL | re.IGNORECASE | re.MULTILINE,
     )
-    
+
+    # Remove any stray tag remnants.
+    cleaned = re.sub(
+        r"</?thinking\b[^>]*>",
+        "",
+        cleaned,
+        flags=re.IGNORECASE,
+    )
+
     return cleaned.strip()
 
 
@@ -52,15 +61,21 @@ def strip_analysis_tags(content: str) -> str:
     """
     if not content:
         return content
-    
-    # Remove analysis blocks (case-insensitive, multiline)
+
     cleaned = re.sub(
-        r'<analysis>.*?</analysis>',
-        '',
+        r"<analysis\b[^>]*>.*?(</analysis>|(?=^\s*#{1,6}\s)|\Z)",
+        "",
         content,
-        flags=re.DOTALL | re.IGNORECASE
+        flags=re.DOTALL | re.IGNORECASE | re.MULTILINE,
     )
-    
+
+    cleaned = re.sub(
+        r"</?analysis\b[^>]*>",
+        "",
+        cleaned,
+        flags=re.IGNORECASE,
+    )
+
     return cleaned.strip()
 
 

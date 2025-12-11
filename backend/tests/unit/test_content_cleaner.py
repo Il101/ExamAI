@@ -149,10 +149,11 @@ class TestEdgeCases:
     
     def test_unclosed_tags(self):
         """Should handle unclosed tags gracefully"""
-        content = "<thinking>Unclosed tag\nContent"
+        content = "<thinking>Unclosed tag\n### Topic\nContent"
         result = strip_thinking_tags(content)
-        # Won't match if not properly closed
-        assert result == content
+        assert "Unclosed tag" not in result
+        assert "### Topic" in result
+        assert "Content" in result
     
     def test_tags_in_code_blocks(self):
         """Should remove tags even if they look like code"""

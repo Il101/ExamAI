@@ -73,6 +73,7 @@ class AgentState:
     subject: str  # Subject name
     exam_type: str  # oral, written, test
     level: str  # school, bachelor, master, phd
+    output_language: str = "ru"  # Preferred output language (e.g., "ru", "en")
     original_content: str = ""  # User-provided study materials (optional)
     cache_name: Optional[str] = None  # Gemini cache name (optional)
     exam_id: Optional[str] = None  # Exam ID for fallback (optional)

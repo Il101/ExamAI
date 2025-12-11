@@ -316,6 +316,7 @@ async def _generate_exam_content_async(
                     topic_id=topic.id,
                     cache_name=exam.cache_name,
                     exam_id=exam.id,
+                    output_language=getattr(user, "preferred_language", None),
                 )
                 # CRITICAL: TopicContentGenerator updates are not guaranteed to
                 # commit automatically. Without an explicit commit here,
@@ -464,6 +465,8 @@ async def _generate_topic_content_async(topic_id: UUID, user_id: UUID):
             exam_type=exam.exam_type,
             original_content=exam.original_content,
         )
+
+        state.output_language = getattr(user, "preferred_language", None) or "ru"
         
         plan_step = PlanStep(
             id=topic.order_index + 1,
