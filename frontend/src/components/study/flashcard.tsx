@@ -59,7 +59,7 @@ export function Flashcard({ item, onResult, className }: FlashcardProps) {
         <div className={cn('w-full max-w-2xl mx-auto perspective-1000', className)}>
             <div
                 className={cn(
-                    'relative w-full transition-all duration-500 transform-style-3d min-h-[400px] cursor-pointer',
+                    'relative w-full transition-all duration-500 transform-style-3d cursor-pointer',
                     isFlipped && 'rotate-y-180'
                 )}
                 onClick={() => setIsFlipped(!isFlipped)}
@@ -68,14 +68,14 @@ export function Flashcard({ item, onResult, className }: FlashcardProps) {
                 <Card className={cn(
                     "w-full h-full absolute inset-0 backface-hidden flex flex-col shadow-xl border-2 border-primary/5"
                 )}>
-                    <CardContent className="flex-1 flex flex-col items-center justify-center p-8 md:p-12 text-center">
-                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-6">
+                    <CardContent className="flex flex-col items-center justify-between p-6 md:p-8 text-center min-h-[300px]">
+                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-4">
                             Question
                         </span>
-                        <h3 className="text-2xl md:text-3xl font-semibold leading-relaxed">
+                        <h3 className="text-xl md:text-2xl font-semibold leading-relaxed flex-1 flex items-center justify-center">
                             {item.question}
                         </h3>
-                        <div className="mt-auto pt-12 w-full">
+                        <div className="w-full mt-4">
                             <Button
                                 className="w-full max-w-xs mx-auto group"
                                 size="lg"
@@ -98,15 +98,15 @@ export function Flashcard({ item, onResult, className }: FlashcardProps) {
                 <Card className={cn(
                     "w-full h-full absolute inset-0 backface-hidden rotate-y-180 flex flex-col shadow-xl border-2 border-primary/5"
                 )}>
-                    <CardContent className="flex-1 flex flex-col items-center justify-center p-8 md:p-12 text-center">
-                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-6">
+                    <CardContent className="flex flex-col items-center justify-between p-6 md:p-8 text-center min-h-[300px]">
+                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-4">
                             Answer
                         </span>
-                        <div className="prose prose-lg dark:prose-invert mb-8">
-                            <p className="text-xl md:text-2xl leading-relaxed">{item.answer}</p>
+                        <div className="prose prose-lg dark:prose-invert flex-1 flex items-center justify-center">
+                            <p className="text-lg md:text-xl leading-relaxed">{item.answer}</p>
                         </div>
 
-                        <div className="mt-auto w-full grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div className="w-full mt-4 grid grid-cols-2 md:grid-cols-4 gap-2">
                             <Button
                                 variant="outline"
                                 className="border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-red-900/50 dark:hover:bg-red-900/20"
