@@ -90,6 +90,7 @@ def generate_exam_content(self, exam_id: str, user_id: str):
     """
 
     print(f"[CELERY] Starting generate_exam_content task for exam_id={exam_id}, user_id={user_id}")
+    print("[PIPELINE] marker=generate_exam_content.v1")
     print(f"[CELERY] Task ID: {self.request.id}")
     
     async def task_wrapper():
@@ -220,6 +221,7 @@ async def _generate_exam_content_async(
     Async implementation of exam content generation.
     """
     print(f"[CELERY ASYNC] Starting async generation for exam {exam_id}")
+    print("[PIPELINE] marker=_generate_exam_content_async.v1")
     
     async with AsyncSessionLocal() as session:
         print(f"[CELERY ASYNC] Session created, initializing repositories...")
@@ -315,6 +317,11 @@ async def _generate_exam_content_async(
                     cache_name=exam.cache_name,
                     exam_id=exam.id,
                 )
+                # CRITICAL: TopicContentGenerator updates are not guaranteed to
+                # commit automatically. Without an explicit commit here,
+                # generation can appear successful in logs while topics remain
+                # pending/empty in the DB.
+                await session.commit()
                 ready_count += 1
             except Exception as e:
                 # TopicContentGenerator may fail before topic.start_generation() is called.
@@ -367,9 +374,16 @@ async def _mark_exam_failed(
         if exam:
             # Store error details for user feedback
             exam.mark_as_failed()
-            exam.error_category = error_category
-            exam.error_message = error_message
-            exam.failed_at = datetime.utcnow()
+
+            # Best-effort: not all domain models expose these fields.
+            # Keep assignments guarded to avoid runtime/type errors.
+            for attr_name, attr_value in (
+                ("error_category", error_category),
+                ("error_message", error_message),
+                ("failed_at", datetime.utcnow()),
+            ):
+                if hasattr(exam, attr_name):
+                    setattr(exam, attr_name, attr_value)
 
             await exam_repo.update(exam)
             await session.commit()
@@ -414,12 +428,16 @@ async def _generate_topic_content_async(topic_id: UUID, user_id: UUID):
         
         exam = await exam_repo.get_by_id(topic.exam_id)
         user = await user_repo.get_by_id(user_id)
+
+        if not exam:
+            raise ValueError(f"Exam {topic.exam_id} not found for topic {topic_id}")
+        if not user:
+            raise ValueError(f"User {user_id} not found")
         
         llm_provider = get_llm_provider()
         cost_guard = CostGuardService(session)
 
-        from app.agent.state import AgentState, PlanStep
-        from app.domain.priority import Priority
+        from app.agent.state import AgentState, PlanStep, Priority
         
         # Ensure topic is in generating state
         topic.start_generation()

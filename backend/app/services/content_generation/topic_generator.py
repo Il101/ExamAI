@@ -95,6 +95,8 @@ class TopicContentGenerator:
         Raises:
             ValueError: If topic not found or generation fails
         """
+        print("[PIPELINE] marker=TopicContentGenerator.generate_topic.v1")
+
         # 1. Fetch topic
         topic = await self.topic_repo.get_by_id(topic_id)
         if not topic:

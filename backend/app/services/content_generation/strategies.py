@@ -75,7 +75,7 @@ class BatchStrategy(GenerationStrategy):
         
         Returns immediately - actual generation happens in background.
         """
-        from app.tasks.content_generation_tasks import generate_all_topics
+        from app.tasks.exam_tasks import generate_exam_content
         
         # Get all topics
         topics = await self.topic_repo.get_by_exam_id(exam.id)
@@ -89,12 +89,10 @@ class BatchStrategy(GenerationStrategy):
             f"{len(topics)} topics, cache: {exam.cache_name or 'none'}"
         )
         
-        # Trigger Celery task
-        task = generate_all_topics.delay(
-            exam_id=str(exam.id),
-            user_id=str(exam.user_id),
-            topic_ids=[str(t.id) for t in topics],
-            cache_name=exam.cache_name
+        # Trigger canonical Celery task. It will fetch topics itself.
+        task = generate_exam_content.delay(
+            str(exam.id),
+            str(exam.user_id),
         )
         
         logger.info(
