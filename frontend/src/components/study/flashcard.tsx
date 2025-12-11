@@ -72,8 +72,8 @@ export function Flashcard({ item, onResult, className }: FlashcardProps) {
                         <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-6 text-center">
                             Question
                         </span>
-                        <div className="flex-1 flex items-center justify-center py-8">
-                            <h3 className="text-2xl md:text-3xl font-semibold leading-normal text-center max-w-2xl">
+                        <div className="flex-1 flex items-center justify-center py-8 px-4">
+                            <h3 className="text-2xl md:text-3xl font-semibold leading-relaxed text-center max-w-2xl whitespace-pre-wrap">
                                 {item.question}
                             </h3>
                         </div>
@@ -104,10 +104,8 @@ export function Flashcard({ item, onResult, className }: FlashcardProps) {
                         <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-6 text-center">
                             Answer
                         </span>
-                        <div className="flex-1 flex items-center justify-center py-8">
-                            <div className="prose prose-lg dark:prose-invert max-w-2xl">
-                                <p className="text-xl md:text-2xl leading-normal text-center">{item.answer}</p>
-                            </div>
+                        <div className="flex-1 flex items-center justify-center py-8 px-4">
+                            <p className="text-xl md:text-2xl leading-relaxed text-center max-w-2xl whitespace-pre-wrap">{item.answer}</p>
                         </div>
 
                         <div className="w-full grid grid-cols-2 md:grid-cols-4 gap-3 pt-6">
