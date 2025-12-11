@@ -322,8 +322,22 @@ async def _generate_exam_content_async(
                 # generation can appear successful in logs while topics remain
                 # pending/empty in the DB.
                 await session.commit()
+                print(
+                    f"[PIPELINE] topic_done topic_id={topic.id} idx={idx+1}/{total}"
+                )
                 ready_count += 1
             except Exception as e:
+                import sys
+                import traceback
+
+                err = (
+                    f"[PIPELINE] topic_failed topic_id={topic.id} idx={idx+1}/{total} "
+                    f"error_type={type(e).__name__} error={e}\n{traceback.format_exc()}"
+                )
+                print(err)
+                sys.stderr.write(err + "\n")
+                sys.stderr.flush()
+
                 # TopicContentGenerator may fail before topic.start_generation() is called.
                 # Mark failure best-effort without breaking the whole exam.
                 try:
