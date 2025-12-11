@@ -82,12 +82,12 @@ Front: How does TCP ensure reliable data transmission?
 Back: 
 TCP uses acknowledgment (ACK) packets and sequence numbers to guarantee delivery.
 
-Key mechanisms:
-• Sender waits for ACK before sending next packet
-• If ACK not received within timeout → retransmit
-• Sequence numbers detect duplicates/missing packets
+**Key mechanisms:**
+- Sender waits for ACK before sending next packet
+- If ACK not received within timeout → retransmit
+- Sequence numbers detect duplicates/missing packets
 
-Example: Like certified mail — you get confirmation it was delivered.
+*Example:* Like certified mail — you get confirmation it was delivered.
 ```
 
 ---
@@ -125,13 +125,13 @@ Create a balanced mix for effective spaced repetition:
 
 ## Output Format
 
-Return flashcards as a **JSON array** (no markdown code blocks, raw JSON only):
+Return flashcards as a **JSON array** with Markdown-formatted content (no markdown code blocks around JSON, raw JSON only):
 
 ```json
 [
   {{
     "front": "Question text here (context-rich, open-ended)",
-    "back": "Core answer (1-2 sentences)\n\nKey details:\n• Point 1\n• Point 2\n• Point 3\n\nExample: ...",
+    "back": "Core answer in 1-2 sentences.\n\n**Key details:**\n- Point 1\n- Point 2\n- Point 3\n\n*Example:* Real-world application or mnemonic.",
     "difficulty": "easy|medium|hard",
     "tags": ["tag1", "tag2"]
   }},
@@ -139,11 +139,20 @@ Return flashcards as a **JSON array** (no markdown code blocks, raw JSON only):
 ]
 ```
 
+**Markdown Formatting Rules for `back` field:**
+- Use `**bold**` for emphasis on key terms
+- Use `-` or `*` for bullet lists
+- Use `*italic*` for examples or notes
+- Use backticks for `code` or technical terms
+- Keep structure: Core answer → Key details → Example
+- Each section separated by `\n\n` (double newline)
+
 **Fields:**
-- `front`: The question (40-80 words max)
-- `back`: The answer with structure described above (100 words max)
+- `front`: The question (40-80 words max, plain text)
+- `back`: The answer in Markdown format (100 words max)
 - `difficulty`: One of `"easy"`, `"medium"`, `"hard"`
 - `tags`: 1-3 relevant topic tags for organization (e.g., `["python", "variables"]`)
+
 
 ---
 

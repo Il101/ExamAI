@@ -41,7 +41,6 @@ export interface ExamWithTopics extends Exam {
     id: string;
     topic_name: string;
     content: string;
-    flashcard_count?: number;  // Added: Number of flashcards for this topic
     status: 'pending' | 'generating' | 'ready' | 'failed';
     order_index: number;
     difficulty_level: number;

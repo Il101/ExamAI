@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ReviewItem } from '@/lib/api/study';
@@ -66,21 +68,6 @@ export function Flashcard({ item, onResult, className }: FlashcardProps) {
         };
     }, [handleKeyDown]);
 
-    // Clean and format text - handle structured answers from AI
-    const formatText = (text: string) => {
-        // Remove excessive newlines (more than 2 in a row)
-        let cleaned = text.replace(/\n{3,}/g, '\n\n');
-
-        // Convert bullet points to readable format
-        cleaned = cleaned.replace(/\n•\s*/g, ', ');
-        cleaned = cleaned.replace(/^•\s*/gm, '• ');
-
-        // Clean up whitespace
-        cleaned = cleaned.trim();
-
-        return cleaned;
-    };
-
     return (
         <div className={cn('w-full max-w-5xl mx-auto perspective-1000', className)}>
             <div
@@ -96,8 +83,8 @@ export function Flashcard({ item, onResult, className }: FlashcardProps) {
                 )}>
                     <div className="p-16 min-h-[500px] flex flex-col items-center justify-center">
                         <p className="text-sm text-muted-foreground uppercase tracking-wide mb-8">Question</p>
-                        <h2 className="text-4xl font-normal text-center leading-relaxed mb-12 whitespace-pre-line">
-                            {formatText(item.question)}
+                        <h2 className="text-4xl font-normal text-center leading-relaxed mb-12">
+                            {item.question}
                         </h2>
                         <Button
                             size="lg"
@@ -117,11 +104,23 @@ export function Flashcard({ item, onResult, className }: FlashcardProps) {
                     "w-full h-full absolute inset-0 backface-hidden rotate-y-180 shadow-lg border-2"
                 )}>
                     <div className="p-16 min-h-[500px] flex flex-col items-center justify-between">
-                        <div className="flex flex-col items-center flex-1 justify-center w-full">
+                        <div className="flex flex-col items-center flex-1 justify-center w-full max-w-3xl">
                             <p className="text-sm text-muted-foreground uppercase tracking-wide mb-8">Answer</p>
-                            <p className="text-3xl font-normal text-center leading-relaxed whitespace-pre-line">
-                                {formatText(item.answer)}
-                            </p>
+                            <div className="prose prose-lg dark:prose-invert max-w-none text-center">
+                                <ReactMarkdown
+                                    remarkPlugins={[remarkGfm]}
+                                    components={{
+                                        p: ({ node, ...props }) => <p className="text-2xl leading-relaxed mb-4" {...props} />,
+                                        strong: ({ node, ...props }) => <strong className="font-semibold text-primary" {...props} />,
+                                        em: ({ node, ...props }) => <em className="text-muted-foreground" {...props} />,
+                                        ul: ({ node, ...props }) => <ul className="text-xl text-left list-disc list-inside space-y-2 my-4" {...props} />,
+                                        li: ({ node, ...props }) => <li className="leading-relaxed" {...props} />,
+                                        code: ({ node, ...props }) => <code className="px-1.5 py-0.5 rounded bg-muted text-primary font-mono text-lg" {...props} />,
+                                    }}
+                                >
+                                    {item.answer}
+                                </ReactMarkdown>
+                            </div>
                         </div>
 
                         <div className="w-full max-w-3xl">
