@@ -1,15 +1,8 @@
-from typing import List
-from uuid import UUID
-
-from fastapi import APIRouter, Depends, Query
-
-from app.core.exceptions import NotFoundException
-from app.dependencies import get_current_active_user, get_study_service
-from app.domain.user import User
 from app.schemas.review import (
     ReviewItemResponse,
     ReviewStatsResponse,
     SubmitReviewRequest,
+    IntervalsPreviewResponse,
 )
 from app.services.study_service import StudyService
 
@@ -40,6 +33,27 @@ async def get_due_reviews(
     return [ReviewItemResponse.from_orm(item) for item in items]
 
 
+@router.get("/{review_id}/intervals", response_model=IntervalsPreviewResponse)
+async def get_intervals_preview(
+    review_id: UUID,
+    current_user: User = Depends(get_current_active_user),
+    study_service: StudyService = Depends(get_study_service),
+):
+    """
+    Get preview of next review intervals for all rating options.
+    
+    Shows user how their rating choice will affect the next review schedule.
+    """
+    try:
+        intervals = await study_service.get_next_intervals_preview(
+            user_id=current_user.id,
+            review_item_id=review_id
+        )
+        return IntervalsPreviewResponse(**intervals)
+    except ValueError:
+        raise NotFoundException("Review item", str(review_id))
+
+
 @router.post("/{review_id}/submit", response_model=ReviewItemResponse)
 async def submit_review(
     review_id: UUID,
@@ -50,9 +64,9 @@ async def submit_review(
     """
     Submit review response.
 
-    - **quality**: Rating 0-5 (0=blackout, 5=perfect recall)
+    - **quality**: Rating 1-4 (1=Again, 2=Hard, 3=Good, 4=Easy)
 
-    Updates SM-2 algorithm and schedules next review.
+    Updates FSRS algorithm and schedules next review.
     """
 
     try:

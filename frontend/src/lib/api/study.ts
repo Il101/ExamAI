@@ -29,6 +29,13 @@ export interface ReviewStats {
     streak_days: number;
 }
 
+export interface IntervalsPreview {
+    again: number;
+    hard: number;
+    good: number;
+    easy: number;
+}
+
 export const studyApi = {
     startSession: async (examId: string, durationMinutes: number = 25) => {
         const response = await api.post<StudySession>('/sessions/', {
@@ -63,6 +70,11 @@ export const studyApi = {
         const response = await api.post(`/reviews/${reviewId}/submit`, {
             quality,
         });
+        return response.data;
+    },
+
+    getIntervalsPreview: async (reviewId: string) => {
+        const response = await api.get<IntervalsPreview>(`/reviews/${reviewId}/intervals`);
         return response.data;
     },
 

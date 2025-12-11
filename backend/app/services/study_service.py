@@ -67,6 +67,8 @@ class StudyService:
     ) -> ReviewItem:
         """
         Submit review response and update FSRS algorithm.
+        
+        Uses transaction to ensure ReviewItem and ReviewLog are saved atomically.
 
         Args:
             user_id: User ID
@@ -85,26 +87,83 @@ class StudyService:
         if item.user_id != user_id:
             raise ValueError("Unauthorized")
 
-        # Apply FSRS algorithm
-        item.review(quality)
+        try:
+            # Apply FSRS algorithm
+            item.review(quality)
 
-        # Save updated item
-        updated = await self.review_repo.update(item)
+            # Save updated item (uses flush, not commit)
+            updated = await self.review_repo.update(item)
+            
+            # Create Review Log (uses flush, not commit)
+            log = ReviewLog(
+                user_id=user_id,
+                review_item_id=review_item_id,
+                rating=quality,
+                review_time=datetime.now(timezone.utc),
+                interval_days=item.elapsed_days,
+                scheduled_days=item.scheduled_days,
+                stability=item.stability,
+                difficulty=item.difficulty
+            )
+            await self.review_log_repo.add_log(log)
+            
+            # Both operations succeed - get_db() will commit
+            return updated
+            
+        except Exception as e:
+            # Rollback on any error to maintain data consistency
+            await self.review_repo.session.rollback()
+            raise ValueError(f"Failed to submit review: {str(e)}") from e
+
+    async def get_next_intervals_preview(
+        self, user_id: UUID, review_item_id: UUID
+    ) -> dict[str, int]:
+        """
+        Preview intervals for all possible ratings.
+        Shows user: "If you rate this as Good, next review in 5 days"
+
+        Args:
+            user_id: User ID
+            review_item_id: Review item ID
+
+        Returns:
+            {
+                "again": 1,   # days or minutes
+                "hard": 3,
+                "good": 7,
+                "easy": 14
+            }
+        """
+        item = await self.review_repo.get_by_id(review_item_id)
+
+        if not item or item.user_id != user_id:
+            raise ValueError("Review item not found")
+
+        # Calculate intervals for each rating
+        intervals = {}
         
-        # Create Review Log
-        log = ReviewLog(
-            user_id=user_id,
-            review_item_id=review_item_id,
-            rating=quality,
-            review_time=datetime.now(timezone.utc),
-            interval_days=item.elapsed_days,
-            scheduled_days=item.scheduled_days,
-            stability=item.stability,
-            difficulty=item.difficulty
-        )
-        await self.review_log_repo.add_log(log)
-
-        return updated
+        for rating in [1, 2, 3, 4]:
+            # Create a copy of the item to simulate the review
+            from copy import deepcopy
+            temp_item = deepcopy(item)
+            
+            # Apply rating to get next interval
+            temp_item.review(rating)
+            
+            # Determine if result is in minutes (learning) or days (review)
+            if temp_item.state in ("learning", "relearning"):
+                # Learning steps are in minutes
+                intervals[self._rating_name(rating)] = temp_item.scheduled_days or 1
+            else:
+                # Review state uses days
+                intervals[self._rating_name(rating)] = temp_item.scheduled_days
+        
+        return intervals
+    
+    def _rating_name(self, rating: int) -> str:
+        """Convert rating number to name"""
+        names = {1: "again", 2: "hard", 3: "good", 4: "easy"}
+        return names.get(rating, "good")
 
     async def get_study_statistics(self, user_id: UUID) -> Dict[str, Any]:
         """

@@ -14,6 +14,14 @@ Rating = Literal[1, 2, 3, 4]
 
 CardState = Literal["new", "learning", "review", "relearning"]
 
+# Valid state transitions for state machine validation
+VALID_TRANSITIONS: dict[CardState, list[CardState]] = {
+    "new": ["learning", "review"],  # Can go to learning or skip to review (rating=4)
+    "learning": ["learning", "review", "relearning"],  # Can stay, graduate, or lapse
+    "review": ["review", "relearning"],  # Can continue or lapse
+    "relearning": ["review", "relearning"]  # Can graduate back or stay
+}
+
 
 @dataclass
 class ReviewItem:
@@ -86,6 +94,22 @@ class ReviewItem:
         if not self.answer or len(self.answer.strip()) < 2:
             raise ValueError("Answer must be at least 2 characters")
 
+    # --- State Machine ---
+    
+    def _validate_state_transition(self, from_state: CardState, to_state: CardState):
+        """Validate state transition is allowed"""
+        if to_state not in VALID_TRANSITIONS.get(from_state, []):
+            raise ValueError(
+                f"Invalid state transition: {from_state} -> {to_state}. "
+                f"Valid transitions from {from_state}: {VALID_TRANSITIONS.get(from_state, [])}"
+            )
+    
+    def _set_state(self, new_state: CardState):
+        """Set state with validation"""
+        if self.state != new_state:
+            self._validate_state_transition(self.state, new_state)
+            self.state = new_state
+
     # --- FSRS Logic ---
 
     def review(
@@ -109,14 +133,15 @@ class ReviewItem:
 
             if self.state == "new":
                 self._init_fsrs(rating)
-                self.state = "learning"
+                self._set_state("learning")
                 self.current_step_index = 0
 
+            # Use proper if-elif structure to prevent logic errors
             if rating == 1:  # Again
                 self.current_step_index = 0
                 step_minutes = self.learning_steps[0]
                 self.next_review_date = review_time + timedelta(minutes=step_minutes)
-                self.state = "learning"  # Stay in learning
+                # Stay in learning/relearning (state doesn't change)
 
                 # Only count lapse if we were not new
                 if previous_state != "new":
@@ -137,7 +162,7 @@ class ReviewItem:
                     )
                 else:
                     # Graduate to Review
-                    self.state = "review"
+                    self._set_state("review")
                     self.scheduled_days = self._calculate_next_interval(self.stability)
                     self.next_review_date = review_time + timedelta(
                         days=self.scheduled_days
@@ -145,7 +170,7 @@ class ReviewItem:
 
             elif rating == 4:  # Easy
                 # Immediately graduate
-                self.state = "review"
+                self._set_state("review")
                 self.scheduled_days = self._calculate_next_interval(self.stability)
                 # Easy bonus could be applied here if desired
                 self.next_review_date = review_time + timedelta(
@@ -154,7 +179,7 @@ class ReviewItem:
 
             # Update FSRS parameters even during learning (optional but good for data)
             # But NOT if we just initialized it in this same call
-            if self.state != "new" and previous_state != "new":
+            if previous_state != "new":
                 self._update_fsrs(rating)
 
         else:
@@ -165,12 +190,13 @@ class ReviewItem:
             if rating == 1:
                 # Lapse -> Relearning
                 self.lapses += 1
-                self.state = "relearning"
+                self._set_state("relearning")
                 self.current_step_index = 0
                 step_minutes = self.learning_steps[0]
                 self.next_review_date = review_time + timedelta(minutes=step_minutes)
                 self.scheduled_days = 0  # Reset scheduled days for relearning
             else:
+                # Stay in review state
                 self.scheduled_days = self._calculate_next_interval(self.stability)
                 self.next_review_date = review_time + timedelta(
                     days=self.scheduled_days
@@ -272,7 +298,7 @@ class ReviewItem:
         self.scheduled_days = 0
         self.reps = 0
         self.lapses = 0
-        self.state = "new"
+        self.state = "new"  # Direct assignment OK for reset
         self.current_step_index = 0
         self.next_review_date = datetime.now(timezone.utc)
         self.last_reviewed_at = None

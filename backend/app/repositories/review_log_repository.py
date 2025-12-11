@@ -10,39 +10,21 @@ from app.domain.review_log import ReviewLog
 from app.repositories.base import BaseRepository
 from app.schemas.analytics import RetentionPoint
 
+from app.db.mappers.review_log_mapper import ReviewLogMapper
+
 class ReviewLogRepository(BaseRepository[ReviewLog, ReviewLogModel]):
     """Repository for ReviewLog entity"""
 
     def __init__(self, session: AsyncSession):
-        # We need a mapper, but for now we can do manual mapping or create a simple one
-        # Let's assume we don't have a complex mapper yet and just use the model directly for simple inserts
-        # Or better, create a simple mapper. 
-        # For this task, I'll skip the mapper class creation to save time and do manual mapping in methods if needed,
-        # but BaseRepository expects a mapper.
-        # Let's create a dummy mapper or just pass None if BaseRepository allows, 
-        # but looking at BaseRepository it likely uses it.
-        # Let's create a simple mapper inline or in a separate file.
-        # For expediency, I will implement the methods directly without relying heavily on BaseRepository's generic methods if they are strict.
-        # Actually, let's create the mapper to be consistent.
-        super().__init__(session, ReviewLogModel, None) # type: ignore
+        super().__init__(session, ReviewLogModel, ReviewLogMapper)
 
     async def add_log(self, log: ReviewLog) -> ReviewLog:
-        """Add a new review log"""
-        model = ReviewLogModel(
-            id=log.id,
-            user_id=log.user_id,
-            review_item_id=log.review_item_id,
-            rating=log.rating,
-            review_time=log.review_time,
-            interval_days=log.interval_days,
-            scheduled_days=log.scheduled_days,
-            stability=log.stability,
-            difficulty=log.difficulty,
-            review_duration_ms=log.review_duration_ms
-        )
+        """Add a new review log entry"""
+        model = ReviewLogMapper.to_model(log)
         self.session.add(model)
-        await self.session.commit()
-        return log
+        await self.session.flush()  # Let get_db() handle commit
+        await self.session.refresh(model)
+        return ReviewLogMapper.to_domain(model)
 
     async def get_retention_stats(self, user_id: UUID) -> List[RetentionPoint]:
         """

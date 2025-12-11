@@ -69,8 +69,13 @@ class ReviewItemMapper:
     @staticmethod
     def update_model(model: ReviewItemModel, domain: ReviewItem) -> ReviewItemModel:
         """Update existing DB model with domain data"""
+        # Core fields
+        model.topic_id = domain.topic_id
+        model.user_id = domain.user_id
         model.question = domain.question
         model.answer = domain.answer
+        
+        # FSRS parameters
         model.stability = domain.stability
         model.difficulty = domain.difficulty
         model.elapsed_days = domain.elapsed_days
@@ -78,6 +83,8 @@ class ReviewItemMapper:
         model.reps = domain.reps
         model.lapses = domain.lapses
         model.state = domain.state
+        
+        # Review history
         model.next_review_date = domain.next_review_date
         model.last_reviewed_at = domain.last_reviewed_at
         model.last_review_rating = domain.last_review_rating

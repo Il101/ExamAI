@@ -27,7 +27,16 @@ class ReviewItemResponse(BaseModel):
 class SubmitReviewRequest(BaseModel):
     """Submit review request"""
 
-    quality: int = Field(..., ge=0, le=5, description="0=blackout, 5=perfect recall")
+    quality: int = Field(..., ge=1, le=4, description="Rating: 1=Again, 2=Hard, 3=Good, 4=Easy")
+
+
+class IntervalsPreviewResponse(BaseModel):
+    """Preview of next review intervals for all rating options"""
+    
+    again: int = Field(..., description="Interval if rated 'Again' (minutes or days)")
+    hard: int = Field(..., description="Interval if rated 'Hard' (minutes or days)")
+    good: int = Field(..., description="Interval if rated 'Good' (minutes or days)")
+    easy: int = Field(..., description="Interval if rated 'Easy' (minutes or days)")
 
 
 class ReviewStatsResponse(BaseModel):

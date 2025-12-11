@@ -5,7 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ReviewItem } from '@/lib/api/study';
+import { ReviewItem, studyApi, IntervalsPreview } from '@/lib/api/study';
 import { cn } from '@/lib/utils';
 
 interface FlashcardProps {
@@ -16,10 +16,29 @@ interface FlashcardProps {
 
 export function Flashcard({ item, onResult, className }: FlashcardProps) {
     const [isFlipped, setIsFlipped] = useState(false);
+    const [intervals, setIntervals] = useState<IntervalsPreview | null>(null);
+    const [loadingIntervals, setLoadingIntervals] = useState(false);
 
     // Reset flip state when item changes
     useEffect(() => {
         setIsFlipped(false);
+
+        // Fetch intervals when card is loaded
+        const fetchIntervals = async () => {
+            setLoadingIntervals(true);
+            try {
+                const preview = await studyApi.getIntervalsPreview(item.id);
+                setIntervals(preview);
+            } catch (error) {
+                console.error('Failed to fetch intervals:', error);
+                // Fallback to defaults if fetch fails
+                setIntervals({ again: 1, hard: 2, good: 4, easy: 7 });
+            } finally {
+                setLoadingIntervals(false);
+            }
+        };
+
+        fetchIntervals();
     }, [item.id]);
 
     const handleKeyDown = useCallback(
@@ -137,7 +156,9 @@ export function Flashcard({ item, onResult, className }: FlashcardProps) {
                                 >
                                     <span className="text-3xl">😞</span>
                                     <span className="font-semibold">Again</span>
-                                    <span className="text-xs opacity-60">1 min (Press 1)</span>
+                                    <span className="text-xs opacity-60">
+                                        {loadingIntervals ? '...' : `${intervals?.again || 1} min (Press 1)`}
+                                    </span>
                                 </Button>
                                 <Button
                                     size="lg"
@@ -150,7 +171,9 @@ export function Flashcard({ item, onResult, className }: FlashcardProps) {
                                 >
                                     <span className="text-3xl">😐</span>
                                     <span className="font-semibold">Hard</span>
-                                    <span className="text-xs opacity-60">2 days (Press 2)</span>
+                                    <span className="text-xs opacity-60">
+                                        {loadingIntervals ? '...' : `${intervals?.hard || 2} days (Press 2)`}
+                                    </span>
                                 </Button>
                                 <Button
                                     size="lg"
@@ -163,7 +186,9 @@ export function Flashcard({ item, onResult, className }: FlashcardProps) {
                                 >
                                     <span className="text-3xl">🙂</span>
                                     <span className="font-semibold">Good</span>
-                                    <span className="text-xs opacity-60">4 days (Press 3)</span>
+                                    <span className="text-xs opacity-60">
+                                        {loadingIntervals ? '...' : `${intervals?.good || 4} days (Press 3)`}
+                                    </span>
                                 </Button>
                                 <Button
                                     size="lg"
@@ -176,7 +201,9 @@ export function Flashcard({ item, onResult, className }: FlashcardProps) {
                                 >
                                     <span className="text-3xl">😄</span>
                                     <span className="font-semibold">Easy</span>
-                                    <span className="text-xs opacity-60">7 days (Press 4)</span>
+                                    <span className="text-xs opacity-60">
+                                        {loadingIntervals ? '...' : `${intervals?.easy || 7} days (Press 4)`}
+                                    </span>
                                 </Button>
                             </div>
                         </div>

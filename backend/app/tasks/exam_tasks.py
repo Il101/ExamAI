@@ -16,10 +16,15 @@ from app.domain.topic import Topic
 from app.services.agent_service import AgentService
 from app.services.cost_guard_service import CostGuardService
 from app.services.cache_fallback import CacheFallbackService
+from app.services.content_generation.topic_generator import TopicContentGenerator
+from app.services.content_generation.flashcard_generator import FlashcardGenerator
 from app.integrations.storage.supabase_storage import SupabaseStorage
 from app.integrations.llm.cache_manager import ContextCacheManager
 from app.tasks.celery_app import celery_app
 from google import genai
+
+from app.agent.executor import TopicExecutor
+from app.agent.quiz_generator import QuizGenerator
 
 
 def get_llm_provider():
@@ -241,33 +246,33 @@ async def _generate_exam_content_async(
         if not user or not exam:
             raise ValueError("User or exam not found")
 
-        print(f"[CELERY ASYNC] User and exam found. Initializing AI services...")
-        # Initialize services
-        llm = GeminiProvider(
-            api_key=settings.GEMINI_API_KEY, model=settings.GEMINI_MODEL
-        )
-        
-        # Initialize fallback service
+        print(f"[CELERY ASYNC] User and exam found. Initializing generation services...")
+
+        # Always use the unified TopicContentGenerator flow here so that:
+        # - topic state machine remains consistent (pending/failed -> generating -> ready/failed)
+        # - flashcards are generated via FlashcardGenerator (and not skipped silently)
+        # - cache fallback behavior is consistent
+        llm = GeminiProvider(api_key=settings.GEMINI_API_KEY, model=settings.GEMINI_MODEL)
+
+        executor = TopicExecutor(llm)
+        quiz_gen = QuizGenerator(llm)
+        flashcard_gen = FlashcardGenerator(quiz_gen, review_repo)
+
         storage = SupabaseStorage(
             url=settings.SUPABASE_URL,
             key=settings.SUPABASE_KEY,
-            bucket=settings.SUPABASE_BUCKET
+            bucket=settings.SUPABASE_BUCKET,
         )
-        
         genai_client = genai.Client(api_key=settings.GEMINI_API_KEY)
         cache_manager = ContextCacheManager(genai_client)
         fallback_service = CacheFallbackService(storage, cache_manager)
-        
-        # Pass fallback service to agent
-        agent = PlanAndExecuteAgent(llm, fallback_service=fallback_service)
-        cost_guard = CostGuardService(session)
 
-        agent_service = AgentService(
-            agent=agent,
-            exam_repo=exam_repo,
+        topic_gen = TopicContentGenerator(
+            executor=executor,
+            flashcard_gen=flashcard_gen,
+            fallback_service=fallback_service,
             topic_repo=topic_repo,
-            review_repo=review_repo,
-            cost_guard=cost_guard,
+            exam_repo=exam_repo,
         )
 
         # Progress callback to update Celery task state
@@ -277,23 +282,68 @@ async def _generate_exam_content_async(
                 meta={"current": int(progress * 100), "total": 100, "status": message},
             )
 
-        print(f"[CELERY ASYNC] Starting agent_service.generate_exam_content...")
-        # Generate content (Execute phase)
-        # We need to adapt agent_service.generate_exam_content to support
-        # resuming from PLANNED state or just use the executor directly.
-        # For now, let's assume agent_service handles the logic of checking state.
-        updated_exam = await agent_service.generate_exam_content(
-            user=user, exam_id=exam_id, progress_callback=progress_callback
-        )
-        print(f"[CELERY ASYNC] Agent service completed successfully!")
+        print(f"[CELERY ASYNC] Starting unified per-topic generation...")
 
+        topics = await topic_repo.get_by_exam_id(exam_id)
+        total = len(topics)
+        if total == 0:
+            raise ValueError(f"No topics found for exam {exam_id}")
+
+        # Ensure exam is in generating state
+        if exam.status != "generating":
+            exam.start_generation()
+            await exam_repo.update(exam)
+            await session.commit()
+
+        # Generate sequentially to avoid rate-limit bursts
+        ready_count = 0
+        for idx, topic in enumerate(topics):
+            # Skip already-ready topics to support resume
+            if topic.status == "ready" and topic.content:
+                ready_count += 1
+                continue
+
+            step_progress = (idx + 1) / total
+            await progress_callback(
+                f"Generating: {topic.topic_name}",
+                step_progress,
+            )
+
+            try:
+                await topic_gen.generate_topic(
+                    topic_id=topic.id,
+                    cache_name=exam.cache_name,
+                    exam_id=exam.id,
+                )
+                ready_count += 1
+            except Exception as e:
+                # TopicContentGenerator may fail before topic.start_generation() is called.
+                # Mark failure best-effort without breaking the whole exam.
+                try:
+                    fresh = await topic_repo.get_by_id(topic.id)
+                    if fresh and fresh.status == "generating":
+                        fresh.mark_as_failed(str(e))
+                        await topic_repo.update(fresh)
+                        await session.commit()
+                except Exception:
+                    pass
+
+        # Mark exam ready even if some topics failed; summary reflects success ratio.
+        summary = f"Generated {ready_count}/{total} topics successfully"
+        exam.mark_as_ready(
+            ai_summary=summary,
+            token_input=0,
+            token_output=0,
+            cost=0.0,
+        )
+        await exam_repo.update(exam)
         await session.commit()
 
         return {
             "status": "success",
             "exam_id": str(exam_id),
-            "topic_count": updated_exam.topic_count,
-            "cost_usd": updated_exam.generation_cost_usd,
+            "topic_count": total,
+            "ready_topics": ready_count,
         }
 
 
@@ -367,8 +417,7 @@ async def _generate_topic_content_async(topic_id: UUID, user_id: UUID):
         
         llm_provider = get_llm_provider()
         cost_guard = CostGuardService(session)
-        
-        from app.agent.executor import TopicExecutor
+
         from app.agent.state import AgentState, PlanStep
         from app.domain.priority import Priority
         
