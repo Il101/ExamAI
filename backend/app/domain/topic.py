@@ -21,7 +21,9 @@ class Topic:
 
     # Content
     topic_name: str = ""
-    content: str = ""  # Generated AI content
+    content: str = ""  # Generated AI content (Markdown for backward compatibility)
+    content_blocknote: Optional[dict] = None  # BlockNote JSON format
+    content_markdown_backup: Optional[str] = None  # Backup of original Markdown
     file_context: Optional[str] = None  # Relevant file chunk for this topic
     quiz_data: Optional[dict] = None  # Cached MCQ quiz questions
     

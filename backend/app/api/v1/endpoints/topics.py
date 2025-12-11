@@ -298,3 +298,41 @@ async def regenerate_topic_quiz(
         )
 
 
+@router.put("/{topic_id}/content", response_model=TopicResponse)
+async def update_topic_content(
+    topic_id: UUID,
+    content_blocknote: dict,
+    content_markdown: str = None,
+    current_user: User = Depends(get_current_active_user),
+    session: AsyncSession = Depends(get_db),
+):
+    """
+    Update topic content with BlockNote JSON format.
+    
+    Saves both BlockNote JSON and Markdown representations.
+    Creates backup of original Markdown on first edit.
+    Only the topic owner can edit content.
+    """
+    topic_repo = TopicRepository(session)
+    topic = await topic_repo.get_by_id(topic_id)
+    
+    if not topic or topic.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Topic not found")
+    
+    # Save original Markdown as backup on first edit (if not already backed up)
+    if topic.content and not topic.content_markdown_backup:
+        topic.content_markdown_backup = topic.content
+    
+    # Update content in both formats
+    topic.content_blocknote = content_blocknote
+    
+    # Update Markdown content (for backward compatibility)
+    if content_markdown:
+        topic.content = content_markdown
+    
+    # Save to database
+    await topic_repo.update(topic)
+    await session.commit()
+    
+    return TopicResponse.from_orm(topic)
+

@@ -10,6 +10,8 @@ class TopicResponse(BaseModel):
     exam_id: UUID
     topic_name: str
     content: Optional[str]
+    content_blocknote: Optional[dict] = None  # BlockNote JSON format
+    content_markdown_backup: Optional[str] = None  # Backup of original Markdown
     flashcard_count: int = 0
     status: str = "pending"  # pending, generating, ready, failed
     order_index: int

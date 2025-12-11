@@ -12,10 +12,15 @@ import { AiTutorChat } from '@/components/exam/ai-tutor-chat';
 import { CheckYourself } from '@/components/exam/check-yourself';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Clock, BarChart3, AlertCircle, ChevronRight } from 'lucide-react';
+import { Loader2, Clock, BarChart3, AlertCircle, ChevronRight, Edit, Save, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { cn } from '@/lib/utils';
+import { BlockNoteEditor } from '@/components/exam/blocknote-editor';
+import { markdownToBlockNote, blockNoteToMarkdown } from '@/lib/utils/markdown-to-blocknote';
+import { Block } from '@blocknote/core';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 export default function TopicDetailPage() {
     const params = useParams();
@@ -28,6 +33,10 @@ export default function TopicDetailPage() {
     const [error, setError] = useState<string | null>(null);
     const [quizCompleted, setQuizCompleted] = useState(false);
     const [quizScore, setQuizScore] = useState<{ score: number; total: number } | null>(null);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editorContent, setEditorContent] = useState<Block[]>([]);
+    const [originalContent, setOriginalContent] = useState<Block[]>([]);
+    const [isSaving, setIsSaving] = useState(false);
 
     // Collapse sidebar when topic page loads, expand when leaving
     useEffect(() => {
@@ -49,6 +58,34 @@ export default function TopicDetailPage() {
             // Load topic
             const topicData = await topicsApi.getById(topicId);
             setTopic(topicData);
+
+            // Convert content to BlockNote format
+            let blocks: Block[];
+            if (topicData.content_blocknote) {
+                // Use existing BlockNote content
+                blocks = topicData.content_blocknote as Block[];
+            } else if (topicData.content) {
+                // Convert Markdown to BlockNote
+                blocks = await markdownToBlockNote(topicData.content);
+            } else {
+                blocks = [];
+            }
+
+            // Add MCQ block at the end if content exists
+            if (blocks.length > 0 && topicData.content) {
+                blocks.push({
+                    type: 'mcq',
+                    props: {
+                        topicId: topicId,
+                        quizCompleted: false,
+                    },
+                    id: `mcq-${topicId}`,
+                    content: [],
+                } as any); // Cast to any since this is a custom block type
+            }
+
+            setEditorContent(blocks);
+            setOriginalContent(blocks);
 
             // Load exam with topics for sidebar
             const examData = await examsApi.getById(topicData.exam_id);
@@ -94,6 +131,43 @@ export default function TopicDetailPage() {
 
     const handleQuizSkip = () => {
         setQuizCompleted(true);
+    };
+
+    const handleSaveContent = async () => {
+        if (!topic) return;
+
+        try {
+            setIsSaving(true);
+
+            // Convert BlockNote content to Markdown
+            const markdown = blockNoteToMarkdown(editorContent);
+
+            // Save both formats
+            const updatedTopic = await topicsApi.updateTopicContent(
+                topicId,
+                editorContent,
+                markdown
+            );
+
+            setTopic(updatedTopic);
+            setOriginalContent(editorContent);
+            setIsEditing(false);
+            toast.success('Content saved successfully');
+        } catch (error) {
+            console.error('Failed to save content:', error);
+            toast.error('Failed to save content. Please try again.');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleCancelEdit = () => {
+        setEditorContent(originalContent);
+        setIsEditing(false);
+    };
+
+    const handleContentChange = (blocks: Block[]) => {
+        setEditorContent(blocks);
     };
 
     if (isLoading) {
@@ -149,9 +223,49 @@ export default function TopicDetailPage() {
 
                     {/* Topic Header - Strict Style */}
                     <div className="mb-10 border-b border-border/40 pb-6">
-                        <h1 className="text-3xl lg:text-4xl font-bold tracking-tight mb-4 text-foreground">
-                            {topic.topic_name}
-                        </h1>
+                        <div className="flex items-start justify-between gap-4 mb-4">
+                            <h1 className="text-3xl lg:text-4xl font-bold tracking-tight text-foreground">
+                                {topic.topic_name}
+                            </h1>
+
+                            {/* Edit/Save/Cancel Buttons */}
+                            <div className="flex items-center gap-2">
+                                {!isEditing ? (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setIsEditing(true)}
+                                        className="gap-2"
+                                    >
+                                        <Edit className="h-4 w-4" />
+                                        Редактировать
+                                    </Button>
+                                ) : (
+                                    <>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={handleCancelEdit}
+                                            className="gap-2"
+                                            disabled={isSaving}
+                                        >
+                                            <X className="h-4 w-4" />
+                                            Отменить
+                                        </Button>
+                                        <Button
+                                            variant="default"
+                                            size="sm"
+                                            onClick={handleSaveContent}
+                                            className="gap-2"
+                                            disabled={isSaving}
+                                        >
+                                            <Save className="h-4 w-4" />
+                                            {isSaving ? 'Сохранение...' : 'Сохранить'}
+                                        </Button>
+                                    </>
+                                )}
+                            </div>
+                        </div>
 
                         <div className="flex items-center gap-6 text-sm text-muted-foreground">
                             <div className="flex items-center gap-2">
@@ -168,19 +282,15 @@ export default function TopicDetailPage() {
                         </div>
                     </div>
 
-                    {/* Topic Content - Modern Typography */}
-                    <article className="prose prose-zinc dark:prose-invert max-w-none 
-                        prose-headings:font-semibold prose-headings:tracking-tight 
-                        prose-p:leading-relaxed prose-p:text-muted-foreground/90
-                        prose-li:text-muted-foreground/90
-                        prose-strong:text-foreground prose-strong:font-semibold
-                        prose-code:text-primary prose-code:bg-primary/5 prose-code:px-1 prose-code:rounded
-                        prose-pre:bg-muted/50 prose-pre:border
-                        mb-12">
-                        {topic.content ? (
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                {topic.content}
-                            </ReactMarkdown>
+                    {/* Topic Content - BlockNote Editor */}
+                    <div className="mb-12">
+                        {editorContent.length > 0 ? (
+                            <BlockNoteEditor
+                                topicId={topicId}
+                                initialContent={editorContent}
+                                editable={isEditing}
+                                onChange={handleContentChange}
+                            />
                         ) : (
                             <div className="p-12 text-center border border-dashed rounded-lg bg-muted/20">
                                 <p className="text-muted-foreground">
@@ -188,20 +298,9 @@ export default function TopicDetailPage() {
                                 </p>
                             </div>
                         )}
-                    </article>
+                    </div>
 
-                    {/* Check Yourself Quiz */}
-                    {topic.content && (
-                        <div className="mb-12 pt-8 border-t border-border/40">
-                            <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
-                                <CheckYourself
-                                    topicId={topic.id}
-                                    onComplete={handleQuizComplete}
-                                    onSkip={handleQuizSkip}
-                                />
-                            </h3>
-                        </div>
-                    )}
+                    {/* Check Yourself Quiz - Removed since MCQ is now in BlockNote */}
 
                     {/* Navigation */}
                     <div className="pb-12">

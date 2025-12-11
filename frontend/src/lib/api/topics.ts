@@ -10,6 +10,9 @@ export interface Topic {
     estimated_study_minutes: number;
     created_at: string;
     updated_at: string;
+    // BlockNote content fields
+    content_blocknote?: any; // BlockNote JSON format
+    content_markdown_backup?: string; // Backup of original Markdown
     // New field from backend optimization
     flashcard_count?: number;
 }
@@ -49,6 +52,18 @@ export const topicsApi = {
     getQuiz: async (topicId: string, numQuestions: number = 5): Promise<QuizData> => {
         const response = await api.get(`/topics/${topicId}/quiz`, {
             params: { num_questions: numQuestions },
+        });
+        return response.data;
+    },
+
+    updateTopicContent: async (
+        topicId: string,
+        contentBlocknote: any,
+        contentMarkdown: string
+    ): Promise<Topic> => {
+        const response = await api.put(`/topics/${topicId}/content`, {
+            content_blocknote: contentBlocknote,
+            content_markdown: contentMarkdown,
         });
         return response.data;
     },
