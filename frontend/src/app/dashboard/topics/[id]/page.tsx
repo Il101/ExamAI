@@ -238,7 +238,7 @@ export default function TopicDetailPage() {
                                         className="gap-2"
                                     >
                                         <Edit className="h-4 w-4" />
-                                        Редактировать
+                                        Edit
                                     </Button>
                                 ) : (
                                     <>
@@ -250,7 +250,7 @@ export default function TopicDetailPage() {
                                             disabled={isSaving}
                                         >
                                             <X className="h-4 w-4" />
-                                            Отменить
+                                            Cancel
                                         </Button>
                                         <Button
                                             variant="default"
@@ -260,7 +260,7 @@ export default function TopicDetailPage() {
                                             disabled={isSaving}
                                         >
                                             <Save className="h-4 w-4" />
-                                            {isSaving ? 'Сохранение...' : 'Сохранить'}
+                                            {isSaving ? 'Saving...' : 'Save'}
                                         </Button>
                                     </>
                                 )}
