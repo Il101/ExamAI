@@ -376,6 +376,8 @@ async def get_exam(
             exam_id=t.exam_id,
             topic_name=t.topic_name,
             content=t.content,
+            flashcard_count=t.flashcard_count,  # Added: Display card count
+            status=t.status,                     # Added: Display topic status
             order_index=t.order_index,
             difficulty_level=t.difficulty_level,
             estimated_study_minutes=t.estimated_study_minutes,
