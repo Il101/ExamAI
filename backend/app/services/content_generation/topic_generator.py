@@ -167,11 +167,15 @@ class TopicContentGenerator:
             )
         
         # Use fallback service to handle cache expiration
-        result = await self.fallback.execute_with_fallback(
+        result, updated_cache_name = await self.fallback.execute_with_fallback(
             exam_id=exam_id,
             cache_name=cache_name,
-            operation=_execute_with_cache
+            operation=_execute_with_cache,
         )
+
+        # If cache was recreated during fallback, use the new cache name for
+        # any downstream operations (e.g., flashcard generation).
+        effective_cache_name = updated_cache_name or cache_name
         
         if not result.success:
             raise ValueError(
@@ -198,7 +202,7 @@ class TopicContentGenerator:
                 topic_id=topic.id,
                 user_id=topic.user_id,
                 content=content,
-                cache_name=cache_name
+                cache_name=effective_cache_name
             )
             logger.info(
                 f"✅ Created {len(flashcards)} flashcards for topic {topic_id}"
