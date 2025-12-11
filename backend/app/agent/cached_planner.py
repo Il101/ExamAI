@@ -72,22 +72,43 @@ class CachedCoursePlanner(CoursePlanner):
         
         # Strategy A: Direct File Cache (Required for file uploads)
         if file_uri:
-            try:
-                logger.info(f"Creating cache from file URI: {file_uri}")
-                cache_name = await cache_manager.create_cache_from_file(
-                    exam_id,
-                    file_uri,
-                    mime_type,
-                    ttl_seconds=3600
-                )
-                logger.info(f"✅ Successfully created file cache: {cache_name}")
-            except Exception as e:
-                logger.error(f"❌ Failed to create cache from file {file_uri}: {e}", exc_info=True)
-                # Don't fall back to placeholder - raise error for user visibility
-                raise ValueError(
-                    f"Failed to create cache from uploaded file. The file may be corrupted or "
-                    f"the AI service is temporarily unavailable. Please try again."
-                ) from e
+            # Retry logic for cache creation (Gemini API can be temporarily overloaded)
+            max_retries = 3
+            retry_delay = 5  # Start with 5 seconds
+            
+            for attempt in range(max_retries):
+                try:
+                    logger.info(f"Creating cache from file URI: {file_uri} (attempt {attempt + 1}/{max_retries})")
+                    cache_name = await cache_manager.create_cache_from_file(
+                        exam_id,
+                        file_uri,
+                        mime_type,
+                        ttl_seconds=3600
+                    )
+                    logger.info(f"✅ Successfully created file cache: {cache_name}")
+                    break  # Success, exit retry loop
+                    
+                except Exception as e:
+                    error_msg = str(e).lower()
+                    is_503 = "503" in error_msg or "overloaded" in error_msg or "unavailable" in error_msg
+                    
+                    if is_503 and attempt < max_retries - 1:
+                        # Gemini API temporarily overloaded, retry with exponential backoff
+                        wait_time = retry_delay * (2 ** attempt)
+                        logger.warning(
+                            f"⚠️ Gemini API overloaded (503), retrying in {wait_time}s "
+                            f"(attempt {attempt + 1}/{max_retries})"
+                        )
+                        import asyncio
+                        await asyncio.sleep(wait_time)
+                        continue
+                    else:
+                        # Final attempt failed or non-503 error
+                        logger.error(f"❌ Failed to create cache from file {file_uri}: {e}", exc_info=True)
+                        raise ValueError(
+                            f"Failed to create cache from uploaded file after {max_retries} attempts. "
+                            f"The AI service is temporarily unavailable. Please try again in a few minutes."
+                        ) from e
         
         # Strategy B: Text Content Cache (Only for text-only input, no file upload)
         elif state.original_content and len(state.original_content) > 4000:
