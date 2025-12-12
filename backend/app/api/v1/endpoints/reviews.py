@@ -76,20 +76,15 @@ async def submit_review(
 
     Updates FSRS algorithm and schedules next review.
     """
-    import logging
-    logger = logging.getLogger(__name__)
-    
-    logger.info(f"submit_review called: review_id={review_id}, user_id={current_user.id}, quality={request.quality}")
 
     try:
         item = await study_service.submit_review(
             user_id=current_user.id, review_item_id=review_id, quality=request.quality
         )
-        logger.info(f"submit_review success: review_id={review_id}")
+
         return ReviewItemResponse.from_orm(item)
 
-    except ValueError as e:
-        logger.error(f"submit_review failed: review_id={review_id}, error={e}")
+    except ValueError:
         raise NotFoundException("Review item", str(review_id))
 
 

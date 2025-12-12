@@ -1,7 +1,6 @@
 from typing import Any, Dict, List
 from uuid import UUID
 from datetime import date, timedelta, datetime, timezone
-import random
 
 from app.domain.review import Rating, ReviewItem
 from app.domain.study_session import StudySession
@@ -95,11 +94,14 @@ class StudyService:
             updated = await self.review_repo.update(item)
             
             # Create Review Log (uses flush, not commit)
+            # NOTE: passing naive datetime because ReviewLogModel.review_time was created without timezone=True
+            review_time_naive = datetime.now(timezone.utc).replace(tzinfo=None)
+            
             log = ReviewLog(
                 user_id=user_id,
                 review_item_id=review_item_id,
                 rating=quality,
-                review_time=datetime.now(timezone.utc),
+                review_time=review_time_naive,
                 interval_days=item.elapsed_days,
                 scheduled_days=item.scheduled_days,
                 stability=item.stability,
@@ -193,8 +195,8 @@ class StudyService:
         Uses real data from repositories.
         """
 
-        # 1. Get Daily Progress (Last 7 days)
-        daily_reviews = await self.review_repo.get_daily_activity(user_id, days=7)
+        # 1. Get Daily Progress (Last 7 days) from review logs
+        daily_reviews = await self.review_log_repo.get_daily_activity(user_id, days=7)
         daily_minutes = await self.session_repo.get_daily_study_minutes(user_id, days=7)
 
         # Map to dictionary for easier lookup by date
@@ -220,19 +222,8 @@ class StudyService:
         # 2. Retention Curve
         retention_curve = await self.review_log_repo.get_retention_stats(user_id)
         
-        # If no data, provide empty or default? 
-        # The repo returns defaults if empty buckets, but let's ensure we have the structure
-        if not retention_curve:
-             retention_curve = [
-                RetentionPoint(days_since_review=1, retention_rate=1.0),
-                RetentionPoint(days_since_review=3, retention_rate=0.9),
-                RetentionPoint(days_since_review=7, retention_rate=0.75),
-                RetentionPoint(days_since_review=14, retention_rate=0.6),
-                RetentionPoint(days_since_review=30, retention_rate=0.45),
-            ]
-
-        # 3. Activity Heatmap (Last 30 days)
-        heatmap_data = await self.review_repo.get_daily_activity(user_id, days=30)
+        # 3. Activity Heatmap (Last 30 days) from review logs
+        heatmap_data = await self.review_log_repo.get_daily_activity(user_id, days=30)
         heatmap_map = {r["date"]: r["count"] for r in heatmap_data}
 
         activity_heatmap = []
@@ -241,10 +232,14 @@ class StudyService:
             count = heatmap_map.get(day, 0)
 
             level = 0
-            if count > 0: level = 1
-            if count > 5: level = 2
-            if count > 10: level = 3
-            if count > 15: level = 4
+            if count > 0:
+                level = 1
+            if count > 5:
+                level = 2
+            if count > 10:
+                level = 3
+            if count > 15:
+                level = 4
 
             activity_heatmap.append(HeatmapPoint(date=day, count=count, level=level))
 

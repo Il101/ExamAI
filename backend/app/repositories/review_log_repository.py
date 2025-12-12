@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Any
 from uuid import UUID
 
@@ -68,10 +68,8 @@ class ReviewLogRepository(BaseRepository[ReviewLog, ReviewLogModel]):
         for days in sorted(buckets.keys()):
             data = buckets[days]
             if not data:
-                # Fallback to theoretical curve if no data
-                # R = 0.9 ^ (days / stability_avg) - hard to guess stability
-                # Just return a default decay
-                retention = 0.9 ** days # Simple exponential decay proxy
+                # No data for this bucket
+                retention = 0.0
             else:
                 total_reviews = sum(d[0] for d in data)
                 total_passed = sum(d[1] for d in data)
@@ -83,3 +81,40 @@ class ReviewLogRepository(BaseRepository[ReviewLog, ReviewLogModel]):
             ))
             
         return retention_points
+
+    async def get_daily_activity(self, user_id: UUID, days: int = 30) -> List[Dict[str, Any]]:
+        """
+        Aggregate daily review activity for a user over the last N days.
+
+        Returns list of dicts: [{"date": date, "count": int, "learned": int}]
+        where "learned" counts ratings >= 3.
+        """
+        from datetime import timezone
+
+        start_date = datetime.now(timezone.utc) - timedelta(days=days)
+
+        stmt = (
+            select(
+                func.date(ReviewLogModel.review_time).label("review_date"),
+                func.count().label("review_count"),
+                func.sum(case((ReviewLogModel.rating >= 3, 1), else_=0)).label("learned_count")
+            )
+            .where(
+                ReviewLogModel.user_id == user_id,
+                ReviewLogModel.review_time >= start_date
+            )
+            .group_by("review_date")
+            .order_by("review_date")
+        )
+
+        result = await self.session.execute(stmt)
+
+        activity: List[Dict[str, Any]] = []
+        for row in result:
+            activity.append({
+                "date": row.review_date,
+                "count": row.review_count,
+                "learned": row.learned_count or 0,
+            })
+
+        return activity

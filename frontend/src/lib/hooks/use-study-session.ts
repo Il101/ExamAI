@@ -24,7 +24,8 @@ export function useStudySession() {
         mutationFn: (sessionId: string) => studyApi.endSession(sessionId),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['studySession'] });
-            queryClient.invalidateQueries({ queryKey: ['analytics'] });
+                // Keep analytics dashboard fresh after session actions
+                queryClient.invalidateQueries({ queryKey: ['analytics', 'dashboard'] });
             toast.success('Study session completed!');
         },
         onError: (error: unknown) => {

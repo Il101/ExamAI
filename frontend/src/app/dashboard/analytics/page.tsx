@@ -152,7 +152,7 @@ export default function AnalyticsPage() {
                         <div className="space-y-4">
                             <h3 className="text-lg font-semibold">Study Activity</h3>
                             <p className="text-sm text-gray-500 mb-4">
-                                Your study consistency over the last 3 months.
+                                Your study consistency over the last 30 days.
                             </p>
                             <div className="bg-white dark:bg-gray-900 p-4 rounded-lg border overflow-hidden">
                                 <ActivityHeatmap data={heatmapData} />

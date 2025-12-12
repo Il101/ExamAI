@@ -29,7 +29,7 @@ class TestStudyServiceAnalytics:
         today = date.today()
 
         # Mock repo responses
-        mock_review_repo.get_daily_activity.return_value = [
+        mock_review_log_repo.get_daily_activity.return_value = [
             {"date": today, "count": 10, "learned": 2}
         ]
         mock_session_repo.get_daily_study_minutes.return_value = [
@@ -56,7 +56,7 @@ class TestStudyServiceAnalytics:
         assert today_progress.minutes_studied == 45
 
         # Verify repo calls
-        mock_review_repo.get_daily_activity.assert_called()
+        mock_review_log_repo.get_daily_activity.assert_called()
         mock_session_repo.get_daily_study_minutes.assert_called()
         mock_review_repo.count_total_learned.assert_called_with(user_id)
         mock_session_repo.get_total_study_minutes.assert_called_with(user_id)
