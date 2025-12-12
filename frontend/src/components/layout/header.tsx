@@ -35,20 +35,20 @@ export function Header({ onMenuClick }: HeaderProps) {
     };
 
     return (
-        <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-white/10 bg-background/50 backdrop-blur-xl px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
+        <div className="sticky top-0 z-40 flex h-14 sm:h-16 shrink-0 items-center gap-x-2 sm:gap-x-4 border-b border-white/10 bg-background/50 backdrop-blur-xl px-3 sm:px-4 shadow-sm lg:gap-x-6 lg:px-8">
             <Button
                 variant="ghost"
                 size="icon"
-                className="lg:hidden"
+                className="lg:hidden h-9 w-9"
                 onClick={onMenuClick}
             >
-                <Menu className="h-6 w-6" />
+                <Menu className="h-5 w-5" />
             </Button>
 
-            <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
+            <div className="flex flex-1 gap-x-2 sm:gap-x-4 self-stretch lg:gap-x-6">
                 <div className="flex flex-1" />
 
-                <div className="flex items-center gap-x-4 lg:gap-x-6">
+                <div className="flex items-center gap-x-2 sm:gap-x-4 lg:gap-x-6">
                     {/* Theme toggle */}
                     <ThemeToggle />
 

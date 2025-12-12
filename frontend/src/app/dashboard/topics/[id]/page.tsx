@@ -205,7 +205,7 @@ export default function TopicDetailPage() {
     ];
 
     return (
-        <div className="flex h-[calc(100vh-4rem)] overflow-hidden bg-background">
+        <div className="flex h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)] overflow-hidden bg-background">
             {/* Left Sidebar - Topic Navigation */}
             <TopicSidebar
                 exam={exam}
@@ -215,30 +215,30 @@ export default function TopicDetailPage() {
 
             {/* Main Content */}
             <div className="flex-1 overflow-y-auto w-full">
-                <div className="container max-w-5xl py-8 px-8 mx-auto">
-                    {/* Minimal Breadcrumbs */}
-                    <div className="mb-6 flex items-center text-sm text-muted-foreground/60">
+                <div className="container max-w-5xl py-4 sm:py-8 px-3 sm:px-6 lg:px-8 mx-auto">
+                    {/* Minimal Breadcrumbs - hidden on mobile */}
+                    <div className="hidden sm:flex mb-6 items-center text-sm text-muted-foreground/60">
                         <Breadcrumbs items={breadcrumbItems} className="mb-0 text-xs uppercase tracking-wider font-medium" />
                     </div>
 
-                    {/* Topic Header - Strict Style */}
-                    <div className="mb-10 border-b border-border/40 pb-6">
-                        <div className="flex items-start justify-between gap-4 mb-4">
-                            <h1 className="text-3xl lg:text-4xl font-bold tracking-tight text-foreground">
+                    {/* Topic Header - Optimized for mobile */}
+                    <div className="mb-6 sm:mb-10 border-b border-border/40 pb-4 sm:pb-6">
+                        <div className="flex items-start justify-between gap-2 sm:gap-4 mb-3 sm:mb-4">
+                            <h1 className="text-xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground leading-tight">
                                 {topic.topic_name}
                             </h1>
 
                             {/* Edit/Save/Cancel Buttons */}
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                                 {!isEditing ? (
                                     <Button
                                         variant="outline"
                                         size="sm"
                                         onClick={() => setIsEditing(true)}
-                                        className="gap-2"
+                                        className="gap-1 sm:gap-2 px-2 sm:px-3"
                                     >
                                         <Edit className="h-4 w-4" />
-                                        Edit
+                                        <span className="hidden sm:inline">Edit</span>
                                     </Button>
                                 ) : (
                                     <>
@@ -246,44 +246,44 @@ export default function TopicDetailPage() {
                                             variant="outline"
                                             size="sm"
                                             onClick={handleCancelEdit}
-                                            className="gap-2"
+                                            className="gap-1 sm:gap-2 px-2 sm:px-3"
                                             disabled={isSaving}
                                         >
                                             <X className="h-4 w-4" />
-                                            Cancel
+                                            <span className="hidden sm:inline">Cancel</span>
                                         </Button>
                                         <Button
                                             variant="default"
                                             size="sm"
                                             onClick={handleSaveContent}
-                                            className="gap-2"
+                                            className="gap-1 sm:gap-2 px-2 sm:px-3"
                                             disabled={isSaving}
                                         >
                                             <Save className="h-4 w-4" />
-                                            {isSaving ? 'Saving...' : 'Save'}
+                                            <span className="hidden sm:inline">{isSaving ? 'Saving...' : 'Save'}</span>
                                         </Button>
                                     </>
                                 )}
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-6 text-sm text-muted-foreground">
-                            <div className="flex items-center gap-2">
-                                <Clock className="h-4 w-4 opacity-70" />
-                                <span>~{topic.estimated_study_minutes || 5} min read</span>
+                        <div className="flex flex-wrap items-center gap-3 sm:gap-6 text-xs sm:text-sm text-muted-foreground">
+                            <div className="flex items-center gap-1.5 sm:gap-2">
+                                <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 opacity-70" />
+                                <span>~{topic.estimated_study_minutes || 5} min</span>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <BarChart3 className="h-4 w-4 opacity-70" />
+                            <div className="flex items-center gap-1.5 sm:gap-2">
+                                <BarChart3 className="h-3.5 w-3.5 sm:h-4 sm:w-4 opacity-70" />
                                 <span>Level {topic.difficulty_level}/3</span>
                             </div>
-                            <div className="ml-auto text-xs font-mono opacity-50">
-                                TOPIC {currentIndex + 1} / {topics.length}
+                            <div className="ml-auto text-[10px] sm:text-xs font-mono opacity-50">
+                                {currentIndex + 1}/{topics.length}
                             </div>
                         </div>
                     </div>
 
                     {/* Topic Content - BlockNote Editor */}
-                    <div className="mb-12">
+                    <div className="mb-8 sm:mb-12 -mx-1 sm:mx-0">
                         {editorContent.length > 0 ? (
                             <BlockNoteEditor
                                 topicId={topicId}

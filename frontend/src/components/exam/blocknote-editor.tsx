@@ -138,43 +138,106 @@ export function BlockNoteEditor({
 
                 /* Improve typography */
                 .blocknote-wrapper .bn-block-content {
-                    line-height: 1.7;
+                    line-height: 1.8;
+                    font-size: 1rem;
+                }
+
+                /* Mobile-optimized text size for better readability */
+                @media (max-width: 640px) {
+                    .blocknote-wrapper .bn-block-content {
+                        font-size: 1.0625rem;
+                        line-height: 1.75;
+                    }
+                    
+                    .blocknote-wrapper .bn-editor {
+                        padding-left: 0.25rem;
+                        padding-right: 0.25rem;
+                    }
+                    
+                    /* Remove BlockNote side handles on mobile to save space */
+                    .blocknote-wrapper .bn-side-menu {
+                        display: none;
+                    }
                 }
 
                 .blocknote-wrapper .bn-block-content h1 {
-                    font-size: 2em;
+                    font-size: 1.75em;
                     font-weight: 700;
                     margin-top: 1em;
                     margin-bottom: 0.5em;
                 }
 
+                @media (min-width: 640px) {
+                    .blocknote-wrapper .bn-block-content h1 {
+                        font-size: 2em;
+                    }
+                }
+
                 .blocknote-wrapper .bn-block-content h2 {
-                    font-size: 1.5em;
+                    font-size: 1.35em;
                     font-weight: 600;
                     margin-top: 0.8em;
                     margin-bottom: 0.4em;
                 }
 
+                @media (min-width: 640px) {
+                    .blocknote-wrapper .bn-block-content h2 {
+                        font-size: 1.5em;
+                    }
+                }
+
                 .blocknote-wrapper .bn-block-content h3 {
-                    font-size: 1.25em;
+                    font-size: 1.15em;
                     font-weight: 600;
                     margin-top: 0.6em;
                     margin-bottom: 0.3em;
+                }
+
+                @media (min-width: 640px) {
+                    .blocknote-wrapper .bn-block-content h3 {
+                        font-size: 1.25em;
+                    }
                 }
 
                 .blocknote-wrapper .bn-block-content code {
                     background: hsl(var(--muted));
                     padding: 0.2em 0.4em;
                     border-radius: 0.25rem;
-                    font-size: 0.9em;
+                    font-size: 0.85em;
+                    word-break: break-word;
                 }
 
                 .blocknote-wrapper .bn-block-content pre {
                     background: hsl(var(--muted));
                     border: 1px solid hsl(var(--border));
                     border-radius: 0.5rem;
-                    padding: 1em;
+                    padding: 0.75em;
                     overflow-x: auto;
+                    font-size: 0.875em;
+                }
+
+                @media (min-width: 640px) {
+                    .blocknote-wrapper .bn-block-content pre {
+                        padding: 1em;
+                    }
+                }
+
+                /* Better list styling for mobile */
+                .blocknote-wrapper .bn-block-content ul,
+                .blocknote-wrapper .bn-block-content ol {
+                    padding-left: 1.25em;
+                }
+
+                @media (min-width: 640px) {
+                    .blocknote-wrapper .bn-block-content ul,
+                    .blocknote-wrapper .bn-block-content ol {
+                        padding-left: 1.5em;
+                    }
+                }
+
+                /* Improve paragraph spacing for readability */
+                .blocknote-wrapper .bn-block-outer {
+                    margin-bottom: 0.25em;
                 }
             `}</style>
             <BlockNoteView
