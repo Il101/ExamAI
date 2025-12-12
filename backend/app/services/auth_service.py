@@ -40,11 +40,17 @@ class AuthService:
         """
         try:
             # 1. Register with Supabase Auth
+            # Set email redirect URL to frontend for email verification
+            redirect_url = f"{settings.FRONTEND_URL}/auth/callback"
+            
             auth_response = self.supabase.auth.sign_up(
                 {
                     "email": email,
                     "password": password,
-                    "options": {"data": {"full_name": full_name}},
+                    "options": {
+                        "data": {"full_name": full_name},
+                        "email_redirect_to": redirect_url,
+                    },
                 }
             )
 
@@ -53,24 +59,38 @@ class AuthService:
 
             user_id = UUID(auth_response.user.id)
 
-            # 2. Create user profile in our DB (public.users)
-            # Note: In a real Supabase setup, you might use a Trigger for this.
-            # But doing it here ensures our domain logic is applied.
+            # 2. Create or update user profile in our DB (public.users)
+            # Check if user already exists (e.g., from a previous registration attempt)
+            existing_user = await self.user_repo.get_by_id(user_id)
+            
+            if existing_user:
+                # User already exists, update their information
+                existing_user.email = email.lower().strip()
+                existing_user.full_name = full_name.strip()
+                existing_user.is_verified = False
+                updated_user = await self.user_repo.update(existing_user)
+                return updated_user
+            else:
+                # Create new user profile
+                user = User(
+                    id=user_id,
+                    email=email.lower().strip(),
+                    full_name=full_name.strip(),
+                    is_verified=False,  # Supabase handles verification
+                )
 
-            user = User(
-                id=user_id,
-                email=email.lower().strip(),
-                full_name=full_name.strip(),
-                is_verified=False,  # Supabase handles verification
-            )
-
-            created = await self.user_repo.create(user)
-
-            return created
+                created = await self.user_repo.create(user)
+                return created
 
         except Exception as e:
-            # Map Supabase errors to ValueError
-            raise ValueError(f"Registration failed: {str(e)}")
+            error_msg = str(e).lower()
+            
+            # Check if this is a "user already registered" error from Supabase
+            if "already registered" in error_msg or "already exists" in error_msg or "duplicate" in error_msg:
+                raise ValueError("Пользователь с таким email уже зарегистрирован. Попробуйте войти в систему.")
+            
+            # Map other Supabase errors to ValueError
+            raise ValueError(f"Ошибка регистрации: {str(e)}")
 
     # Login
 
