@@ -72,6 +72,14 @@ export function CheckYourself({ topicId, onComplete, onSkip }: CheckYourselfProp
             // Quiz complete
             setShowResults(true);
             const score = answers.filter(a => a).length;
+
+            // Track quiz result in backend for analytics
+            topicsApi.submitQuizResult(topicId, score, quizData.questions.length)
+                .catch(error => {
+                    console.error('Failed to track quiz result:', error);
+                    // Don't block user experience if tracking fails
+                });
+
             onComplete(score, quizData.questions.length);
         }
     };

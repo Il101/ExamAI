@@ -67,4 +67,16 @@ export const topicsApi = {
         });
         return response.data;
     },
+
+    submitQuizResult: async (
+        topicId: string,
+        questionsCorrect: number,
+        questionsTotal: number
+    ): Promise<void> => {
+        await api.post('/quiz-results/', {
+            topic_id: topicId,
+            questions_correct: questionsCorrect,
+            questions_total: questionsTotal,
+        });
+    },
 };

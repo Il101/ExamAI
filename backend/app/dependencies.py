@@ -136,12 +136,21 @@ async def get_review_log_repo(
     return ReviewLogRepository(session)
 
 
+from app.repositories.quiz_result_repository import QuizResultRepository
+
+async def get_quiz_result_repo(
+    session: AsyncSession = Depends(get_db),
+) -> QuizResultRepository:
+    return QuizResultRepository(session)
+
+
 async def get_study_service(
     review_repo: ReviewItemRepository = Depends(get_review_repo),
     session_repo: StudySessionRepository = Depends(get_study_session_repo),
     review_log_repo: ReviewLogRepository = Depends(get_review_log_repo),
+    quiz_result_repo: QuizResultRepository = Depends(get_quiz_result_repo),
 ) -> StudyService:
-    return StudyService(review_repo, session_repo, review_log_repo)
+    return StudyService(review_repo, session_repo, review_log_repo, quiz_result_repo)
 
 
 async def get_subscription_service(

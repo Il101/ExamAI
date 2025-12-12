@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from .exam import ExamModel
     from .review import ReviewItemModel
     from .user import UserModel
+    from .quiz_result import QuizResultModel
 
 
 class TopicModel(Base):
@@ -63,6 +64,10 @@ class TopicModel(Base):
 
     review_items: Mapped[list["ReviewItemModel"]] = relationship(
         "ReviewItemModel", back_populates="topic", cascade="all, delete-orphan"
+    )
+
+    quiz_results: Mapped[list["QuizResultModel"]] = relationship(
+        "QuizResultModel", back_populates="topic", cascade="all, delete-orphan"
     )
 
     def __repr__(self) -> str:

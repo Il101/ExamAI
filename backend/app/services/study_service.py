@@ -27,11 +27,13 @@ class StudyService:
         self, 
         review_repo: ReviewItemRepository, 
         session_repo: StudySessionRepository,
-        review_log_repo: ReviewLogRepository
+        review_log_repo: ReviewLogRepository,
+        quiz_result_repo: 'QuizResultRepository'
     ):
         self.review_repo = review_repo
         self.session_repo = session_repo
         self.review_log_repo = review_log_repo
+        self.quiz_result_repo = quiz_result_repo
 
     # Review Items
 
@@ -195,26 +197,33 @@ class StudyService:
         Uses real data from repositories.
         """
 
-        # 1. Get Daily Progress (Last 7 days) from review logs
+        # 1. Get Daily Progress (Last 7 days) from review logs AND quiz results
         daily_reviews = await self.review_log_repo.get_daily_activity(user_id, days=7)
         daily_minutes = await self.session_repo.get_daily_study_minutes(user_id, days=7)
+        daily_quizzes = await self.quiz_result_repo.get_daily_activity(user_id, days=7)
 
         # Map to dictionary for easier lookup by date
         reviews_map = {r["date"]: r for r in daily_reviews}
         minutes_map = {r["date"]: r["minutes"] for r in daily_minutes}
+        quizzes_map = {q["date"]: q for q in daily_quizzes}
 
         daily_progress = []
         today = date.today()
         for i in range(6, -1, -1):
             day = today - timedelta(days=i)
             review_data = reviews_map.get(day, {"count": 0, "learned": 0})
+            quiz_data = quizzes_map.get(day, {"questions_correct": 0})
             minutes = minutes_map.get(day, 0)
+
+            # Combine flashcard reviews + quiz correct answers
+            total_cards = review_data["count"] + quiz_data["questions_correct"]
+            total_learned = review_data["learned"] + quiz_data["questions_correct"]
 
             daily_progress.append(
                 DailyProgress(
                     date=day,
-                    cards_reviewed=review_data["count"],
-                    cards_learned=review_data["learned"],
+                    cards_reviewed=total_cards,
+                    cards_learned=total_learned,
                     minutes_studied=minutes,
                 )
             )
@@ -222,14 +231,19 @@ class StudyService:
         # 2. Retention Curve
         retention_curve = await self.review_log_repo.get_retention_stats(user_id)
         
-        # 3. Activity Heatmap (Last 30 days) from review logs
-        heatmap_data = await self.review_log_repo.get_daily_activity(user_id, days=30)
-        heatmap_map = {r["date"]: r["count"] for r in heatmap_data}
+        # 3. Activity Heatmap (Last 30 days) from review logs AND quiz results
+        heatmap_reviews = await self.review_log_repo.get_daily_activity(user_id, days=30)
+        heatmap_quizzes = await self.quiz_result_repo.get_daily_activity(user_id, days=30)
+        
+        heatmap_reviews_map = {r["date"]: r["count"] for r in heatmap_reviews}
+        heatmap_quizzes_map = {q["date"]: q["questions_correct"] for q in heatmap_quizzes}
 
         activity_heatmap = []
         for i in range(29, -1, -1):
             day = today - timedelta(days=i)
-            count = heatmap_map.get(day, 0)
+            review_count = heatmap_reviews_map.get(day, 0)
+            quiz_count = heatmap_quizzes_map.get(day, 0)
+            count = review_count + quiz_count
 
             level = 0
             if count > 0:
@@ -247,6 +261,10 @@ class StudyService:
         total_learned = await self.review_repo.count_total_learned(user_id)
         total_minutes = await self.session_repo.get_total_study_minutes(user_id)
         
+        # Include quiz statistics
+        quiz_stats = await self.quiz_result_repo.get_user_stats(user_id)
+        total_cards_with_quizzes = total_learned + quiz_stats["questions_correct"]
+        
         # Streaks
         current_streak, longest_streak = await self.session_repo.get_streak_stats(user_id)
 
@@ -254,7 +272,7 @@ class StudyService:
             daily_progress=daily_progress,
             retention_curve=retention_curve,
             activity_heatmap=activity_heatmap,
-            total_cards_learned=total_learned,
+            total_cards_learned=total_cards_with_quizzes,
             total_minutes_studied=total_minutes,
             current_streak=current_streak,
             longest_streak=longest_streak,
