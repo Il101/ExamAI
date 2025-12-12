@@ -6,12 +6,7 @@ import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
-import { examsApi } from '@/lib/api/exams';
-
-interface Exam {
-    id: string;
-    exam_name: string;
-}
+import { examsApi, Exam } from '@/lib/api/exams';
 
 interface ExamSelectModalProps {
     open: boolean;
@@ -80,7 +75,7 @@ export function ExamSelectModal({ open, onClose, onSelect }: ExamSelectModalProp
                                     <div key={exam.id} className="flex items-center space-x-2">
                                         <RadioGroupItem value={exam.id} id={exam.id} />
                                         <Label htmlFor={exam.id} className="flex-1 cursor-pointer">
-                                            {exam.exam_name}
+                                            {exam.title}
                                         </Label>
                                     </div>
                                 ))}
