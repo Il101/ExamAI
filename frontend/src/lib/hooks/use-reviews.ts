@@ -20,7 +20,8 @@ export function useReviews(limit: number = 20, examId?: string, topicId?: string
             studyApi.submitReview(reviewId, quality),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['reviews'] });
-            queryClient.invalidateQueries({ queryKey: ['analytics'] });
+              // Keep analytics dashboard fresh after review actions
+              queryClient.invalidateQueries({ queryKey: ['analytics', 'dashboard'] });
         },
         onError: (error: unknown) => {
             const message = error instanceof Error && 'response' in error
