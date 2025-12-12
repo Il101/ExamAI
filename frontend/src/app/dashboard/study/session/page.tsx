@@ -138,25 +138,25 @@ export default function StudySessionPage() {
     const currentItem = items[currentIndex];
 
     return (
-        <div className="container max-w-4xl py-8 min-h-[calc(100vh-4rem)] flex flex-col">
-            <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center gap-4">
+        <div className="container max-w-3xl py-4 sm:py-8 min-h-[calc(100vh-4rem)] flex flex-col px-2 sm:px-4">
+            <div className="flex items-center justify-between mb-4 sm:mb-8">
+                <div className="flex items-center gap-2 sm:gap-4">
                     <Button variant="ghost" size="icon" onClick={handleFinish}>
                         <X className="h-5 w-5" />
                     </Button>
-                    <div className="space-y-1">
-                        <h2 className="font-semibold">Review Session</h2>
-                        <p className="text-xs text-muted-foreground">
+                    <div className="space-y-0.5 sm:space-y-1">
+                        <h2 className="text-sm sm:text-base font-semibold">Review Session</h2>
+                        <p className="text-[11px] sm:text-xs text-muted-foreground">
                             Card {currentIndex + 1} of {items.length}
                         </p>
                     </div>
                 </div>
-                <div className="w-32 md:w-48">
+                <div className="w-24 sm:w-32 md:w-48">
                     <Progress value={progress} className="h-2" />
                 </div>
             </div>
 
-            <div className="max-w-2xl mx-auto">
+            <div className="flex-1 flex items-start justify-center">
                 <Flashcard
                     key={currentItem.id}
                     item={currentItem}

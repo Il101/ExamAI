@@ -109,7 +109,7 @@ class Topic:
         """Get word count of content"""
         return len(self.content.split())
 
-    def get_preview(self, max_chars: int = 150) -> str:
+    def get_preview(self, max_chars: int = 300) -> str:
         """Get content preview for UI"""
         if len(self.content) <= max_chars:
             return self.content

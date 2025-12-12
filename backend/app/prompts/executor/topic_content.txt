@@ -148,11 +148,15 @@ Use the following structure. Each section should follow pedagogical best practic
 
 #### Резюме
 
-**CRITICAL:** НЕ КОПИРУЙТЕ текст выше. Переформулируйте основные идеи в 3-4 новых предложениях.
+**CRITICAL:** НЕ КОПИРУЙТЕ текст выше. Переформулируйте основные идеи в структурированном виде.
 
-Синтезируйте ключевые выводы. Покажите связи между концепциями. Ответьте на вопрос: "Почему это важно?"
+Используйте формат:
 
-[3-4 предложения, которые НЕ встречаются дословно в тексте выше]
+- **Главный вывод**: [1 предложение — что самое важное в этом топике?]
+- **Механизм/Суть**: [1 предложение — как это работает или в чем ключевая идея?]
+- **Применение/Значение**: [1 предложение — почему это важно или где применяется?]
+
+Каждый пункт должен быть НОВОЙ формулировкой, не встречающейся дословно в тексте выше.
 
 ---
 ```
@@ -191,9 +195,9 @@ Use the following structure. Each section should follow pedagogical best practic
 
 ### Scannability (30-Second Test)
 A student should grasp the main points by:
-- Reading the 🎯 Ключевые понятия section (10 seconds)
+- Reading the **Ключевые понятия** section (10 seconds)
 - Scanning the headings and bold terms (10 seconds)
-- Reading the 📝 Резюме (10 seconds)
+- Reading the **Резюме** (10 seconds)
 
 ### Length Calibration
 - Target: {estimated_paragraphs} well-structured sections
@@ -205,9 +209,9 @@ A student should grasp the main points by:
 ## Quality Checklist (Self-Verify Before Outputting)
 
 **Pedagogy:**
-- [ ] 🎯 Key Concepts section exists (Advance Organizer)
-
-- [ ] 📝 Summary rephrases content, doesn't copy (Generative Learning)
+- [ ] **Key Concepts** section exists (Advance Organizer)
+- [ ] **Summary** rephrases content, doesn't copy (Generative Learning)
+- [ ] Summary uses bullet format (Главный вывод / Механизм / Применение)
 - [ ] Paragraphs are SHORT (2-4 sentences each)
 
 **Formatting:**
@@ -221,6 +225,34 @@ A student should grasp the main points by:
 - [ ] Examples are concrete, not generic
 - [ ] Common mistakes section included (where applicable)
 - [ ] Connections to {previous_context} mentioned (if relevant)
+
+---
+
+## Example: Good vs Bad Content
+
+This example shows the difference between poorly formatted and well-formatted content.
+
+**❌ BAD (wall of text, no structure):**
+
+> Научный технократ — это тип управленца, который сочетает экспертизу с политическим капиталом. Такие люди появились в 2010-х годах и характеризуются высоким h-index и готовностью работать с бюрократией. Они отличаются от классических ученых тем, что активно участвуют в административной работе и конвертируют научную репутацию в политическое влияние.
+
+**✅ GOOD (structured, scannable, bold only for key terms):**
+
+> **Научный технократ** — управленец, конвертирующий экспертизу в политический капитал.
+>
+> **Ключевые характеристики:**
+> - Высокий **h-index** (библиометрика как пропуск в элиту)
+> - Готовность работать с бюрократией
+> - Баланс исследований и администрирования
+>
+> **Механизм:**
+> В 2010-х высокие библиометрические показатели стали обязательным условием для карьерного роста. Это создало новый тип управленца, способного демонстрировать измеримые результаты.
+
+**Why the good version works:**
+- Short paragraphs (2-3 sentences)
+- Bold only for first mention of key terms
+- Bullets for lists
+- Clear section headers
 
 ---
 

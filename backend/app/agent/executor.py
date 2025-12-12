@@ -193,8 +193,8 @@ class TopicExecutor:
         summary = " ".join(sentences[:max_sentences])
 
         # Truncate if too long
-        if len(summary) > 200:
-            summary = summary[:197] + "..."
+        if len(summary) > 500:
+            summary = summary[:497] + "..."
 
         return summary
 

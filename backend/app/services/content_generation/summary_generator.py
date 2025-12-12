@@ -21,7 +21,7 @@ class ExamSummaryGenerator:
         self.llm = llm_provider
 
     @staticmethod
-    def _extract_gist(content: str, max_chars: int = 260) -> str:
+    def _extract_gist(content: str, max_chars: int = 1000) -> str:
         if not content:
             return ""
         text = clean_ai_content(content, content_type="executor")
