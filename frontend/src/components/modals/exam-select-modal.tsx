@@ -33,12 +33,12 @@ export function ExamSelectModal({ open, onClose, onSelect }: ExamSelectModalProp
     const loadExams = async () => {
         try {
             setIsLoading(true);
-            const data = await examsApi.getAll();
-            setExams(data);
+            const response = await examsApi.list();
+            setExams(response.exams);
 
             // Auto-select first exam if available
-            if (data.length > 0) {
-                setSelectedExamId(data[0].id);
+            if (response.exams.length > 0) {
+                setSelectedExamId(response.exams[0].id);
             }
         } catch (error) {
             console.error('Failed to load exams:', error);
