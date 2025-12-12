@@ -16,6 +16,7 @@ from app.services.cost_guard_service import CostGuardService
 from app.services.cache_fallback import CacheFallbackService
 from app.services.content_generation.topic_generator import TopicContentGenerator
 from app.services.content_generation.flashcard_generator import FlashcardGenerator
+from app.services.content_generation.summary_generator import ExamSummaryGenerator, TopicGist
 from app.integrations.storage.supabase_storage import SupabaseStorage
 from app.integrations.llm.cache_manager import ContextCacheManager
 from app.tasks.celery_app import celery_app
@@ -350,6 +351,32 @@ async def _generate_exam_content_async(
 
         # Mark exam ready even if some topics failed; summary reflects success ratio.
         summary = f"Generated {ready_count}/{total} topics successfully"
+
+        # Generate a short TL;DR for frontend display.
+        # Best-effort: if it fails, we fall back to the progress-style summary above.
+        try:
+            fresh_topics = await topic_repo.get_by_exam_id(exam_id)
+            ready_topics = [t for t in fresh_topics if t.status == "ready" and (t.content or "").strip()]
+
+            # Cap input to prevent very large prompts.
+            ready_topics = ready_topics[:20]
+
+            summary_gen = ExamSummaryGenerator(llm)
+            tldr = await summary_gen.generate_tldr(
+                subject=exam.subject,
+                exam_type=exam.exam_type,
+                level=exam.level,
+                topics=[TopicGist(title=t.topic_name, content=t.content or "") for t in ready_topics],
+                total_count=total,
+                ready_count=ready_count,
+                output_language=getattr(user, "preferred_language", None),
+                cache_name=exam.cache_name,
+            )
+            if tldr:
+                summary = tldr
+        except Exception as e:
+            print(f"[PIPELINE] tldr_failed exam_id={exam_id} error_type={type(e).__name__} error={e}")
+
         exam.mark_as_ready(
             ai_summary=summary,
             token_input=0,

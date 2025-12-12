@@ -285,19 +285,3 @@ async def get_topic_content_generator(
     return TopicContentGenerator(
         executor, flashcard_gen, fallback_service, topic_repo, exam_repo
     )
-
-
-async def get_content_generation_orchestrator(
-    topic_generator = Depends(get_topic_content_generator),
-    topic_repo: TopicRepository = Depends(get_topic_repo),
-):
-    """Get content generation orchestrator"""
-    from app.services.content_generation.orchestrator import ContentGenerationOrchestrator
-    from app.services.content_generation.strategies import BatchStrategy, IncrementalStrategy
-    
-    batch_strategy = BatchStrategy(topic_repo)
-    incremental_strategy = IncrementalStrategy(topic_repo, prefetch_count=2)
-    
-    return ContentGenerationOrchestrator(
-        topic_generator, batch_strategy, incremental_strategy
-    )

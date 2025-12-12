@@ -19,7 +19,7 @@ export interface ReviewItem {
     review_type: 'flashcard' | 'question';
     difficulty: number;
     stability: number;
-    state: number;
+    state: 'new' | 'learning' | 'review' | 'relearning';
 }
 
 export interface ReviewStats {
