@@ -32,28 +32,35 @@ function AuthCallbackContent() {
                     return;
                 }
 
-                // If we have tokens, store them and redirect to dashboard
+                // If we have tokens, store them and attempt to fetch user
                 if (accessToken && refreshToken) {
                     // Store tokens in localStorage
                     localStorage.setItem('access_token', accessToken);
                     localStorage.setItem('refresh_token', refreshToken);
 
+                    setMessage('Авторизация успешна. Загружаем профиль...');
+
                     // Fetch user data and update auth store
                     try {
                         const user = await authApi.getCurrentUser();
                         setUser(user);
+
+                        setStatus('success');
+                        setMessage('Успешный вход! Перенаправляем в личный кабинет...');
+
+                        // Redirect to dashboard after 1 second
+                        setTimeout(() => {
+                            router.push('/dashboard');
+                        }, 1000);
                     } catch (err) {
                         console.error('Failed to fetch user data:', err);
-                        // Continue anyway, the user will be fetched on dashboard load
+                        setStatus('error');
+                        setMessage('Не удалось загрузить профиль пользователя. Возможно, аккаунт был удален или заблокирован.');
+                        // Do NOT redirect if we can't get the user, otherwise they'll just get kicked back
+                        // Clear tokens to prevent loop
+                        localStorage.removeItem('access_token');
+                        localStorage.removeItem('refresh_token');
                     }
-
-                    setStatus('success');
-                    setMessage('Email успешно подтвержден! Перенаправляем в личный кабинет...');
-
-                    // Redirect to dashboard after 1 second
-                    setTimeout(() => {
-                        router.push('/dashboard');
-                    }, 1000);
                 } else if (type === 'signup' || type === 'email') {
                     // Fallback: if no tokens but type is signup/email
                     setStatus('success');

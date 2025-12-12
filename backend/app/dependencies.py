@@ -203,14 +203,20 @@ async def get_current_user(
     if not local_user:
         # 3. Create in local DB if missing (Sync)
         try:
+            print(f"Syncing user {user.id} from Supabase to local DB...")
             # We use the user object returned from Supabase which has the correct ID and email
+            # Ensure full_name is present (fallback to email prefix if not)
+            if not user.full_name:
+                user.full_name = user.email.split("@")[0]
+            
             local_user = await auth_service.user_repo.create(user)
+            print(f"Successfully synced user {user.id} to local DB.")
         except Exception as e:
             # Log error and re-raise
-            print(f"Failed to sync user to local DB: {e}")
+            print(f"Failed to sync user {user.id} to local DB: {e}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to synchronize user profile",
+                detail=f"Failed to synchronize user profile: {str(e)}",
             )
 
     return local_user

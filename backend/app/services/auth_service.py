@@ -154,10 +154,13 @@ class AuthService:
             user_data = response.user
             user_id = UUID(user_data.id)
 
+            # Safe extraction of metadata
+            meta = user_data.user_metadata or {}
+            
             return User(
                 id=user_id,
                 email=user_data.email,
-                full_name=user_data.user_metadata.get("full_name", ""),
+                full_name=meta.get("full_name", "") or user_data.email.split("@")[0], # Fallback to email prefix
                 is_verified=user_data.email_confirmed_at is not None,
             )
         except Exception as e:
