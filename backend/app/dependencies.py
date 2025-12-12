@@ -212,12 +212,27 @@ async def get_current_user(
             local_user = await auth_service.user_repo.create(user)
             print(f"Successfully synced user {user.id} to local DB.")
         except Exception as e:
-            # Log error and re-raise
-            print(f"Failed to sync user {user.id} to local DB: {e}")
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to synchronize user profile: {str(e)}",
-            )
+            # Check if this is an email collision (User exists with different ID)
+            print(f"Sync failed with error: {e}. Checking for existing email...")
+            try:
+                existing_email_user = await auth_service.user_repo.get_by_email(user.email)
+                if existing_email_user:
+                    print(f"Found existing user {existing_email_user.id} with email {user.email}. Linking legacy user.")
+                    # Optional: Update metadata here if needed
+                    local_user = existing_email_user
+                else:
+                     # Genuine error
+                    print(f"Failed to sync user {user.id} to local DB: {e}")
+                    raise HTTPException(
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        detail=f"Failed to synchronize user profile: {str(e)}",
+                    )
+            except Exception as inner_e:
+                print(f"Critical sync failure for {user.id}: {inner_e}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Failed to synchronize user profile: {str(e)}",
+                )
 
     return local_user
 
