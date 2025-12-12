@@ -112,6 +112,7 @@ class QuizResultRepository(BaseRepository[QuizResult, QuizResultModel]):
         
         Returns list of dicts: [{"date": date, "quizzes_completed": int, "questions_correct": int}]
         """
+        # QuizResultModel.completed_at is timezone-aware, so use UTC
         start_date = datetime.now(timezone.utc) - timedelta(days=days)
 
         stmt = (
