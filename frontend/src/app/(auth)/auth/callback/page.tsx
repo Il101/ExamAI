@@ -2,21 +2,28 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { authApi } from '@/lib/api/auth';
+import { useAuthStore } from '@/lib/stores/auth-store';
 
 function AuthCallbackContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const setUser = useAuthStore((state) => state.setUser);
     const [status, setStatus] = useState<'verifying' | 'success' | 'error'>('verifying');
     const [message, setMessage] = useState('Подтверждаем вашу почту...');
 
     useEffect(() => {
         const handleEmailVerification = async () => {
             try {
-                // Get the token from URL parameters
-                const token = searchParams.get('token');
-                const type = searchParams.get('type');
-                const error = searchParams.get('error');
-                const errorDescription = searchParams.get('error_description');
+                // Supabase sends tokens in URL hash (after #)
+                const hash = window.location.hash;
+                const params = new URLSearchParams(hash.substring(1)); // Remove # and parse
+
+                const accessToken = params.get('access_token');
+                const refreshToken = params.get('refresh_token');
+                const error = params.get('error');
+                const errorDescription = params.get('error_description');
+                const type = params.get('type');
 
                 // Check for errors from Supabase
                 if (error) {
@@ -25,12 +32,33 @@ function AuthCallbackContent() {
                     return;
                 }
 
-                // If this is an email confirmation
-                if (type === 'signup' || type === 'email') {
+                // If we have tokens, store them and redirect to dashboard
+                if (accessToken && refreshToken) {
+                    // Store tokens in localStorage
+                    localStorage.setItem('access_token', accessToken);
+                    localStorage.setItem('refresh_token', refreshToken);
+
+                    // Fetch user data and update auth store
+                    try {
+                        const user = await authApi.getCurrentUser();
+                        setUser(user);
+                    } catch (err) {
+                        console.error('Failed to fetch user data:', err);
+                        // Continue anyway, the user will be fetched on dashboard load
+                    }
+
+                    setStatus('success');
+                    setMessage('Email успешно подтвержден! Перенаправляем в личный кабинет...');
+
+                    // Redirect to dashboard after 1 second
+                    setTimeout(() => {
+                        router.push('/dashboard');
+                    }, 1000);
+                } else if (type === 'signup' || type === 'email') {
+                    // Fallback: if no tokens but type is signup/email
                     setStatus('success');
                     setMessage('Email успешно подтвержден! Перенаправляем на страницу входа...');
 
-                    // Redirect to login after 2 seconds
                     setTimeout(() => {
                         router.push('/login?verified=true');
                     }, 2000);
