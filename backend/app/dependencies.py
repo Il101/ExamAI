@@ -234,6 +234,27 @@ async def get_current_user(
                     detail=f"Failed to synchronize user profile: {str(e)}",
                 )
 
+    else:
+        # User exists, check if we need to sync fields
+        changed = False
+        
+        # 1. Sync verification status
+        token_verified = user.is_verified
+        if local_user.is_verified != token_verified:
+             local_user.is_verified = token_verified
+             changed = True
+             
+        # 2. Sync profile data if present in token/metadata
+        if user.full_name and local_user.full_name != user.full_name:
+             local_user.full_name = user.full_name
+             changed = True
+             
+        if changed:
+             try:
+                 local_user = await auth_service.user_repo.update(local_user)
+             except Exception as e:
+                 print(f"Failed to background sync user {user.id}: {e}")
+
     return local_user
 
 

@@ -89,8 +89,9 @@ class ReviewLogRepository(BaseRepository[ReviewLog, ReviewLogModel]):
         Returns list of dicts: [{"date": date, "count": int, "learned": int}]
         where "learned" counts ratings >= 3.
         """
-        # Use naive datetime because ReviewLogModel.review_time is naive (no timezone=True)
-        start_date = datetime.now() - timedelta(days=days)
+        from datetime import timezone
+
+        start_date = datetime.now(timezone.utc) - timedelta(days=days)
 
         stmt = (
             select(

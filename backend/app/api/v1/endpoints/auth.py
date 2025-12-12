@@ -9,6 +9,7 @@ from app.schemas.auth import (
     RegisterRequest,
     TokenResponse,
     VerifyEmailRequest,
+    ChangePasswordRequest,
 )
 from app.schemas.password_reset import (
     ForgotPasswordRequest,
@@ -18,11 +19,16 @@ from app.schemas.password_reset import (
 from app.schemas.user import UserResponse
 from app.services.auth_service import AuthService
 
+from app.core.rate_limiter import login_rate_limiter, general_rate_limiter
+
 router = APIRouter()
 
 
 @router.post(
-    "/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED
+    "/register",
+    response_model=UserResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(login_rate_limiter)]
 )
 async def register(
     request: RegisterRequest, auth_service: AuthService = Depends(get_auth_service)
@@ -46,7 +52,7 @@ async def register(
         raise ValidationException(str(e))
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login", response_model=TokenResponse, dependencies=[Depends(login_rate_limiter)])
 async def login(
     request: LoginRequest, auth_service: AuthService = Depends(get_auth_service)
 ):
@@ -68,7 +74,7 @@ async def login(
     )
 
 
-@router.post("/refresh", response_model=TokenResponse)
+@router.post("/refresh", response_model=TokenResponse, dependencies=[Depends(general_rate_limiter)])
 async def refresh_token(
     request: RefreshTokenRequest, auth_service: AuthService = Depends(get_auth_service)
 ):
@@ -171,3 +177,31 @@ async def reset_password(
         )
     except ValueError as e:
         raise ValidationException(str(e))
+
+
+@router.post(
+    "/change-password",
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(login_rate_limiter)]
+)
+async def change_password(
+    request: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    auth_service: AuthService = Depends(get_auth_service),
+):
+    """
+    Change password.
+    Requires current password for security.
+    """
+    try:
+        await auth_service.change_password(
+            email=current_user.email,
+            current_password=request.current_password,
+            new_password=request.new_password
+        )
+        return {"message": "Password changed successfully"}
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )

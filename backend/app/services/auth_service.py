@@ -1,5 +1,6 @@
 from typing import Any, Dict, Optional
-from uuid import UUID
+from uuid import UUID, uuid4
+import logging
 
 from jose import JWTError, jwt
 from supabase import Client, create_client
@@ -20,6 +21,7 @@ class AuthService:
         self.supabase: Client = create_client(
             settings.SUPABASE_URL, settings.SUPABASE_KEY
         )
+        self.logger = logging.getLogger(__name__)
 
     # Registration
 
@@ -84,13 +86,12 @@ class AuthService:
 
         except Exception as e:
             error_msg = str(e).lower()
-            
-            # Check if this is a "user already registered" error from Supabase
-            if "already registered" in error_msg or "already exists" in error_msg or "duplicate" in error_msg:
-                raise ValueError("Пользователь с таким email уже зарегистрирован. Попробуйте войти в систему.")
-            
-            # Map other Supabase errors to ValueError
-            raise ValueError(f"Ошибка регистрации: {str(e)}")
+
+            # Логируем конкретную ошибку для расследования, но наружу даём обобщённое сообщение
+            self.logger.warning("Registration failed", extra={"email": email, "error": error_msg})
+
+            # Не выдаём признаки существования пользователя
+            raise ValueError("Registration failed. Please try again later.")
 
     # Login
 
@@ -118,7 +119,8 @@ class AuthService:
                 "user": response.user,
             }
 
-        except Exception:
+        except Exception as e:
+            self.logger.warning("Login failed", extra={"email": email, "error": str(e).lower()})
             return None
 
     async def refresh_token(self, refresh_token: str) -> Optional[Dict[str, Any]]:
@@ -136,7 +138,8 @@ class AuthService:
                 "refresh_token": response.session.refresh_token,
                 "user": response.user,
             }
-        except Exception:
+        except Exception as e:
+            self.logger.warning("Refresh token failed", extra={"error": str(e).lower()})
             return None
 
     # Token Verification
@@ -245,24 +248,31 @@ class AuthService:
         updated_user = await self.user_repo.update(user)
         return updated_user
 
-    async def change_password(self, current_password: str, new_password: str) -> None:
+    async def change_password(self, email: str, current_password: str, new_password: str) -> None:
         """
-        Change user password via Supabase.
+        Change user password safely.
+        Requires re-authentication with current password.
         """
         try:
-            # Supabase requires signing in to verify current password first,
-            # or we can just use update_user if we assume the user is already authenticated
-            # and we trust the session.
-            # However, for security, we should verify the current password if possible.
-            # But Supabase Admin API allows updating password without current one.
-            # Since this method is called from an authenticated endpoint, we can just update it.
+            # 1. Verify current password by signing in
+            # This ensures the user knows the current password
+            auth = self.supabase.auth.sign_in_with_password(
+                {"email": email, "password": current_password}
+            )
+            
+            if not auth.user:
+                 raise ValueError("Invalid current password")
 
-            # Ideally, we should re-authenticate with current_password to verify it.
-            # But we don't have the email here easily unless we pass it.
-            # Let's assume the endpoint validates the user is logged in.
-
-            self.supabase.auth.update_user({"password": new_password})
+            # 2. Update to new password
+            # We can use the admin api or the user context. 
+            # Since we just signed in, we could use that session, but using the admin client 
+            # (initialized in __init__) is fine as we just verified identity.
+            self.supabase.auth.admin.update_user_by_id(
+                auth.user.id, {"password": new_password}
+            )
         except Exception as e:
+            if "invalid info" in str(e).lower() or "login" in str(e).lower():
+                 raise ValueError("Invalid current password")
             raise ValueError(f"Failed to change password: {str(e)}")
 
     async def request_password_reset(self, email: str) -> None:
