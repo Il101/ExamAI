@@ -109,8 +109,9 @@ export function Flashcard({ item, onResult, className }: FlashcardProps) {
                     className="col-start-1 row-start-1 backface-hidden"
                     // Prevent interactions with front when flipped (though backface-visibility usually handles visual)
                     aria-hidden={isFlipped}
+                    style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
                 >
-                    <Card className="h-full shadow-lg border-2 hover:shadow-xl transition-shadow bg-card">
+                    <Card className="h-full shadow-lg border-2 hover:shadow-xl transition-shadow bg-card" style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}>
                         <div className="p-6 sm:p-10 md:p-16 min-h-[350px] sm:min-h-[400px] md:min-h-[500px] flex flex-col items-center justify-center">
                             <p className="text-xs sm:text-sm text-muted-foreground uppercase tracking-wide mb-4 sm:mb-8">Question</p>
                             <h2 className="text-xl sm:text-2xl md:text-4xl font-normal text-center leading-relaxed mb-6 sm:mb-12 break-words hyphens-auto" style={{ wordBreak: 'normal', overflowWrap: 'break-word' }}>
@@ -134,8 +135,9 @@ export function Flashcard({ item, onResult, className }: FlashcardProps) {
                 <div
                     className="col-start-1 row-start-1 backface-hidden rotate-y-180"
                     aria-hidden={!isFlipped}
+                    style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
                 >
-                    <Card className="h-full shadow-lg border-2 bg-card">
+                    <Card className="h-full shadow-lg border-2 bg-card" style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}>
                         <div className="p-6 sm:p-10 md:p-16 min-h-[350px] sm:min-h-[400px] md:min-h-[500px] flex flex-col items-center justify-between h-full">
                             <div className="flex flex-col items-center flex-1 justify-center w-full">
                                 <p className="text-xs sm:text-sm text-muted-foreground uppercase tracking-wide mb-4 sm:mb-8">Answer</p>
@@ -148,7 +150,7 @@ export function Flashcard({ item, onResult, className }: FlashcardProps) {
                                             em: ({ node, ...props }) => <em className="text-muted-foreground" {...props} />,
                                             ul: ({ node, ...props }) => <ul className="text-sm sm:text-lg md:text-xl text-left list-disc list-inside space-y-2 my-4" {...props} />,
                                             li: ({ node, ...props }) => <li className="leading-relaxed" style={{ wordBreak: 'normal', overflowWrap: 'break-word' }} {...props} />,
-                                            code: ({ node, ...props }) => <code className="px-1.5 py-0.5 rounded bg-muted text-primary font-mono text-sm sm:text-base md:text-lg break-all" {...props} />,
+                                            code: ({ node, ...props }) => <code className="px-1.5 py-0.5 rounded bg-muted text-primary font-mono text-sm sm:text-base md:text-lg break-words whitespace-pre-wrap" {...props} />,
                                         }}
                                     >
                                         {item.answer}

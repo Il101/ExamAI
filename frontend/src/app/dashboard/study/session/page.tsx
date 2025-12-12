@@ -58,9 +58,21 @@ export default function StudySessionPage() {
             } else {
                 setIsComplete(true);
             }
-        } catch (error) {
+        } catch (error: unknown) {
             console.error('Failed to submit review:', error);
-            toast.error('Failed to save your progress. Please try again.');
+
+            // Extract detailed error message
+            let errorMessage = 'Failed to save your progress. Please try again.';
+            if (error && typeof error === 'object') {
+                const axiosError = error as { response?: { status?: number; data?: { detail?: string } }; message?: string };
+                if (axiosError.response?.status) {
+                    errorMessage = `Error ${axiosError.response.status}: ${axiosError.response.data?.detail || 'Server error'}`;
+                } else if (axiosError.message) {
+                    errorMessage = axiosError.message;
+                }
+            }
+
+            toast.error(errorMessage);
         }
     };
 
