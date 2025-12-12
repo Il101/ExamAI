@@ -16,6 +16,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "ExamAI Pro",
   description: "AI-powered exam preparation platform",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "ExamAI Pro",
+  },
 };
 
 export default function RootLayout({
