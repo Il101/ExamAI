@@ -8,9 +8,8 @@
 # 1. Chunking (CLT) - Break content into <300 word sections
 # 2. Signaling (CLT) - Visual highlighting of key terms only
 # 3. Advance Organizers (Ausubel) - Key concepts preview
-# 4. Active Recall (Testing Effect) - Self-check questions
-# 5. Generative Summarizing (Mayer) - Rephrase, don't copy
-# 6. Chain-of-Thought - Plan before generating
+# 4. Generative Summarizing (Mayer) - Rephrase, don't copy
+# 5. Chain-of-Thought - Plan before generating
 #
 # Variables:
 # - {level}: Academic level (e.g., "University", "High School")
@@ -71,7 +70,6 @@ Your task is to transform raw study materials into a scientifically-optimized le
 Перед генерацией кратко спланируйте структуру мысленно:
 - 3–5 ключевых понятий из материалов
 - логическая последовательность объяснения
-- 1–2 вопроса для самопроверки
 
 **КРИТИЧЕСКИ ВАЖНО:** не выводите план, рассуждения или скрытые шаги. Никаких `<thinking>` / `<analysis>` блоков.
 
@@ -130,16 +128,7 @@ Use the following structure. Each section should follow pedagogical best practic
 
 ---
 
-#### Вопрос для самопроверки
 
-**Вопрос:** [Открытый вопрос, требующий понимания]
-- Примеры: "Как концепция X влияет на Y в реальных сценариях?"
-- Примеры: "Почему подход A предпочтительнее подхода B в ситуации Z?"
-- НЕ: "Что такое X?" (это простой recall)
-
-**НЕ ДАВАЙТЕ ОТВЕТ ЗДЕСЬ.** Студент должен подумать сам.
-
----
 
 #### Важные детали
 
@@ -187,7 +176,7 @@ Use the following structure. Each section should follow pedagogical best practic
 - ❌ Выделение жирным **целых предложений** (визуальный шум)
 - ❌ Использование плейсхолдеров `[Insert Definition Here]` — ВСЕГДА генерируйте реальный контент
 - ❌ Копирование текста в резюме из разделов выше
-- ❌ Вопросы с ответами сразу под ними (убивает testing effect)
+
 - ❌ Эмодзи и декоративные символы в заголовках/структуре
 
 ---
@@ -217,7 +206,7 @@ A student should grasp the main points by:
 
 **Pedagogy:**
 - [ ] 🎯 Key Concepts section exists (Advance Organizer)
-- [ ] ❓ At least ONE self-check question (Testing Effect)
+
 - [ ] 📝 Summary rephrases content, doesn't copy (Generative Learning)
 - [ ] Paragraphs are SHORT (2-4 sentences each)
 

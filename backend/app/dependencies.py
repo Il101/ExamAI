@@ -2,7 +2,6 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.agent.orchestrator import PlanAndExecuteAgent
 from app.core.config import settings
 from app.db.session import get_db
 from app.domain.user import User
@@ -20,7 +19,6 @@ from app.repositories.topic_repository import TopicRepository
 
 # Repositories
 from app.repositories.user_repository import UserRepository
-from app.services.agent_service import AgentService
 
 # Services
 from app.services.auth_service import AuthService
@@ -119,15 +117,6 @@ def get_llm_provider() -> LLMProvider:
         )
 
 
-# --- Agent ---
-
-
-def get_agent(
-    llm_provider: LLMProvider = Depends(get_llm_provider),
-) -> PlanAndExecuteAgent:
-    return PlanAndExecuteAgent(llm_provider, max_topics=settings.MAX_TOPICS)
-
-
 # --- Domain Services ---
 
 
@@ -137,16 +126,6 @@ async def get_exam_service(
     llm_provider: LLMProvider = Depends(get_llm_provider),
 ) -> ExamService:
     return ExamService(exam_repo, cost_guard, llm_provider)
-
-
-async def get_agent_service(
-    agent: PlanAndExecuteAgent = Depends(get_agent),
-    exam_repo: ExamRepository = Depends(get_exam_repo),
-    topic_repo: TopicRepository = Depends(get_topic_repo),
-    review_repo: ReviewItemRepository = Depends(get_review_repo),
-    cost_guard: CostGuardService = Depends(get_cost_guard_service),
-) -> AgentService:
-    return AgentService(agent, exam_repo, topic_repo, review_repo, cost_guard)
 
 
 from app.repositories.review_log_repository import ReviewLogRepository

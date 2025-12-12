@@ -4,7 +4,6 @@ from uuid import UUID
 
 from celery import Task
 
-from app.agent.orchestrator import PlanAndExecuteAgent
 from app.core.config import settings
 from app.db.session import AsyncSessionLocal
 from app.integrations.llm.gemini import GeminiProvider
@@ -13,7 +12,6 @@ from app.repositories.topic_repository import TopicRepository
 from app.repositories.user_repository import UserRepository
 from app.repositories.review_repository import ReviewItemRepository
 from app.domain.topic import Topic
-from app.services.agent_service import AgentService
 from app.services.cost_guard_service import CostGuardService
 from app.services.cache_fallback import CacheFallbackService
 from app.services.content_generation.topic_generator import TopicContentGenerator

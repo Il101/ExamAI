@@ -7,8 +7,7 @@
 # Scientific Principles Applied:
 # 1. Generative Summarizing - Rephrase, don't copy
 # 2. Cornell Method - Key terms glossary for quick review
-# 3. Self-Assessment - Comprehensive check questions
-# 4. Consistent Structure - Reduce extraneous cognitive load
+# 3. Consistent Structure - Reduce extraneous cognitive load
 #
 # Variables:
 # - {exam_type}: Type of exam (e.g., "Final Exam", "Midterm")
@@ -96,7 +95,6 @@ Your job is to **polish the structure**, not rewrite the content. Focus your cre
 - Table of Contents (new)
 - Comprehensive Summary (new, generative)
 - Key Terms Glossary (new)
-- Self-Check Questions (new)
 
 **Review and fix formatting issues only:**
 
@@ -179,44 +177,7 @@ Your job is to **polish the structure**, not rewrite the content. Focus your cre
 
 ---
 
-### 6. Add Self-Check Questions
 
-**Finally, add a comprehensive self-assessment section:**
-
-```markdown
-## ❓ Self-Check Questions
-
-> Test your understanding across all topics
-
-Answer these questions WITHOUT looking back at the notes first. They're designed to test comprehension, not memorization.
-
-### Recall Questions (Basic)
-1. [Question about fundamental concept from Topic 1]
-2. [Question about key term from Topic 3]
-...
-
-### Application Questions (Medium)
-6. [Scenario-based question requiring understanding]
-7. [Question asking to apply concept to new situation]
-...
-
-### Analysis Questions (Advanced)
-11. [Question requiring comparison/evaluation]
-12. [Question asking "why" or "how does X relate to Y"]
-
-**Answers:**
-[Provide brief answers at the end, after a page break or under a collapsible section]
-
----
-```
-
-**Guidelines:**
-- Create 10-15 questions total
-- Mix difficulty: 40% recall, 40% application, 20% analysis
-- Cover different topics (not all from one section)
-- Questions should require understanding, not just memorization
-
----
 
 ## Formatting Guidelines
 
@@ -225,7 +186,7 @@ Answer these questions WITHOUT looking back at the notes first. They're designed
 - Add horizontal rules `---` between major sections
 - Ensure all lists are properly formatted
 - Use tables for comparisons
-- Use emojis sparingly for visual navigation (📚 📝 ❓ 💡 but max 1 per heading)
+- Use emojis sparingly for visual navigation (📚 📝 💡 but max 1 per heading)
 - Keep paragraphs SHORT (2-4 sentences)
 
 ### ❌ DON'T:
@@ -265,12 +226,7 @@ Before outputting, check:
 - [ ] Definitions rephrased (not copied)
 - [ ] Alphabetical order
 
-**Self-Check:**
-- [ ] 10-15 questions covering different topics
-- [ ] Mix of recall/application/analysis
-- [ ] Answers provided at the end
 
----
 
 ## Output Format
 

@@ -8,7 +8,6 @@ from app.core.exceptions import NotFoundException, ValidationException
 from app.core.rate_limit import dynamic_rate_limit
 from app.db.session import get_db
 from app.dependencies import (
-    get_agent_service,
     get_current_active_user,
     get_exam_service,
     get_llm_provider,
@@ -23,7 +22,6 @@ from app.schemas.exam import (
     GenerationStatusResponse,
 )
 from app.schemas.topic import TopicResponse
-from app.services.agent_service import AgentService
 from app.services.exam_service import ExamService
 from app.integrations.llm.base import LLMProvider
 from app.tasks.exam_tasks import generate_exam_content
@@ -185,36 +183,10 @@ async def create_exam_v3(
             # This fixes race condition where Celery worker picks up task before API commits
             await exam_service.exam_repo.session.commit()
             
-            # Feature flag for new unified architecture (A/B testing)
-            use_new_architecture = os.getenv("USE_UNIFIED_GENERATION", "false").lower() == "true"
-            
-            if use_new_architecture:
-                # NEW: Unified architecture
-                # NOTE: Auto-start disabled per user request. User must click "Start Generation".
-                # logger.info(f"Using NEW unified architecture for exam {exam.id}")
-                # from app.tasks.content_generation_tasks import generate_all_topics
-                
-                # # Start generation - task will fetch topics itself
-                # generate_all_topics.delay(
-                #     exam_id=str(exam.id),
-                #     user_id=str(current_user.id),
-                #     cache_name=exam.cache_name
-                # )
-                logger.info(
-                    f"✅ NEW: Plan created for unified exam {exam.id} "
-                    f"(cache: {exam.cache_name or 'none'}). Waiting for manual start."
-                )
-            else:
-                # OLD: Use legacy path (fallback)
-                # NOTE: Auto-start disabled to prevent 504 timeouts. User must click "Start Generation".
-                logger.info(
-                    f"✅ LEGACY: Plan created for exam {exam.id} "
-                    f"(cache: {exam.cache_name or 'none'}). Waiting for manual start."
-                )
-                # Auto-start disabled - causes 504 Gateway Timeout when Gemini takes 2+ minutes
-                # from app.tasks.exam_tasks import generate_exam_content
-                # generate_exam_content.delay(str(exam.id), str(current_user.id))
-                # logger.info(f"Triggered legacy generation for exam {exam.id}")
+            logger.info(
+                f"✅ Plan created for exam {exam.id} "
+                f"(cache: {exam.cache_name or 'none'}). Waiting for manual start."
+            )
                 
         except Exception as e:
             logger.error(f"Failed to trigger generation task: {e}", exc_info=True)
@@ -433,13 +405,32 @@ async def delete_exam(
 async def get_generation_status(
     exam_id: UUID,
     current_user: User = Depends(get_current_active_user),
-    agent_service: AgentService = Depends(get_agent_service),
+    exam_service: ExamService = Depends(get_exam_service),
+    db: AsyncSession = Depends(get_db),
 ):
     """Get generation status"""
 
-    status_data = await agent_service.get_status(current_user.id, exam_id)
-
-    if not status_data:
+    exam = await exam_service.get_exam(current_user.id, exam_id)
+    if not exam:
         raise NotFoundException("Exam", str(exam_id))
 
-    return GenerationStatusResponse(**status_data)
+    topic_repo = TopicRepository(db)
+    topics = await topic_repo.get_by_exam_id(exam_id)
+    total = len(topics)
+    ready = len([t for t in topics if t.status == "ready" and t.content])
+
+    progress = (ready / total) if total else 0.0
+    current_step = None
+    for t in topics:
+        if t.status != "ready":
+            current_step = t.topic_name
+            break
+
+    return GenerationStatusResponse(
+        exam_id=exam_id,
+        status=exam.status,
+        progress=progress,
+        current_step=current_step,
+        total_steps=total if total else None,
+        completed_steps=ready if total else None,
+    )

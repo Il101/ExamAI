@@ -2,7 +2,7 @@
 Flashcard generation service.
 
 Single responsibility: Generate and store flashcards for topics.
-Extracted from AgentService to eliminate duplication.
+Extracted from legacy agent code to eliminate duplication.
 """
 from typing import List, Optional
 from uuid import UUID

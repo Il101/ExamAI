@@ -30,10 +30,7 @@ class ContentGenerationOrchestrator:
     3. Handle progress tracking
     4. Ensure flashcards are created
     
-    This replaces:
-    - AgentService.generate_exam_content (partially)
-    - GenerationService
-    - Multiple Celery tasks
+    This replaces multiple older generation paths and tasks.
     """
     
     def __init__(

@@ -13,7 +13,6 @@ celery_app = Celery(
         "app.tasks.email_tasks",
         "app.tasks.periodic",
         "app.tasks.cleanup_tasks",
-        "app.tasks.content_generation_tasks",  # NEW: Unified architecture
     ],
 )
 
