@@ -25,25 +25,34 @@ class RateLimiter:
         if settings.ENVIRONMENT == "test":
             return
 
-        client_ip = request.client.host if request.client else "127.0.0.1"
-        endpoint = request.url.path
-        key = f"rate_limit:{endpoint}:{client_ip}"
-        
-        r = await self.get_redis()
-        
-        # Simple fixed window counter
-        # Increment request count
-        current = await r.incr(key)
-        
-        # Set expiry on new key
-        if current == 1:
-            await r.expire(key, self.seconds)
+        try:
+            client_ip = request.client.host if request.client else "127.0.0.1"
+            endpoint = request.url.path
+            key = f"rate_limit:{endpoint}:{client_ip}"
             
-        if current > self.times:
-            raise HTTPException(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail=f"Too many requests. Please try again in {self.seconds} seconds."
-            )
+            r = await self.get_redis()
+            
+            # Simple fixed window counter
+            # Increment request count
+            current = await r.incr(key)
+            
+            # Set expiry on new key
+            if current == 1:
+                await r.expire(key, self.seconds)
+                
+            if current > self.times:
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail=f"Too many requests. Please try again in {self.seconds} seconds."
+                )
+        except HTTPException:
+            # Re-raise rate limit errors
+            raise
+        except Exception as e:
+            # Fail open - if Redis is unavailable, allow the request
+            # Log error for monitoring
+            import logging
+            logging.getLogger(__name__).warning(f"Rate limiter error (failing open): {e}")
 
 # Dependency instances
 login_rate_limiter = RateLimiter(times=5, seconds=60) # 5 attempts per minute
