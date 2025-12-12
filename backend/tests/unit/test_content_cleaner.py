@@ -176,6 +176,19 @@ x = 5
         # Should be trimmed
         assert not result.startswith("\n")
 
+    def test_plain_preamble_before_heading(self):
+        """Should drop plain-text planning before first markdown heading."""
+        content = (
+            "thinking\nHere is my plan...\n"
+            "- item 1\n- item 2\n"
+            "### Заголовок\nТекст"
+        )
+        result = strip_thinking_tags(content)
+        assert result.startswith("### Заголовок")
+        assert "Here is my plan" not in result
+        assert "- item 1" not in result
+        assert "Текст" in result
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

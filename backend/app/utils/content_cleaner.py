@@ -41,6 +41,22 @@ def strip_thinking_tags(content: str) -> str:
         flags=re.IGNORECASE,
     )
 
+    # If the model emitted a plain-text preamble (e.g., "thinking" / planning)
+    # before the actual Markdown, drop everything before the first heading.
+    # This keeps the output parseable and prevents meta text from leaking.
+    first_heading_pos = None
+    in_fence = False
+    offset = 0
+    for line in cleaned.splitlines(keepends=True):
+        if re.match(r"^\s*```", line):
+            in_fence = not in_fence
+        if not in_fence and re.match(r"^\s*#{1,6}\s+.+$", line):
+            first_heading_pos = offset
+            break
+        offset += len(line)
+    if first_heading_pos is not None:
+        cleaned = cleaned[first_heading_pos:]
+
     return cleaned.strip()
 
 
