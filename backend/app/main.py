@@ -122,6 +122,22 @@ def apply_error_cors_headers(response: JSONResponse, origin: str) -> JSONRespons
     return response
 
 
+def sanitize_validation_errors(errors):
+    sanitized = []
+    for err in errors or []:
+        safe_err = {}
+        for key, value in err.items():
+            if key == "ctx" and isinstance(value, dict):
+                safe_err[key] = {
+                    ctx_key: (str(ctx_val) if isinstance(ctx_val, Exception) else ctx_val)
+                    for ctx_key, ctx_val in value.items()
+                }
+            else:
+                safe_err[key] = value
+        sanitized.append(safe_err)
+    return sanitized
+
+
 # Initialize rate limiter with Redis storage
 limiter = Limiter(
     key_func=get_rate_limit_key,
@@ -174,13 +190,14 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     """Handle FastAPI validation errors with CORS headers"""
+    details = sanitize_validation_errors(exc.errors() if hasattr(exc, "errors") else None)
     response = JSONResponse(
         status_code=422,
         content={
             "error": {
                 "code": "VALIDATION_ERROR",
                 "message": "Validation error",
-                "details": exc.errors() if hasattr(exc, 'errors') else str(exc),
+                "details": details,
                 "request_id": (
                     request.state.request_id
                     if hasattr(request.state, "request_id")
