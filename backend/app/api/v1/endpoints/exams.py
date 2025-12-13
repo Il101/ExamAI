@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, Query, Request, status, File, UploadFile, Form
@@ -39,7 +39,7 @@ async def create_exam_v3(
     subject: str = Form(...),
     exam_type: str = Form(...),
     level: str = Form(...),
-    file: UploadFile = File(...),
+    files: List[UploadFile] = File(...),
     current_user: User = Depends(get_current_active_user),
     exam_service: ExamService = Depends(get_exam_service),
     llm_provider: LLMProvider = Depends(get_llm_provider),
@@ -48,12 +48,11 @@ async def create_exam_v3(
     Create exam with automatic plan generation and caching (v3.0).
     
     This endpoint:
-    1. Accepts file upload (PDF, DOCX, TXT, MP3, MP4)
+    1. Accepts multiple file uploads (PDF, DOCX, TXT, MP3, MP4)
     2. Extracts content using Gemini File API
     3. Creates exam with generated plan
-    4. Creates Gemini cache and uploads to S3
-    5. Triggers prefetch for first 2 topics
-    6. Returns exam with plan
+    4. Creates Gemini cache and uploads sources to storage
+    5. Returns exam with plan ready for generation
     
     Rate limits:
     - Free tier: 50 requests/hour
@@ -67,25 +66,20 @@ async def create_exam_v3(
         get_storage, get_cache_manager
     )
     from app.core.config import settings
-    from google.genai import types
     import tempfile
     import os
     
     import aiofiles
     
-    tmp_path = None
-    pdf_path = None
-    warnings = []
+    tmp_paths: list[str] = []
+    pdf_paths: list[str] = []
+    warnings: list[str] = []
+    gemini_files: list[dict] = []
+    stored_files: list[dict] = []
     
     try:
-        # Validate file size (10MB limit)
-        MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
-        content_bytes = await file.read()
-        
-        if len(content_bytes) > MAX_FILE_SIZE:
-            raise ValidationException("File too large. Maximum size is 10MB.")
-        
-        # Validate file type
+        MAX_FILES = 5
+        MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB per file
         allowed_types = [
             "application/pdf",
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -93,73 +87,104 @@ async def create_exam_v3(
             "audio/mpeg",
             "video/mp4",
         ]
-        
-        if file.content_type not in allowed_types:
-            raise ValidationException(
-                f"Unsupported file type: {file.content_type}. "
-                "Supported types: PDF, DOCX, TXT, MP3, MP4"
-            )
-        
-        # Create temp file (async write)
-        # We use NamedTemporaryFile just to generate a unique safe path
-        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1]) as tmp:
-            tmp_path = tmp.name
-            
-        async with aiofiles.open(tmp_path, 'wb') as f:
-            await f.write(content_bytes)
-        
-        # Get Gemini client
+
+        if len(files) > MAX_FILES:
+            raise ValidationException(f"Too many files. Maximum {MAX_FILES} allowed.")
+
+        # Get Gemini client once
         client = llm_provider.client
-        
-        # 1. Upload to Gemini (for Context Caching)
-        uploaded_file = client.files.upload(file=tmp_path, config={'mime_type': file.content_type})
-        gemini_file_uri = uploaded_file.uri
-        logger.info(f"Uploaded file '{file.filename}' ({file.content_type}) to Gemini: {gemini_file_uri}")
-        
-        # 2. Upload to Supabase Storage (Source of Truth)
-        storage_path = None
-        media_supported_types = ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"]
-        
-        # We process all supported media types by uploading separate copy to storage
-        if file.content_type in media_supported_types:
-            try:
-                # Ensure we have a PDF (or keep docx if supported by storage viewer, but PDF is safer)
-                # For now, let's just upload the raw file as is or convert if needed
-                # The 'ensure_pdf' utility is good for standardizing
-                from app.utils.pdf_converter import ensure_pdf
-                from starlette.concurrency import run_in_threadpool
-                
-                # ensure_pdf uses blocking subprocess, so run in threadpool
-                pdf_path = await run_in_threadpool(ensure_pdf, tmp_path, file.content_type)
-                
-                # Upload PDF to storage
-                filename = f"{uuid4()}.pdf"
-                storage_path = f"exams/source/{filename}"
-                
-                async with aiofiles.open(pdf_path, "rb") as f:
-                    file_data = await f.read()
-                    
-                await get_storage().upload_file(file_data, storage_path)
-                    
-                logger.info(f"Successfully processed and stored source file: {storage_path}")
-                
-            except Exception as e:
-                logger.error(f"Source file upload failed: {e}", exc_info=True)
-                warnings.append("Failed to backup source file.")
+
+        for upload in files:
+            # Validate file size (10MB limit)
+            content_bytes = await upload.read()
+
+            if len(content_bytes) > MAX_FILE_SIZE:
+                raise ValidationException("File too large. Maximum size is 10MB per file.")
+
+            if upload.content_type not in allowed_types:
+                raise ValidationException(
+                    f"Unsupported file type: {upload.content_type}. "
+                    "Supported types: PDF, DOCX, TXT, MP3, MP4"
+                )
+
+            # Create temp file (async write)
+            with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(upload.filename)[1]) as tmp:
+                tmp_path = tmp.name
+
+            tmp_paths.append(tmp_path)
+
+            async with aiofiles.open(tmp_path, 'wb') as f:
+                await f.write(content_bytes)
+
+            # 1. Upload to Gemini (for Context Caching)
+            uploaded_file = client.files.upload(file=tmp_path, config={'mime_type': upload.content_type})
+            gemini_files.append({
+                "uri": uploaded_file.uri,
+                "mime_type": upload.content_type,
+                "filename": upload.filename,
+            })
+            logger.info(
+                f"Uploaded file '{upload.filename}' ({upload.content_type}) to Gemini: {uploaded_file.uri}"
+            )
+
+            # 2. Upload to Supabase Storage (Source of Truth)
+            media_supported_types = [
+                "application/pdf",
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            ]
+
+            storage_path = None
+
+            if upload.content_type in media_supported_types:
+                try:
+                    from app.utils.pdf_converter import ensure_pdf
+                    from starlette.concurrency import run_in_threadpool
+
+                    pdf_path = await run_in_threadpool(ensure_pdf, tmp_path, upload.content_type)
+                    pdf_paths.append(pdf_path)
+
+                    filename = f"{uuid4()}.pdf"
+                    storage_path = f"exams/source/{filename}"
+
+                    async with aiofiles.open(pdf_path, "rb") as f:
+                        file_data = await f.read()
+
+                    await get_storage().upload_file(file_data, storage_path)
+
+                    stored_files.append({
+                        "storage_path": storage_path,
+                        "mime_type": "application/pdf",
+                        "filename": upload.filename,
+                    })
+
+                    logger.info(f"Successfully processed and stored source file: {storage_path}")
+
+                except Exception as e:
+                    logger.error(f"Source file upload failed: {e}", exc_info=True)
+                    warnings.append(f"Failed to backup source file: {upload.filename}")
+            else:
+                stored_files.append({
+                    "storage_path": None,
+                    "mime_type": upload.content_type,
+                    "filename": upload.filename,
+                })
+
+        if not gemini_files:
+            raise ValidationException("No files uploaded")
 
         # 3. Extract text from file for AI processing
-        # NOTE: We don't extract text anymore - file is processed via Gemini Files API
-        # Setting original_content to empty when file is uploaded
-        original_content = ""  # Content is in gemini_file_uri, not extracted text
-        
+        original_content = ""  # Content is in Gemini Files API, not extracted text
+
         # Initialize services
         llm = GeminiProvider(api_key=settings.GEMINI_API_KEY, model=settings.GEMINI_MODEL)
         planner = CachedCoursePlanner(llm_provider=llm)
         store = get_storage()
         cache_manager = get_cache_manager()
-        
-        # Create exam with plan
-        # Note: 'gemini_file_uri' is passed so Planner will create cache from it directly
+
+        # Create exam with plan (multi-file aware)
+        primary_gemini_uri = gemini_files[0]["uri"] if gemini_files else None
+        primary_mime = gemini_files[0]["mime_type"] if gemini_files else None
+
         exam, plan = await create_exam_with_plan(
             exam_service=exam_service,
             user=current_user,
@@ -171,41 +196,46 @@ async def create_exam_v3(
             planner=planner,
             storage=store,
             cache_manager=cache_manager,
-            original_file_url=storage_path,
-            original_file_mime_type="application/pdf" if file.content_type in media_supported_types else file.content_type,
-            gemini_file_uri=gemini_file_uri
+            original_file_url=stored_files[0].get("storage_path") if stored_files else None,
+            original_file_mime_type=stored_files[0].get("mime_type") if stored_files else primary_mime,
+            gemini_file_uri=primary_gemini_uri,
+            original_files=stored_files,
+            gemini_files=gemini_files,
         )
-        
-        
+
         # Trigger Async Content Generation
         try:
-            # Commit transaction explicitly to ensure exam exists in DB before task starts
-            # This fixes race condition where Celery worker picks up task before API commits
             await exam_service.exam_repo.session.commit()
-            
+
             logger.info(
                 f"✅ Plan created for exam {exam.id} "
                 f"(cache: {exam.cache_name or 'none'}). Waiting for manual start."
             )
-                
+
         except Exception as e:
             logger.error(f"Failed to trigger generation task: {e}", exc_info=True)
-            
+
         # Save Metadata for File-Based Cache Recovery
-        if storage_path:
-            try:
-                import json
-                meta = {
-                    "url": storage_path,
-                    "mime_type": "application/pdf" if file.content_type in media_supported_types else file.content_type
-                }
-                await store.upload_file(
-                    json.dumps(meta).encode('utf-8'),
-                    f"exams/{exam.id}/source_meta.json"
-                )
-                logger.info(f"Saved recovery metadata for exam {exam.id}")
-            except Exception as e:
-                logger.warning(f"Failed to save recovery metadata: {e}")
+        try:
+            import json
+
+            meta = []
+            for idx, gf in enumerate(gemini_files):
+                storage_info = stored_files[idx] if idx < len(stored_files) else {}
+                meta.append({
+                    "gemini_uri": gf.get("uri"),
+                    "mime_type": gf.get("mime_type"),
+                    "filename": gf.get("filename"),
+                    "storage_path": storage_info.get("storage_path"),
+                })
+
+            await store.upload_file(
+                json.dumps(meta).encode('utf-8'),
+                f"exams/{exam.id}/source_meta.json"
+            )
+            logger.info(f"Saved recovery metadata for exam {exam.id}")
+        except Exception as e:
+            logger.warning(f"Failed to save recovery metadata: {e}")
 
         response_data = {
             "exam": ExamResponse.model_validate(exam).model_dump(),
@@ -223,19 +253,21 @@ async def create_exam_v3(
     
     finally:
         # Guaranteed cleanup of all temp files
-        if tmp_path and os.path.exists(tmp_path):
-            try:
-                os.unlink(tmp_path)
-                logger.debug(f"Cleaned up temp file: {tmp_path}")
-            except Exception as e:
-                logger.warning(f"Failed to cleanup temp file {tmp_path}: {e}")
+        for tmp_path in tmp_paths:
+            if tmp_path and os.path.exists(tmp_path):
+                try:
+                    os.unlink(tmp_path)
+                    logger.debug(f"Cleaned up temp file: {tmp_path}")
+                except Exception as e:
+                    logger.warning(f"Failed to cleanup temp file {tmp_path}: {e}")
         
-        if 'pdf_path' in locals() and pdf_path and pdf_path != tmp_path and os.path.exists(pdf_path):
-            try:
-                os.unlink(pdf_path)
-                logger.debug(f"Cleaned up PDF file: {pdf_path}")
-            except Exception as e:
-                logger.warning(f"Failed to cleanup PDF file {pdf_path}: {e}")
+        for pdf_path in pdf_paths:
+            if pdf_path and os.path.exists(pdf_path):
+                try:
+                    os.unlink(pdf_path)
+                    logger.debug(f"Cleaned up PDF file: {pdf_path}")
+                except Exception as e:
+                    logger.warning(f"Failed to cleanup PDF file {pdf_path}: {e}")
 
 
 

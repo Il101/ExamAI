@@ -39,7 +39,9 @@ async def create_exam_with_plan(
     cache_manager: ContextCacheManager,
     original_file_url: str = None,
     original_file_mime_type: str = None,
-    gemini_file_uri: str = None  # URI for direct Gemini caching (optional)
+    gemini_file_uri: str = None,  # URI for direct Gemini caching (optional)
+    original_files: list[dict] | None = None,
+    gemini_files: list[dict] | None = None,
 ) -> Tuple[Exam, ExamPlan]:
     """
     Create exam with automatic plan generation and caching (v3.0)
@@ -89,7 +91,8 @@ async def create_exam_with_plan(
         storage=storage,
         exam_id=exam.id,
         file_uri=gemini_file_uri,
-        mime_type=original_file_mime_type or "application/pdf"
+        mime_type=original_file_mime_type or "application/pdf",
+        file_inputs=gemini_files,
     )
     
     # 3. Create Topic records from plan
@@ -116,6 +119,10 @@ async def create_exam_with_plan(
     logger.info(f"Created {len(created_topics)} Topic records for exam {exam.id}")
     
     # 4. Prepare updates dictionary
+    primary_file = None
+    if original_files:
+        primary_file = next((f for f in original_files if f.get("storage_path")), None)
+
     updates = {
         "plan_data": plan.model_dump(),
         "cache_name": cache_name,
@@ -123,8 +130,8 @@ async def create_exam_with_plan(
         "status": "planned",
         "plan_ready_at": datetime.now(timezone.utc),
         "topic_count": plan.total_topics,
-        "original_file_url": original_file_url,
-        "original_file_mime_type": original_file_mime_type,
+        "original_file_url": (primary_file or {}).get("storage_path", original_file_url),
+        "original_file_mime_type": (primary_file or {}).get("mime_type", original_file_mime_type),
     }
     
     if cache_name:

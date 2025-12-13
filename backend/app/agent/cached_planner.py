@@ -38,7 +38,8 @@ class CachedCoursePlanner(CoursePlanner):
         storage: SupabaseStorage,
         exam_id: UUID,
         file_uri: Optional[str] = None,
-        mime_type: str = "application/pdf"
+        mime_type: str = "application/pdf",
+        file_inputs: Optional[list[dict]] = None,
     ) -> Tuple[ExamPlan, Optional[str]]:
         """
         Generate plan and create cache simultaneously
@@ -71,7 +72,30 @@ class CachedCoursePlanner(CoursePlanner):
         cache_name = None
         
         # Strategy A: Direct File Cache (Required for file uploads)
-        if file_uri:
+        if file_inputs:
+            files_for_cache = [
+                (item["uri"], item.get("mime_type", "application/pdf"))
+                for item in file_inputs
+                if item.get("uri")
+            ]
+
+            if not files_for_cache:
+                raise ValueError("No valid file URIs provided for cache creation")
+
+            try:
+                logger.info(
+                    f"Creating cache from {len(files_for_cache)} uploaded files for exam {exam_id}"
+                )
+                cache_name = await cache_manager.create_cache_from_files(
+                    exam_id,
+                    files_for_cache,
+                    ttl_seconds=3600,
+                )
+            except Exception as e:
+                logger.error("Failed to create multi-file cache", exc_info=True)
+                raise
+
+        elif file_uri:
             # Retry logic for cache creation (Gemini API can be temporarily overloaded)
             max_retries = 3
             retry_delay = 5  # Start with 5 seconds

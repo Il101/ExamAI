@@ -1,7 +1,7 @@
 """Gemini Context Cache Manager"""
 from google import genai
 from datetime import datetime, timedelta
-from typing import Optional, Dict
+from typing import Optional, Dict, List, Tuple
 from uuid import UUID
 import logging
 
@@ -112,6 +112,69 @@ class ContextCacheManager:
             
         except Exception as e:
             logger.error(f"[CacheManager] ❌ Failed to create file cache for exam {exam_id}: {e}", exc_info=True)
+            raise
+
+    async def create_cache_from_files(
+        self,
+        exam_id: Optional[UUID],
+        files: List[Tuple[str, str]],
+        ttl_seconds: int = 3600,
+    ) -> str:
+        """
+        Create context cache from multiple files (Gemini Files API URIs).
+
+        Args:
+            exam_id: Exam UUID or None
+            files: List of tuples (file_uri, mime_type)
+            ttl_seconds: Time to live in seconds
+
+        Returns:
+            Cache name
+        """
+        try:
+            from app.core.config import settings
+
+            if not files:
+                raise ValueError("No files provided for cache creation")
+
+            parts = [
+                {"file_data": {"file_uri": uri, "mime_type": mime}}
+                for uri, mime in files
+            ]
+
+            logger.info(
+                f"[CacheManager] Creating cache from {len(files)} files for exam {exam_id}"
+            )
+
+            cache = await self.client.aio.caches.create(
+                model=settings.GEMINI_MODEL,
+                config={
+                    "contents": [
+                        {
+                            "role": "user",
+                            "parts": parts,
+                        }
+                    ],
+                    "ttl": f"{ttl_seconds}s",
+                    "display_name": f"exam_{exam_id}" if exam_id else None,
+                },
+            )
+
+            if exam_id:
+                self.caches[str(exam_id)] = {
+                    "name": cache.name,
+                    "created_at": datetime.now(),
+                    "expires_at": datetime.now() + timedelta(seconds=ttl_seconds),
+                }
+
+            logger.info(f"[CacheManager] ✅ Successfully created multi-file cache: {cache.name}")
+            return cache.name
+
+        except Exception as e:
+            logger.error(
+                f"[CacheManager] ❌ Failed to create multi-file cache for exam {exam_id}: {e}",
+                exc_info=True,
+            )
             raise
     
     async def refresh_cache(self, cache_name: str, ttl_seconds: int = 3600) -> None:
