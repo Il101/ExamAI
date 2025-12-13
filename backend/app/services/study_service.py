@@ -96,14 +96,13 @@ class StudyService:
             updated = await self.review_repo.update(item)
             
             # Create Review Log (uses flush, not commit)
-            # NOTE: passing naive datetime because ReviewLogModel.review_time was created without timezone=True
-            review_time_naive = datetime.now(timezone.utc).replace(tzinfo=None)
-            
+            review_time = datetime.now(timezone.utc)
+
             log = ReviewLog(
                 user_id=user_id,
                 review_item_id=review_item_id,
                 rating=quality,
-                review_time=review_time_naive,
+                review_time=review_time,
                 interval_days=item.elapsed_days,
                 scheduled_days=item.scheduled_days,
                 stability=item.stability,
@@ -146,21 +145,26 @@ class StudyService:
         # Calculate intervals for each rating
         intervals = {}
         
+        anchor_time = datetime.now(timezone.utc)
+
         for rating in [1, 2, 3, 4]:
             # Create a copy of the item to simulate the review
             from copy import deepcopy
             temp_item = deepcopy(item)
             
             # Apply rating to get next interval
-            temp_item.review(rating)
-            
-            # Determine if result is in minutes (learning) or days (review)
+            temp_item.review(rating, review_time=anchor_time)
+
+            delta_seconds = (temp_item.next_review_date - anchor_time).total_seconds()
+
             if temp_item.state in ("learning", "relearning"):
-                # Learning steps are in minutes
-                intervals[self._rating_name(rating)] = temp_item.scheduled_days or 1
+                # Learning steps are minute-based; ensure at least 1 minute
+                minutes = max(1, round(delta_seconds / 60))
+                intervals[self._rating_name(rating)] = minutes
             else:
-                # Review state uses days
-                intervals[self._rating_name(rating)] = temp_item.scheduled_days
+                # Review state uses days; ensure at least 1 day
+                days = max(1, round(delta_seconds / 86400))
+                intervals[self._rating_name(rating)] = days
         
         return intervals
     
@@ -182,12 +186,16 @@ class StudyService:
             }
         """
         reviews_due = await self.review_repo.count_due_by_user(user_id)
+        total_learned = await self.review_repo.count_total_learned(user_id)
         current_streak, _ = await self.session_repo.get_streak_stats(user_id)
 
+        review_stats = await self.review_log_repo.get_summary_stats(user_id)
+
         return {
-            "total_reviews": 0,  # Placeholder until we add total count to log repo if needed
-            "reviews_due": reviews_due,
-            "success_rate": 0.0,
+            "total_reviews": review_stats["total_reviews"],
+            "items_due": reviews_due,
+            "items_learned": total_learned,
+            "success_rate": review_stats["success_rate"],
             "streak_days": current_streak,
         }
 
@@ -208,7 +216,7 @@ class StudyService:
         quizzes_map = {q["date"]: q for q in daily_quizzes}
 
         daily_progress = []
-        today = date.today()
+        today = datetime.now(timezone.utc).date()
         for i in range(6, -1, -1):
             day = today - timedelta(days=i)
             review_data = reviews_map.get(day, {"count": 0, "learned": 0})

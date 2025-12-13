@@ -12,7 +12,7 @@ class ReviewLogModel(Base):
     review_item_id = Column(UUID(as_uuid=True), ForeignKey("review_items.id"), nullable=False, index=True)
     
     rating = Column(Integer, nullable=False)
-    review_time = Column(DateTime, nullable=False, index=True)
+    review_time = Column(DateTime(timezone=True), nullable=False, index=True)
     
     interval_days = Column(Integer, nullable=False)
     scheduled_days = Column(Integer, nullable=False)

@@ -31,55 +31,44 @@ class ReviewLogRepository(BaseRepository[ReviewLog, ReviewLogModel]):
         Calculate retention curve based on review history.
         Groups reviews by interval buckets and calculates pass rate.
         """
-        # Buckets: 1, 3, 7, 14, 30 days
-        # We want to find the average retention rate for reviews that happened around these intervals.
-        
-        # Query: Select interval_days, count(*), sum(case when rating > 1 then 1 else 0 end)
-        # Group by interval_days
-        
+        # Buckets now include same-day (0) to capture learning steps; success = rating >= 3.
+
         stmt = (
             select(
                 ReviewLogModel.interval_days,
                 func.count().label("total"),
-                func.sum(case((ReviewLogModel.rating > 1, 1), else_=0)).label("passed")
+                func.sum(case((ReviewLogModel.rating >= 3, 1), else_=0)).label("passed")
             )
             .where(ReviewLogModel.user_id == user_id)
             .group_by(ReviewLogModel.interval_days)
         )
-        
+
         result = await self.session.execute(stmt)
-        
-        # Aggregate into buckets
-        buckets = {1: [], 3: [], 7: [], 14: [], 30: []}
-        
+
+        buckets = {0: [], 1: [], 3: [], 7: [], 14: [], 30: []}
+
         for row in result:
             interval = row.interval_days
             total = row.total
             passed = row.passed or 0
-            
-            # Find closest bucket
+
             closest_bucket = min(buckets.keys(), key=lambda x: abs(x - interval))
-            
-            # Only include if it's reasonably close (e.g. within 20% or +/- 1 day)
-            # For simplicity, we just map to closest for now
             buckets[closest_bucket].append((total, passed))
-            
+
         retention_points = []
         for days in sorted(buckets.keys()):
             data = buckets[days]
             if not data:
-                # No data for this bucket
                 retention = 0.0
             else:
                 total_reviews = sum(d[0] for d in data)
                 total_passed = sum(d[1] for d in data)
                 retention = total_passed / total_reviews if total_reviews > 0 else 0.0
-                
-            retention_points.append(RetentionPoint(
-                days_since_review=days,
-                retention_rate=round(retention, 2)
-            ))
-            
+
+            retention_points.append(
+                RetentionPoint(days_since_review=days, retention_rate=round(retention, 2))
+            )
+
         return retention_points
 
     async def get_daily_activity(self, user_id: UUID, days: int = 30) -> List[Dict[str, Any]]:
@@ -89,8 +78,8 @@ class ReviewLogRepository(BaseRepository[ReviewLog, ReviewLogModel]):
         Returns list of dicts: [{"date": date, "count": int, "learned": int}]
         where "learned" counts ratings >= 3.
         """
-        # Use timezone-naive datetime to match PostgreSQL TIMESTAMP WITHOUT TIME ZONE column
-        start_date = datetime.utcnow() - timedelta(days=days)
+        # Use UTC to ensure consistent day boundaries across deployments
+        start_date = datetime.now(timezone.utc) - timedelta(days=days)
 
         stmt = (
             select(
@@ -117,3 +106,25 @@ class ReviewLogRepository(BaseRepository[ReviewLog, ReviewLogModel]):
             })
 
         return activity
+
+    async def get_summary_stats(self, user_id: UUID) -> Dict[str, Any]:
+        """Return total reviews and success rate for a user."""
+        stmt = (
+            select(
+                func.count(ReviewLogModel.id).label("total_reviews"),
+                func.sum(case((ReviewLogModel.rating >= 3, 1), else_=0)).label("passed_reviews"),
+            )
+            .where(ReviewLogModel.user_id == user_id)
+        )
+
+        result = await self.session.execute(stmt)
+        row = result.one()
+
+        total_reviews = row.total_reviews or 0
+        passed = row.passed_reviews or 0
+        success_rate = passed / total_reviews if total_reviews else 0.0
+
+        return {
+            "total_reviews": total_reviews,
+            "success_rate": round(success_rate, 2),
+        }
