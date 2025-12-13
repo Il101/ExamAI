@@ -9,6 +9,7 @@ import { Breadcrumbs, BreadcrumbItem } from '@/components/ui/breadcrumbs';
 import { TopicSidebar } from '@/components/exam/topic-sidebar';
 import { TopicNavigation } from '@/components/exam/topic-navigation';
 import { AiTutorChat } from '@/components/exam/ai-tutor-chat';
+import { MobileAiTutor } from '@/components/exam/mobile-ai-tutor';
 import { CheckYourself } from '@/components/exam/check-yourself';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -339,6 +340,9 @@ export default function TopicDetailPage() {
                     <AiTutorChat topicId={topicId} />
                 </div>
             </aside>
+
+            {/* Mobile AI Tutor - Floating button + Bottom sheet */}
+            <MobileAiTutor topicId={topicId} />
         </div>
     );
 }

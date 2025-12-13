@@ -9,12 +9,14 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { cn } from '@/lib/utils';
 
 interface AiTutorChatProps {
     topicId: string;
+    className?: string;
 }
 
-export function AiTutorChat({ topicId }: AiTutorChatProps) {
+export function AiTutorChat({ topicId, className }: AiTutorChatProps) {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -107,7 +109,7 @@ export function AiTutorChat({ topicId }: AiTutorChatProps) {
     }
 
     return (
-        <div className="flex flex-col h-[600px]">
+        <div className={cn("flex flex-col h-[600px]", className)}>
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-thin scrollbar-thumb-zinc-200 dark:scrollbar-thumb-zinc-800">
                 {messages.length === 0 ? (

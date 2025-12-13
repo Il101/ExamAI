@@ -11,7 +11,6 @@ import {
     Brain,
     Clock,
     Target,
-    Target,
     Loader2,
     Play
 } from 'lucide-react';

@@ -9,7 +9,8 @@ import {
 import { cn } from '@/lib/utils';
 import { studyApi, StudySession } from '@/lib/api/study';
 import { ExamSelectModal } from '@/components/modals/exam-select-modal';
-Tooltip,
+import {
+    Tooltip,
     TooltipContent,
     TooltipProvider,
     TooltipTrigger,
