@@ -9,6 +9,11 @@ import {
 import { cn } from '@/lib/utils';
 import { studyApi, StudySession } from '@/lib/api/study';
 import { ExamSelectModal } from '@/components/modals/exam-select-modal';
+Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 
 type TimerState = 'work' | 'shortBreak' | 'longBreak';
@@ -142,16 +147,25 @@ export function HeaderTimer() {
             />
 
             <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className={cn("h-9 gap-2 font-mono", isActive && "text-blue-500 bg-blue-500/10")}>
-                        {timerState === 'work' ? (
-                            <Brain className="h-4 w-4" />
-                        ) : (
-                            <Coffee className="h-4 w-4" />
-                        )}
-                        <span>{formatTime(timeLeft)}</span>
-                    </Button>
-                </DropdownMenuTrigger>
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm" className={cn("h-9 gap-2 font-mono", isActive && "text-blue-500 bg-blue-500/10")}>
+                                    {timerState === 'work' ? (
+                                        <Brain className="h-4 w-4" />
+                                    ) : (
+                                        <Coffee className="h-4 w-4" />
+                                    )}
+                                    <span>{formatTime(timeLeft)}</span>
+                                </Button>
+                            </DropdownMenuTrigger>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Pomodoro Timer: Track your focus time</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
                 <DropdownMenuContent className="w-80 p-4" align="end">
                     <div className="flex flex-col space-y-4">
                         <div className="flex items-center justify-between">

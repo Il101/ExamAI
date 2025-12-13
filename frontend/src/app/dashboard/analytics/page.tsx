@@ -11,8 +11,16 @@ import {
     Brain,
     Clock,
     Target,
-    Loader2
+    Target,
+    Loader2,
+    Play
 } from 'lucide-react';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 export default function AnalyticsPage() {
     const { stats, isLoading } = useAnalytics();
@@ -72,8 +80,25 @@ export default function AnalyticsPage() {
                         <Clock className="h-8 w-8 text-green-600" />
                     </div>
                     <p className="text-sm text-gray-600 mb-1">Study Time</p>
-                    <p className="text-3xl font-bold">{stats?.total_minutes_studied || 0}</p>
-                    <p className="text-xs text-gray-500">minutes</p>
+                    <div className="flex items-baseline gap-2">
+                        <p className="text-3xl font-bold">{stats?.total_minutes_studied || 0}</p>
+                        <p className="text-xs text-gray-500">minutes</p>
+                    </div>
+                    {(!stats?.total_minutes_studied || stats.total_minutes_studied === 0) && (
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <div className="flex items-center gap-1 mt-2 text-xs text-blue-600 cursor-pointer hover:underline">
+                                        <Play className="h-3 w-3" />
+                                        <span>Start Session</span>
+                                    </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Click the timer 🧠 in the header to start tracking!</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    )}
                 </Card>
 
                 <Card className="p-6">

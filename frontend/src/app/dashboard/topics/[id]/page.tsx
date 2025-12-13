@@ -12,7 +12,8 @@ import { AiTutorChat } from '@/components/exam/ai-tutor-chat';
 import { CheckYourself } from '@/components/exam/check-yourself';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Clock, BarChart3, AlertCircle, ChevronRight, Edit, Save, X } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Loader2, Clock, BarChart3, AlertCircle, ChevronRight, Edit, Save, X, Brain } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { cn } from '@/lib/utils';
@@ -280,6 +281,17 @@ export default function TopicDetailPage() {
                                 {currentIndex + 1}/{topics.length}
                             </div>
                         </div>
+                    </div>
+
+                    {/* Onboarding Banner */}
+                    <div className="mb-6">
+                        <Alert className="bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800">
+                            <Brain className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                            <AlertTitle className="text-blue-800 dark:text-blue-300">Ready to focus?</AlertTitle>
+                            <AlertDescription className="text-blue-600 dark:text-blue-400 mt-1">
+                                Start a study session from the timer 🧠 in the header to track your progress and breaks.
+                            </AlertDescription>
+                        </Alert>
                     </div>
 
                     {/* Topic Content - BlockNote Editor */}

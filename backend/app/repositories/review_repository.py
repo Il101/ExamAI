@@ -141,7 +141,7 @@ class ReviewItemRepository(BaseRepository[ReviewItem, ReviewItemModel]):
             .select_from(ReviewItemModel)
             .where(
                 ReviewItemModel.user_id == user_id,
-                ReviewItemModel.state.in_(['review', 'relearning'])
+                ReviewItemModel.state.in_(['learning', 'review', 'relearning'])
             )
         )
         result = await self.session.execute(stmt)

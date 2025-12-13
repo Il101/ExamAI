@@ -271,7 +271,7 @@ class StudyService:
         
         # Include quiz statistics
         quiz_stats = await self.quiz_result_repo.get_user_stats(user_id)
-        total_cards_with_quizzes = total_learned + quiz_stats["questions_correct"]
+        total_cards_with_quizzes = total_learned  # Was: + quiz_stats["questions_correct"]
         
         # Streaks
         current_streak, longest_streak = await self.session_repo.get_streak_stats(user_id)
