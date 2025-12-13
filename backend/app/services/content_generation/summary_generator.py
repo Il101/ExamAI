@@ -21,7 +21,7 @@ class ExamSummaryGenerator:
         self.llm = llm_provider
 
     @staticmethod
-    def _extract_gist(content: str, max_chars: int = 1000) -> str:
+    def _extract_gist(content: str, max_chars: int = 2000) -> str:  # Increased from 1000 to provide more context
         if not content:
             return ""
         text = clean_ai_content(content, content_type="executor")
@@ -41,7 +41,7 @@ class ExamSummaryGenerator:
         return "\n".join(lines)
 
     @staticmethod
-    def _normalize_bullets(markdown: str, max_lines: int = 15) -> str:
+    def _normalize_bullets(markdown: str, max_lines: int = 25) -> str:  # Increased from 15 to allow longer summaries
         if not markdown:
             return ""
 
@@ -95,7 +95,7 @@ class ExamSummaryGenerator:
         response = await self.llm.generate(
             prompt=prompt,
             temperature=0.2,
-            max_tokens=700,
+            max_tokens=2000,  # Increased from 700 to allow longer summaries
             system_prompt=(
                 "You write short, accurate study TL;DRs. "
                 "Never reveal hidden reasoning or meta text."

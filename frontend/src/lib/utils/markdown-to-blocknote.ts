@@ -39,12 +39,15 @@ export async function markdownToBlockNote(markdown: string): Promise<Block[]> {
                 continue;
             }
 
-            // Heading detection
-            const headingMatch = line.match(/^(#{1,3})\s+(.+)/);
+            // Heading detection (H1-H6)
+            // BlockNote only supports levels 1-3, so we cap deeper headings at level 3
+            const headingMatch = line.match(/^(#{1,6})\s+(.+)/);
             if (headingMatch) {
+                const rawLevel = headingMatch[1].length;
+                const level = Math.min(rawLevel, 3) as 1 | 2 | 3;
                 blocks.push({
                     type: 'heading',
-                    props: { level: headingMatch[1].length as 1 | 2 | 3 },
+                    props: { level },
                     content: parseInlineFormatting(headingMatch[2]),
                 });
                 continue;

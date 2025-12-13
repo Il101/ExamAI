@@ -225,170 +225,84 @@ class QuizGenerator:
     async def generate_mcq_quiz(
         self, 
         content: str, 
-        num_questions: int = 5,
-        cache_name: str = None,
-        exam_id: "UUID" = None
+        num_questions: int = 5
     ) -> List[MCQQuestion]:
         """
         Generate multiple choice questions from the provided content.
-
+        
         Args:
-            content: Study material text
-            num_questions: Number of questions to generate
-
+            content: Study material text (from topic content)
+            num_questions: Number of questions to generate (1-10)
+        
         Returns:
-            List of MCQQuestion objects
+            List of MCQQuestion objects with questions, options, and explanations
         """
         
         from app.prompts import load_prompt
+        from google.genai import types
         import time
+        import asyncio
         
         start_time = time.time()
         
         logger.info("Generating MCQ questions", extra={
             "component": "quiz_generator",
             "num_questions": num_questions,
-            "has_cache": cache_name is not None,
-            "cache_name": cache_name,
             "content_length": len(content) if content else 0
         })
         
-        # Retry mechanism for transient errors (similar to flashcards)
+        # Retry mechanism for transient errors
         max_retries = 3
         last_error = None
         current_model = settings.GEMINI_MODEL
+        json_text = None
         
         for attempt in range(max_retries):
             try:
-                if cache_name:
-                    try:
-                        logger.debug("Using context cache for MCQ generation", extra={
-                            "component": "quiz_generator",
-                            "cache_name": cache_name
-                        })
-                        
-                        # Use cache - remove content placeholder from prompt
-                        import re
-                        prompt_template = load_prompt('quiz/mcq_questions.txt', num_questions=num_questions, content="")
-                        # Remove the content section since it's in cache
-                        prompt = re.sub(
-                            r'## Source Content\s+\{content\}\s+---',
-                            '**IMPORTANT:** The source content is already loaded in the context cache. Analyze it to create questions.\n\n---',
-                            prompt_template,
-                            flags=re.DOTALL
-                        )
-                        
-                        # Call with cache
-                        from app.core.config import settings
-                        
-                        logger.debug("Calling Gemini API with cache for MCQ", extra={
-                            "component": "quiz_generator",
-                            "model": settings.GEMINI_MODEL,
-                            "cache_name": cache_name,
-                            "num_questions": num_questions
-                        })
-                        
-                        api_start = time.time()
-                        # Use wait_for for aggressive timeout
-                        import asyncio
-                        response = await asyncio.wait_for(
-                            self.llm.client.aio.models.generate_content(
-                                model=current_model,
-                                config={
-                                    "cached_content": cache_name,
-                                },
-                                contents=[{"role": "user", "parts": [{"text": prompt}]}]
-                            ),
-                            timeout=50.0  # Fail fast
-                        )
-                        api_duration = (time.time() - api_start) * 1000
-                        
-                        logger.info("Received MCQ response from Gemini API", extra={
-                            "component": "quiz_generator",
-                            "api_duration_ms": round(api_duration, 2),
-                            "response_length": len(response.text) if response.text else 0
-                        })
-                        
-                        json_text = response.text
-                    
-                    except Exception as cache_error:
-                        # Check if cache expired
-                        error_str = str(cache_error).lower()
-                        if "cache" in error_str and ("not found" in error_str or "expired" in error_str or "404" in error_str):
-                            logger.warning("Cache expired, attempting to recreate", extra={"component": "quiz_generator"})
-                            
-                            # Try to recreate cache if we have exam_id and content
-                            if exam_id and content:
-                                try:
-                                    from app.integrations.llm.cache_manager import ContextCacheManager
-                                    
-                                    cache_manager = ContextCacheManager(self.llm)
-                                    logger.info("Recreating cache for exam", extra={"component": "quiz_generator", "exam_id": str(exam_id)})
-                                    
-                                    new_cache_name = await cache_manager.create_cache(
-                                        exam_id=exam_id,
-                                        content=content,
-                                        ttl_seconds=3600
-                                    )
-                                    logger.info("Successfully recreated cache", extra={"component": "quiz_generator", "cache_name": new_cache_name})
-                                    
-                                    # Retry with new cache
-                                    prompt_template = load_prompt('quiz/mcq_questions.txt', num_questions=num_questions, content="")
-                                    prompt = re.sub(
-                                        r'## Source Content\s+\{content\}\s+---',
-                                        '**IMPORTANT:** The source content is already loaded in the context cache. Analyze it to create questions.\n\n---',
-                                        prompt_template,
-                                        flags=re.DOTALL
-                                    )
-                                    
-                                    import asyncio
-                                    response = await asyncio.wait_for(
-                                        self.llm.client.aio.models.generate_content(
-                                            model=settings.GEMINI_MODEL,
-                                            config={
-                                                "cached_content": new_cache_name,
-                                            },
-                                            contents=[{"role": "user", "parts": [{"text": prompt}]}]
-                                        ),
-                                        timeout=50.0
-                                    )
-                                    
-                                    json_text = response.text
-                                    
-                                except Exception as recreate_error:
-                                    logger.error("Failed to recreate cache", extra={"component": "quiz_generator", "error": str(recreate_error)})
-                                    # Final fallback execution (will happen in the else block if this continues)
-                                    raise recreate_error # Raise to fallback below
-                            else:
-                                raise # Raise default cache error
-                        else:
-                            # Not a cache error, re-raise (will be caught by outer loop or bubble up)
-                            raise
-
-                    # No cache - use full content (no truncation)
-                    config = types.GenerateContentConfig(
-                        temperature=0.4,
-                        response_mime_type="application/json",
-                        response_schema=MCQQuizSchema,
-                        system_instruction="You are an expert tutor creating educational assessments.",
-                    )
-                    
-                    response = await asyncio.wait_for(
-                        self.llm.client.aio.models.generate_content(
-                            model=current_model,
-                            contents=prompt,
-                            config=config
-                        ),
-                        timeout=50.0
-                    )
-                    
-                    json_text = response.text
-
-                # If successful, break retry loop
+                # Load prompt with full content
+                prompt = load_prompt(
+                    'quiz/mcq_questions.txt',
+                    num_questions=num_questions,
+                    content=content
+                )
+                
+                # Generate with structured output
+                config = types.GenerateContentConfig(
+                    temperature=0.4,
+                    response_mime_type="application/json",
+                    response_schema=MCQQuizSchema,
+                    system_instruction="You are an expert tutor creating educational assessments.",
+                )
+                
+                logger.debug("Calling Gemini API for MCQ generation", extra={
+                    "component": "quiz_generator",
+                    "model": current_model,
+                    "num_questions": num_questions
+                })
+                
+                api_start = time.time()
+                response = await asyncio.wait_for(
+                    self.llm.client.aio.models.generate_content(
+                        model=current_model,
+                        contents=prompt,
+                        config=config
+                    ),
+                    timeout=50.0
+                )
+                api_duration = (time.time() - api_start) * 1000
+                
+                logger.info("Received MCQ response from Gemini API", extra={
+                    "component": "quiz_generator",
+                    "api_duration_ms": round(api_duration, 2),
+                    "response_length": len(response.text) if response.text else 0
+                })
+                
+                json_text = response.text
+                
+                # Success - break retry loop
                 break
-
+                
             except Exception as e:
-                # Catch both RuntimeError from llm.generate and other exceptions
                 last_error = e
                 error_msg = str(e).lower()
                 
@@ -401,10 +315,6 @@ class QuizGenerator:
                     "resource exhausted" in error_msg or
                     "429" in error_msg
                 )
-
-                # Fallback implementation: If cache failed, next attempt uses full content?
-                # Actually, the complex inner try/except handles fallback logic. 
-                # This outer loop is strictly for network/API overloading.
 
                 if is_retryable and attempt < max_retries - 1:
                     # Switch to fallback model on overload
@@ -420,21 +330,24 @@ class QuizGenerator:
                         "MCQ generation issue (%s), retry %s/%s in %ss",
                         "TIMEOUT/OVERLOAD",
                         attempt + 1, max_retries, wait_time,
-                        extra={"component": "quiz_generator", "attempt": attempt + 1, "wait_time": wait_time, "model": current_model}
+                        extra={
+                            "component": "quiz_generator", 
+                            "attempt": attempt + 1, 
+                            "wait_time": wait_time, 
+                            "model": current_model
+                        }
                     )
                     await asyncio.sleep(wait_time)
                     continue
                 else:
-                    # If this was the last attempt or non-retryable, try ONE FINAL fallback if it was a cache error
-                    # But if it was a timeout, we just fail.
-                    
-                    # If we failed with cache, maybe try without cache as a last resort in the loop?
-                    # The inner logic handles cache recreation errors by falling back.
-                    # This outer loop handles the API call itself failing.
-                    
+                    # Last attempt or non-retryable error
                     if attempt == max_retries - 1:
                         raise last_error
-
+        
+        # Check if we have a response
+        if not json_text:
+            raise RuntimeError("Failed to generate MCQ quiz after all retries")
+        
         # Parse response
         try:
             data = self._parse_json(json_text)
@@ -448,23 +361,70 @@ class QuizGenerator:
                 raise ValueError("Invalid response format")
 
             # Validate and convert
-            questions = [MCQQuestion(**item) for item in questions_data]
+            questions = []
+            for idx, q_data in enumerate(questions_data):
+                try:
+                    # Handle different formats from LLM
+                    if isinstance(q_data.get("options"), dict):
+                        # Options as {A: text, B: text, ...}
+                        options = [
+                            MCQOption(
+                                text=q_data["options"].get(letter, ""),
+                                is_correct=(letter == q_data["correct"])
+                            )
+                            for letter in ["A", "B", "C", "D"]
+                            if letter in q_data["options"]
+                        ]
+                    elif isinstance(q_data.get("options"), list):
+                        # Options as list of objects
+                        options = [
+                            MCQOption(
+                                text=opt.get("text", opt) if isinstance(opt, dict) else opt,
+                                is_correct=opt.get("is_correct", False) if isinstance(opt, dict) else False
+                            )
+                            for opt in q_data["options"]
+                        ]
+                    else:
+                        raise ValueError(f"Invalid options format in question {idx}")
+                    
+                    # Handle explanation formats
+                    explanation_data = q_data.get("explanation", {})
+                    if isinstance(explanation_data, dict):
+                        explanation = explanation_data.get("correct", "")
+                    elif isinstance(explanation_data, str):
+                        explanation = explanation_data
+                    else:
+                        explanation = ""
+                    
+                    question = MCQQuestion(
+                        question=q_data["question"],
+                        options=options,
+                        explanation=explanation
+                    )
+                    questions.append(question)
+                    
+                except (KeyError, ValueError) as parse_error:
+                    logger.warning(f"Skipping malformed question {idx}: {parse_error}", extra={"component": "quiz_generator"})
+                    continue
             
-            # Validate each question has exactly one correct answer
-            for q in questions:
-                correct_count = sum(1 for opt in q.options if opt.is_correct)
-                if correct_count != 1:
-                    raise ValueError(f"Question must have exactly 1 correct answer, got {correct_count}")
+            if not questions:
+                raise ValueError("No valid questions could be parsed from response")
             
-            total_duration = (time.time() - start_time) * 1000
-            logger.info("Successfully generated MCQ questions", extra={
-                "component": "quiz_generator",
-                "count": len(questions),
-                "total_duration_ms": round(total_duration, 2),
-                "used_cache": cache_name is not None
-            })
+            duration = time.time() - start_time
+            logger.info(
+                f"Successfully generated {len(questions)} MCQ questions in {duration:.2f}s",
+                extra={
+                    "component": "quiz_generator",
+                    "duration_seconds": round(duration, 2),
+                    "questions_count": len(questions)
+                }
+            )
+            
             return questions
-
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON decode error in MCQ response: {e}", extra={"component": "quiz_generator", "json_text": json_text[:500]})
+            raise ValueError(f"Invalid JSON in LLM response: {e}")
         except Exception as e:
-            logger.error("Error parsing %s", "MCQ questions", extra={"component": "quiz_generator", "error": str(e)})
-            raise ValueError(f"Failed to generate MCQ quiz: {str(e)}")
+            logger.error(f"Error parsing MCQ response: {e}", extra={"component": "quiz_generator"})
+            raise
