@@ -89,9 +89,8 @@ class ReviewLogRepository(BaseRepository[ReviewLog, ReviewLogModel]):
         Returns list of dicts: [{"date": date, "count": int, "learned": int}]
         where "learned" counts ratings >= 3.
         """
-        from datetime import timezone
-
-        start_date = datetime.now(timezone.utc) - timedelta(days=days)
+        # Use timezone-naive datetime to match PostgreSQL TIMESTAMP WITHOUT TIME ZONE column
+        start_date = datetime.utcnow() - timedelta(days=days)
 
         stmt = (
             select(
