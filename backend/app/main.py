@@ -1,6 +1,8 @@
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
+import re
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -101,6 +103,25 @@ async def get_rate_limit_key(request: Request) -> str:
     return get_remote_address(request)
 
 
+# Check if an origin is allowed via explicit list or regex
+def is_origin_allowed(origin: str) -> bool:
+    if not origin:
+        return False
+    if origin in settings.ALLOWED_ORIGINS:
+        return True
+    if settings.CORS_ORIGIN_REGEX and re.match(settings.CORS_ORIGIN_REGEX, origin):
+        return True
+    return False
+
+
+# Add CORS headers to error responses when origin is allowed
+def apply_error_cors_headers(response: JSONResponse, origin: str) -> JSONResponse:
+    if origin and is_origin_allowed(origin):
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+    return response
+
+
 # Initialize rate limiter with Redis storage
 limiter = Limiter(
     key_func=get_rate_limit_key,
@@ -171,10 +192,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     )
     # Ensure CORS headers are added
     origin = request.headers.get("origin")
-    if origin and origin in settings.ALLOWED_ORIGINS:
-        response.headers["Access-Control-Allow-Origin"] = origin
-        response.headers["Access-Control-Allow-Credentials"] = "true"
-    return response
+    return apply_error_cors_headers(response, origin)
 
 
 # Global exception handler
@@ -199,10 +217,7 @@ async def app_exception_handler(request: Request, exc: AppException):
     )
     # Ensure CORS headers are added even for errors
     origin = request.headers.get("origin")
-    if origin and origin in settings.ALLOWED_ORIGINS:
-        response.headers["Access-Control-Allow-Origin"] = origin
-        response.headers["Access-Control-Allow-Credentials"] = "true"
-    return response
+    return apply_error_cors_headers(response, origin)
 
 
 # Global exception handler for all unhandled exceptions
@@ -233,10 +248,7 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
     # Ensure CORS headers are added even for errors
     origin = request.headers.get("origin")
-    if origin and origin in settings.ALLOWED_ORIGINS:
-        response.headers["Access-Control-Allow-Origin"] = origin
-        response.headers["Access-Control-Allow-Credentials"] = "true"
-    return response
+    return apply_error_cors_headers(response, origin)
 
 
 # Include API router
