@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.core.exceptions import AuthenticationException, ValidationException
 from app.dependencies import get_auth_service, get_current_user
