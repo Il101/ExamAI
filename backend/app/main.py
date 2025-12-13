@@ -138,6 +138,18 @@ def sanitize_validation_errors(errors):
     return sanitized
 
 
+def build_friendly_validation_message(details):
+    # Extract human-readable messages from validation details
+    messages = []
+    for item in details or []:
+        msg = item.get("msg") if isinstance(item, dict) else None
+        if msg:
+            messages.append(msg)
+    if messages:
+        return "; ".join(messages)
+    return "Validation error"
+
+
 # Initialize rate limiter with Redis storage
 limiter = Limiter(
     key_func=get_rate_limit_key,
@@ -191,12 +203,13 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     """Handle FastAPI validation errors with CORS headers"""
     details = sanitize_validation_errors(exc.errors() if hasattr(exc, "errors") else None)
+    friendly_message = build_friendly_validation_message(details)
     response = JSONResponse(
         status_code=422,
         content={
             "error": {
                 "code": "VALIDATION_ERROR",
-                "message": "Validation error",
+                "message": friendly_message,
                 "details": details,
                 "request_id": (
                     request.state.request_id
