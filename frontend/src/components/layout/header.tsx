@@ -79,7 +79,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                                 </Avatar>
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-56" align="end" forceMount>
+                        <DropdownMenuContent className="w-56 bg-background/95 backdrop-blur-xl border-border/50 shadow-2xl" align="end" forceMount>
                             <DropdownMenuLabel className="font-normal">
                                 <div className="flex flex-col space-y-1">
                                     <p className="text-sm font-medium leading-none">

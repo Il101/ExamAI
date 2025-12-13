@@ -10,7 +10,7 @@ function AuthCallbackContent() {
     const searchParams = useSearchParams();
     const setUser = useAuthStore((state) => state.setUser);
     const [status, setStatus] = useState<'verifying' | 'success' | 'error'>('verifying');
-    const [message, setMessage] = useState('Подтверждаем вашу почту...');
+    const [message, setMessage] = useState('Verifying your email...');
 
     useEffect(() => {
         const handleEmailVerification = async () => {
@@ -28,7 +28,7 @@ function AuthCallbackContent() {
                 // Check for errors from Supabase
                 if (error) {
                     setStatus('error');
-                    setMessage(errorDescription || 'Произошла ошибка при подтверждении email');
+                    setMessage(errorDescription || 'An error occurred during email verification');
                     return;
                 }
 
@@ -38,7 +38,7 @@ function AuthCallbackContent() {
                     localStorage.setItem('access_token', accessToken);
                     localStorage.setItem('refresh_token', refreshToken);
 
-                    setMessage('Авторизация успешна. Загружаем профиль...');
+                    setMessage('Authorization successful. Loading profile...');
 
                     // Fetch user data and update auth store
                     try {
@@ -46,7 +46,7 @@ function AuthCallbackContent() {
                         setUser(user);
 
                         setStatus('success');
-                        setMessage('Успешный вход! Перенаправляем в личный кабинет...');
+                        setMessage('Login successful! Redirecting to dashboard...');
 
                         // Redirect to dashboard after 1 second
                         setTimeout(() => {
@@ -55,7 +55,7 @@ function AuthCallbackContent() {
                     } catch (err) {
                         console.error('Failed to fetch user data:', err);
                         setStatus('error');
-                        setMessage('Не удалось загрузить профиль пользователя. Возможно, аккаунт был удален или заблокирован.');
+                        setMessage('Failed to load user profile. The account may have been deleted or blocked.');
                         // Do NOT redirect if we can't get the user, otherwise they'll just get kicked back
                         // Clear tokens to prevent loop
                         localStorage.removeItem('access_token');
@@ -64,7 +64,7 @@ function AuthCallbackContent() {
                 } else if (type === 'signup' || type === 'email') {
                     // Fallback: if no tokens but type is signup/email
                     setStatus('success');
-                    setMessage('Email успешно подтвержден! Перенаправляем на страницу входа...');
+                    setMessage('Email verified successfully! Redirecting to login page...');
 
                     setTimeout(() => {
                         router.push('/login?verified=true');
@@ -76,7 +76,7 @@ function AuthCallbackContent() {
             } catch (err) {
                 console.error('Email verification error:', err);
                 setStatus('error');
-                setMessage('Произошла ошибка при обработке подтверждения');
+                setMessage('An error occurred while processing verification');
             }
         };
 
@@ -90,7 +90,7 @@ function AuthCallbackContent() {
                     {status === 'verifying' && (
                         <>
                             <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-                            <h2 className="text-2xl font-bold text-foreground">Подтверждение email</h2>
+                            <h2 className="text-2xl font-bold text-foreground">Email Verification</h2>
                             <p className="mt-2 text-muted-foreground">{message}</p>
                         </>
                     )}
@@ -112,7 +112,7 @@ function AuthCallbackContent() {
                                     />
                                 </svg>
                             </div>
-                            <h2 className="text-2xl font-bold text-foreground">Успешно!</h2>
+                            <h2 className="text-2xl font-bold text-foreground">Success!</h2>
                             <p className="mt-2 text-muted-foreground">{message}</p>
                         </>
                     )}
@@ -134,13 +134,13 @@ function AuthCallbackContent() {
                                     />
                                 </svg>
                             </div>
-                            <h2 className="text-2xl font-bold text-foreground">Ошибка</h2>
+                            <h2 className="text-2xl font-bold text-foreground">Error</h2>
                             <p className="mt-2 text-muted-foreground">{message}</p>
                             <button
                                 onClick={() => router.push('/login')}
                                 className="mt-4 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
                             >
-                                Вернуться на страницу входа
+                                Return to login page
                             </button>
                         </>
                     )}

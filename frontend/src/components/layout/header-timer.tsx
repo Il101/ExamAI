@@ -167,7 +167,7 @@ export function HeaderTimer() {
                         </TooltipContent>
                     </Tooltip>
                 </TooltipProvider>
-                <DropdownMenuContent className="w-80 p-4" align="end">
+                <DropdownMenuContent className="w-80 p-4 bg-background/95 backdrop-blur-xl border-border/50 shadow-2xl" align="end">
                     <div className="flex flex-col space-y-4">
                         <div className="flex items-center justify-between">
                             <h4 className="font-medium leading-none">
