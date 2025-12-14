@@ -314,7 +314,27 @@ class AuthService:
             ValueError: If token is invalid or expired
         """
         try:
-            # Verify the recovery token and update password
+            # Case 1: Access token (JWT) from Supabase redirect (#access_token=...)
+            if "." in token:
+                try:
+                    payload = jwt.decode(
+                        token,
+                        settings.SECRET_KEY,
+                        algorithms=[settings.ALGORITHM],
+                        audience="authenticated",
+                    )
+                    user_id = payload.get("sub")
+                except JWTError:
+                    user_id = None
+
+                if not user_id:
+                    raise ValueError("Invalid or expired reset token")
+
+                # Update password via admin API using verified user id
+                self.supabase.auth.admin.update_user_by_id(user_id, {"password": new_password})
+                return
+
+            # Case 2: token_hash (verify_otp flow)
             response = self.supabase.auth.verify_otp(
                 {"token_hash": token, "type": "recovery"}
             )
@@ -322,7 +342,7 @@ class AuthService:
             if not response.session:
                 raise ValueError("Invalid or expired reset token")
 
-            # Update password
+            # Update password in the authenticated context
             self.supabase.auth.update_user({"password": new_password})
         except Exception as e:
             raise ValueError(f"Failed to reset password: {str(e)}")

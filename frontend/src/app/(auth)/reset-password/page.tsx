@@ -74,9 +74,9 @@ function ResetPasswordContent() {
     if (!token) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4">
-                <Card className="w-full max-w-md p-8 shadow-lg text-center">
-                    <h1 className="text-2xl font-bold mb-4">Invalid Reset Link</h1>
-                    <p className="text-gray-600 mb-6">
+                <Card className="w-full max-w-md p-8 shadow-2xl border-white/10 bg-card/50 backdrop-blur-xl text-center">
+                    <h1 className="text-2xl font-bold mb-4 text-foreground">Invalid Reset Link</h1>
+                    <p className="text-muted-foreground mb-6">
                         This password reset link is invalid or has expired.
                     </p>
                     <Link href="/forgot-password">
@@ -91,10 +91,10 @@ function ResetPasswordContent() {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4">
-            <Card className="w-full max-w-md p-8 shadow-lg">
+            <Card className="w-full max-w-md p-8 shadow-2xl border-white/10 bg-card/50 backdrop-blur-xl">
                 <div className="mb-8 text-center">
-                    <h1 className="text-3xl font-bold mb-2">Reset password</h1>
-                    <p className="text-gray-600">Enter your new password below</p>
+                    <h1 className="text-3xl font-bold mb-2 text-foreground">Reset password</h1>
+                    <p className="text-muted-foreground">Enter your new password below</p>
                 </div>
 
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -139,9 +139,9 @@ function ResetPasswordContent() {
                     </Button>
                 </form>
 
-                <p className="text-center text-sm text-gray-600 mt-6">
+                <p className="text-center text-sm text-muted-foreground mt-6">
                     Remember your password?{' '}
-                    <Link href="/login" className="text-primary hover:underline font-medium">
+                    <Link href="/login" className="text-primary hover:text-accent hover:underline font-medium transition-colors">
                         Sign in
                     </Link>
                 </p>

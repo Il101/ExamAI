@@ -46,20 +46,20 @@ export default function ForgotPasswordPage() {
     if (emailSent) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4">
-                <Card className="w-full max-w-md p-8 shadow-lg text-center">
+                <Card className="w-full max-w-md p-8 shadow-2xl border-white/10 bg-card/50 backdrop-blur-xl text-center">
                     <div className="mb-6">
                         <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
                             <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                             </svg>
                         </div>
-                        <h1 className="text-2xl font-bold mb-2">Check your email</h1>
-                        <p className="text-gray-600">
+                        <h1 className="text-2xl font-bold mb-2 text-foreground">Check your email</h1>
+                        <p className="text-muted-foreground">
                             We&apos;ve sent a password reset link to <strong>{form.getValues('email')}</strong>
                         </p>
                     </div>
 
-                    <p className="text-sm text-gray-500 mb-6">
+                    <p className="text-sm text-muted-foreground mb-6">
                         Didn&apos;t receive the email? Check your spam folder or try again.
                     </p>
 
@@ -76,14 +76,14 @@ export default function ForgotPasswordPage() {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4">
-            <Card className="w-full max-w-md p-8 shadow-lg">
+            <Card className="w-full max-w-md p-8 shadow-2xl border-white/10 bg-card/50 backdrop-blur-xl">
                 <div className="mb-8">
-                    <Link href="/login" className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4">
+                    <Link href="/login" className="inline-flex items-center text-sm text-primary hover:text-accent hover:underline transition-colors mb-4">
                         <ArrowLeft className="w-4 h-4 mr-1" />
                         Back to login
                     </Link>
-                    <h1 className="text-3xl font-bold mb-2">Forgot password?</h1>
-                    <p className="text-gray-600">
+                    <h1 className="text-3xl font-bold mb-2 text-foreground">Forgot password?</h1>
+                    <p className="text-muted-foreground">
                         No worries, we&apos;ll send you reset instructions.
                     </p>
                 </div>
