@@ -76,15 +76,45 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 
 async def init_db():
-    """Initialize database (create all tables)"""
+    """
+    Initialize database.
+    
+    IMPORTANT: In production, database schema is managed by Alembic migrations.
+    This function only creates tables in development/test environments.
+    
+    For production deployments, run: alembic upgrade head
+    """
     from app.db.base import Base
-
+    
     # Import all models so they are registered with Base.metadata
+    from app.db.models import (  # noqa: F401
+        user,
+        exam,
+        topic,
+        study_session,
+        review,
+        subscription,
+        llm_usage,
+        review_log,
+        quiz_result,
+        chat
+    )
 
+    # Production safety: NEVER use create_all() in production
+    if settings.ENVIRONMENT == "production":
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(
+            "🔒 Production environment detected. "
+            "Database schema is managed by Alembic migrations. "
+            "Skipping create_all()."
+        )
+        return
+
+    # For development/test: create tables if they don't exist
     async with engine.begin() as conn:
-        # await conn.run_sync(Base.metadata.drop_all)
-        if settings.ENVIRONMENT != "test":
-            await conn.run_sync(Base.metadata.create_all)
+        # await conn.run_sync(Base.metadata.drop_all)  # NEVER uncomment in production!
+        await conn.run_sync(Base.metadata.create_all)
 
 
 async def close_db():
