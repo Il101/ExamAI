@@ -69,6 +69,7 @@ class Settings(BaseSettings):
     # Supabase
     SUPABASE_URL: str = ""
     SUPABASE_KEY: str = ""  # Service_role key for admin tasks
+    SUPABASE_ANON_KEY: str = ""  # Public anon key for user-facing auth operations
     SUPABASE_BUCKET: str = "exam-files"  # Storage bucket for exam files
 
     # Redis

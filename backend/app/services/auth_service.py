@@ -18,8 +18,14 @@ class AuthService:
 
     def __init__(self, user_repo: UserRepository):
         self.user_repo = user_repo
+        # Admin client (service role)
         self.supabase: Client = create_client(
             settings.SUPABASE_URL, settings.SUPABASE_KEY
+        )
+        # Public client (anon) for user-facing auth flows like sign-in with password
+        self.supabase_public: Client = create_client(
+            settings.SUPABASE_URL,
+            settings.SUPABASE_ANON_KEY or settings.SUPABASE_KEY,
         )
         self.logger = logging.getLogger(__name__)
 
@@ -260,7 +266,7 @@ class AuthService:
         try:
             # 1. Verify current password by signing in
             # This ensures the user knows the current password
-            auth = self.supabase.auth.sign_in_with_password(
+            auth = self.supabase_public.auth.sign_in_with_password(
                 {"email": email, "password": current_password}
             )
             
@@ -295,7 +301,8 @@ class AuthService:
             # The redirect URL should point to our frontend reset-password page
             redirect_url = f"{settings.FRONTEND_URL.rstrip('/')}/reset-password"
 
-            self.supabase.auth.reset_password_email(
+            # Use public client for reset email to avoid admin restrictions
+            self.supabase_public.auth.reset_password_email(
                 email, options={"redirect_to": redirect_url}
             )
         except Exception:
