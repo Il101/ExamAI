@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from typing import List, Optional, Dict, Any
 from uuid import UUID
 
-from sqlalchemy import select, func
+from sqlalchemy import select, func, extract, cast, Integer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.mappers.study_session_mapper import StudySessionMapper
@@ -72,13 +72,16 @@ class StudySessionRepository(BaseRepository[StudySession, StudySessionModel]):
             select(
                 func.date(StudySessionModel.started_at).label("session_date"),
                 func.sum(
-                    StudySessionModel.pomodoros_completed *
-                    StudySessionModel.pomodoro_duration_minutes
+                    cast(
+                        extract('epoch', StudySessionModel.ended_at - StudySessionModel.started_at) / 60,
+                        Integer
+                    )
                 ).label("total_minutes")
             )
             .where(
                 StudySessionModel.user_id == user_id,
-                StudySessionModel.started_at >= start_date
+                StudySessionModel.started_at >= start_date,
+                StudySessionModel.ended_at.is_not(None)
             )
             .group_by("session_date")
             .order_by("session_date")
@@ -100,11 +103,16 @@ class StudySessionRepository(BaseRepository[StudySession, StudySessionModel]):
         stmt = (
             select(
                 func.sum(
-                    StudySessionModel.pomodoros_completed *
-                    StudySessionModel.pomodoro_duration_minutes
+                    cast(
+                        extract('epoch', StudySessionModel.ended_at - StudySessionModel.started_at) / 60,
+                        Integer
+                    )
                 )
             )
-            .where(StudySessionModel.user_id == user_id)
+            .where(
+                StudySessionModel.user_id == user_id,
+                StudySessionModel.ended_at.is_not(None)
+            )
         )
 
         result = await self.session.execute(stmt)
