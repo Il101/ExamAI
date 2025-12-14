@@ -20,6 +20,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 
 export default function AnalyticsPage() {
     const { stats, isLoading } = useAnalytics();
@@ -133,24 +134,35 @@ export default function AnalyticsPage() {
                             <h3 className="text-lg font-semibold">Daily Progress</h3>
                             {stats?.daily_progress && stats.daily_progress.length > 0 ? (
                                 <div className="space-y-2">
-                                    {stats.daily_progress.slice(0, 7).map((day, index) => (
-                                        <div key={index} className="flex items-center justify-between p-3 bg-muted rounded">
-                                            <div className="flex items-center gap-3">
-                                                <Calendar className="h-4 w-4 text-muted-foreground" />
-                                                <span className="text-sm font-medium">
-                                                    {new Date(day.date).toLocaleDateString()}
-                                                </span>
+                                    {stats.daily_progress.slice(0, 7).map((day, index) => {
+                                        const hasActivity = day.cards_reviewed > 0 || day.minutes_studied > 0;
+                                        const isHighActivity = day.cards_reviewed >= 10 || day.minutes_studied >= 30;
+
+                                        return (
+                                            <div key={index} className="flex items-center justify-between p-3 bg-muted rounded">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={cn(
+                                                        "h-3 w-3 rounded-full",
+                                                        isHighActivity ? "bg-green-500" :
+                                                            hasActivity ? "bg-yellow-500" :
+                                                                "bg-gray-300"
+                                                    )} />
+                                                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                                                    <span className="text-sm font-medium">
+                                                        {new Date(day.date).toLocaleDateString()}
+                                                    </span>
+                                                </div>
+                                                <div className="flex gap-6 text-sm">
+                                                    <span className="text-muted">
+                                                        {day.cards_reviewed} cards
+                                                    </span>
+                                                    <span className="text-muted">
+                                                        {day.minutes_studied} min
+                                                    </span>
+                                                </div>
                                             </div>
-                                            <div className="flex gap-6 text-sm">
-                                                <span className="text-muted">
-                                                    {day.cards_reviewed} cards
-                                                </span>
-                                                <span className="text-muted">
-                                                    {day.minutes_studied} min
-                                                </span>
-                                            </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             ) : (
                                 <p className="text-gray-500 text-center py-8">

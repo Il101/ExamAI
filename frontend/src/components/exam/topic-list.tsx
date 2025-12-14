@@ -15,8 +15,28 @@ interface TopicListProps {
 export function TopicList({ exam }: TopicListProps) {
     const router = useRouter();
 
+    // Find first topic with incomplete quiz
+    const firstIncomplete = exam.topics.find(
+        topic => !topic.quiz_completed
+    );
+
+    // Check if any topics have been started
+    const hasStartedTopics = exam.topics.some(
+        topic => topic.is_viewed || topic.quiz_completed
+    );
+
+    // Get the index of the topic we'll navigate to
+    const targetTopicIndex = firstIncomplete
+        ? exam.topics.findIndex(t => t.id === firstIncomplete.id)
+        : 0;
+
     const handleStartReview = () => {
-        router.push(`/dashboard/study/session?examId=${exam.id}`);
+        if (firstIncomplete) {
+            router.push(`/dashboard/topics/${firstIncomplete.id}`);
+        } else {
+            // All topics completed, go to first topic
+            router.push(`/dashboard/topics/${exam.topics[0]?.id}`);
+        }
     };
 
     return (
@@ -30,7 +50,10 @@ export function TopicList({ exam }: TopicListProps) {
                 </div>
                 <Button size="lg" onClick={handleStartReview} className="shadow-lg hover:shadow-xl transition-all">
                     <Play className="mr-2 h-5 w-5" />
-                    Start First Review
+                    {hasStartedTopics
+                        ? `Continue → Topic ${targetTopicIndex + 1}`
+                        : 'Start First Review'
+                    }
                 </Button>
             </div>
 
@@ -98,7 +121,10 @@ export function TopicList({ exam }: TopicListProps) {
                         </p>
                     </div>
                     <Button onClick={handleStartReview} className="ml-auto" variant="outline">
-                        Start Now
+                        {hasStartedTopics
+                            ? `Continue → Topic ${targetTopicIndex + 1}`
+                            : 'Start Now'
+                        }
                     </Button>
                 </CardContent>
             </Card>

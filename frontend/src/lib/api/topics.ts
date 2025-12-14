@@ -4,17 +4,19 @@ export interface Topic {
     id: string;
     exam_id: string;
     topic_name: string;
-    content: string;
+    content?: string;
+    content_blocknote?: any;
+    content_markdown_backup?: string;
+    flashcard_count?: number;
+    status: 'pending' | 'generating' | 'ready' | 'failed';
     order_index: number;
-    difficulty_level: number;
-    estimated_study_minutes: number;
+    difficulty_level?: number;
+    estimated_study_minutes?: number;
     created_at: string;
     updated_at: string;
-    // BlockNote content fields
-    content_blocknote?: any; // BlockNote JSON format
-    content_markdown_backup?: string; // Backup of original Markdown
-    // New field from backend optimization
-    flashcard_count?: number;
+    is_viewed?: boolean;
+    quiz_completed?: boolean;
+    last_viewed_at?: string;
 }
 
 export interface QuizOption {

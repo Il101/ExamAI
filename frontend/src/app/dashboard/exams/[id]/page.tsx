@@ -7,8 +7,9 @@ import { ExamHeader } from '@/components/exam/exam-header';
 import { ExamSummary } from '@/components/exam/exam-summary';
 import { TopicList } from '@/components/exam/topic-list';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, Eye, CheckCircle2 } from 'lucide-react';
 import { ExamWithTopics, examsApi } from '@/lib/api/exams';
 import { Button } from '@/components/ui/button';
 
@@ -79,7 +80,7 @@ export default function ExamDetailPage() {
             </TabsList>
 
             <TabsContent value="summary" className="mt-6">
-                <ExamSummary exam={exam} onGenerateTopics={() => { }} />
+                <ExamSummary exam={exam} />
             </TabsContent>
 
             <TabsContent value="topics" className="mt-6">
@@ -87,12 +88,42 @@ export default function ExamDetailPage() {
             </TabsContent>
 
             <TabsContent value="progress" className="mt-6">
-                <Card className="p-8 text-center">
-                    <h3 className="text-lg font-semibold mb-2">Progress Tracking</h3>
-                    <p className="text-muted-foreground">
-                        Coming soon! Here you'll see your study timeline, completed topics, and review statistics.
-                    </p>
-                </Card>
+                <div className="space-y-4">
+                    <Card className="p-6">
+                        <h3 className="text-lg font-semibold mb-4">Topic Progress</h3>
+                        <div className="space-y-3">
+                            {exam.topics?.map((topic, index) => (
+                                <div key={topic.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-sm font-medium w-6 text-muted-foreground">
+                                            {index + 1}.
+                                        </span>
+                                        <span className="text-sm">{topic.topic_name}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        {topic.is_viewed && (
+                                            <Badge variant="outline" className="text-xs">
+                                                <Eye className="h-3 w-3 mr-1" />
+                                                Viewed
+                                            </Badge>
+                                        )}
+                                        {topic.quiz_completed && (
+                                            <Badge variant="default" className="text-xs bg-green-600">
+                                                <CheckCircle2 className="h-3 w-3 mr-1" />
+                                                Quiz Done
+                                            </Badge>
+                                        )}
+                                        {!topic.is_viewed && !topic.quiz_completed && (
+                                            <Badge variant="secondary" className="text-xs">
+                                                Not started
+                                            </Badge>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </Card>
+                </div>
             </TabsContent>
         </Tabs>
     );

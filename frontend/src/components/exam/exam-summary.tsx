@@ -10,10 +10,9 @@ import ReactMarkdown from 'react-markdown';
 
 interface ExamSummaryProps {
     exam: Exam;
-    onGenerateTopics: () => void;
 }
 
-export function ExamSummary({ exam, onGenerateTopics }: ExamSummaryProps) {
+export function ExamSummary({ exam }: ExamSummaryProps) {
     return (
         <div className="space-y-6 max-w-4xl mx-auto">
             <Card className="border-2 border-primary/10 shadow-lg">
@@ -58,12 +57,7 @@ export function ExamSummary({ exam, onGenerateTopics }: ExamSummaryProps) {
                         )}
                     </div>
 
-                    <div className="mt-8 flex justify-end border-t pt-6">
-                        <Button size="lg" onClick={onGenerateTopics} className="group">
-                            Create Study Topics
-                            <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                        </Button>
-                    </div>
+
                 </CardContent>
             </Card>
 

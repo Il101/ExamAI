@@ -61,6 +61,9 @@ export default function TopicDetailPage() {
             const topicData = await topicsApi.getById(topicId);
             setTopic(topicData);
 
+            // Initialize quiz completion state from backend
+            setQuizCompleted(topicData.quiz_completed || false);
+
             // Convert content to BlockNote format
             let blocks: Block[];
             if (topicData.content_blocknote) {

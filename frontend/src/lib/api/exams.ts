@@ -45,6 +45,8 @@ export interface ExamWithTopics extends Exam {
     order_index: number;
     difficulty_level: number;
     estimated_study_minutes: number;
+    is_viewed?: boolean;
+    quiz_completed?: boolean;
   }>;
   // Progress tracking (from status endpoint)
   progress?: number;
