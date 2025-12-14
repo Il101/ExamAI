@@ -54,7 +54,8 @@ export const authApi = {
   },
 
   requestPasswordReset: async (email: string): Promise<{ message: string }> => {
-    const response = await api.post('/auth/request-password-reset', { email });
+    // Backend endpoint: POST /auth/forgot-password
+    const response = await api.post('/auth/forgot-password', { email });
     return response.data;
   },
 
