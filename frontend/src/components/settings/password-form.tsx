@@ -14,7 +14,12 @@ import { Loader2 } from 'lucide-react';
 
 const passwordSchema = z.object({
     current_password: z.string().min(1, 'Current password is required'),
-    new_password: z.string().min(8, 'Password must be at least 8 characters'),
+    new_password: z.string()
+        .min(8, 'Password must be at least 8 characters')
+        .regex(/[A-Z]/, 'Must contain at least one uppercase letter')
+        .regex(/[a-z]/, 'Must contain at least one lowercase letter')
+        .regex(/[0-9]/, 'Must contain at least one number')
+        .regex(/[^A-Za-z0-9]/, 'Must include any non-alphanumeric character (e.g. !@#$%^&*()-_=+)'),
     confirm_password: z.string().min(1, 'Please confirm your password'),
 }).refine((data) => data.new_password === data.confirm_password, {
     message: "Passwords don't match",
@@ -29,6 +34,15 @@ export function PasswordForm() {
     const form = useForm<PasswordFormValues>({
         resolver: zodResolver(passwordSchema),
     });
+
+    const passwordValue = form.watch('new_password', '');
+    const passwordChecklist = [
+        { label: 'At least 8 characters', valid: passwordValue.length >= 8 },
+        { label: 'Uppercase letter', valid: /[A-Z]/.test(passwordValue) },
+        { label: 'Lowercase letter', valid: /[a-z]/.test(passwordValue) },
+        { label: 'Number', valid: /[0-9]/.test(passwordValue) },
+        { label: 'Any symbol (e.g. !@#$%^&*()-_=+)', valid: /[^A-Za-z0-9]/.test(passwordValue) },
+    ];
 
     const onSubmit = async (data: PasswordFormValues) => {
         setIsLoading(true);
@@ -78,6 +92,16 @@ export function PasswordForm() {
                         {form.formState.errors.new_password && (
                             <p className="text-sm text-red-500">{form.formState.errors.new_password.message}</p>
                         )}
+                        <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+                            {passwordChecklist.map((item) => (
+                                <div key={item.label} className="flex items-center gap-2">
+                                    <span className={item.valid ? 'text-green-600' : 'text-gray-400'}>
+                                        {item.valid ? '✓' : '•'}
+                                    </span>
+                                    <span className={item.valid ? 'text-green-700' : undefined}>{item.label}</span>
+                                </div>
+                            ))}
+                        </div>
                     </div>
 
                     <div className="space-y-2">

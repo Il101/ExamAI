@@ -37,7 +37,7 @@ async def register(
     Register new user.
 
     - **email**: Valid email address
-    - **password**: Minimum 8 characters, must include uppercase, lowercase, digit, special char
+    - **password**: Minimum 8 characters, must include uppercase, lowercase, digit, and any non-alphanumeric char (e.g. !@#$%^&*()-_=+)
     - **full_name**: User's full name
     """
 

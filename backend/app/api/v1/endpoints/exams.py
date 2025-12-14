@@ -1,7 +1,7 @@
 from typing import Optional, List
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, Query, Request, status, File, UploadFile, Form
+from fastapi import APIRouter, Depends, Query, Request, status, File, UploadFile, Form, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import NotFoundException, ValidationException

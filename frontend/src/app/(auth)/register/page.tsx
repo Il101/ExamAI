@@ -1,6 +1,7 @@
 'use client';
 
 import { useForm } from 'react-hook-form';
+import { useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
@@ -17,7 +18,7 @@ const registerSchema = z.object({
     .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
     .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
     .regex(/[0-9]/, 'Password must contain at least one number')
-    .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character'),
+    .regex(/[^A-Za-z0-9]/, 'Password must include any non-alphanumeric character (e.g. !@#$%^&*()-_=+)'),
   confirmPassword: z.string(),
   full_name: z.string().min(2, 'Name must be at least 2 characters'),
 }).refine((data) => data.password === data.confirmPassword, {
@@ -29,15 +30,31 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
   const { register: registerUser, isRegistering } = useAuth();
+  const [serverError, setServerError] = useState<string | null>(null);
 
   const form = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
   });
 
+  const passwordValue = form.watch('password', '');
+  const passwordChecklist = [
+    { label: 'At least 8 characters', valid: passwordValue.length >= 8 },
+    { label: 'Uppercase letter', valid: /[A-Z]/.test(passwordValue) },
+    { label: 'Lowercase letter', valid: /[a-z]/.test(passwordValue) },
+    { label: 'Number', valid: /[0-9]/.test(passwordValue) },
+    { label: 'Any symbol (e.g. !@#$%^&*()-_=+)', valid: /[^A-Za-z0-9]/.test(passwordValue) },
+  ];
+
   const onSubmit = (data: RegisterFormData) => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { confirmPassword: _, ...registerData } = data;
-    registerUser(registerData);
+    setServerError(null);
+    registerUser(registerData).catch((error: unknown) => {
+      const message = error instanceof Error && 'response' in error
+        ? (error as { response?: { data?: { error?: { message?: string } } } }).response?.data?.error?.message
+        : 'Registration failed';
+      setServerError(message || 'Registration failed');
+    });
   };
 
   return (
@@ -46,6 +63,19 @@ export default function RegisterPage() {
         <h1 className="text-3xl font-bold mb-2 text-foreground">Create account</h1>
         <p className="text-muted-foreground">Start your learning journey with ExamAI Pro</p>
       </div>
+
+      {serverError && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <p className="font-medium">{serverError}</p>
+          {serverError.toLowerCase().includes('already registered') && (
+            <div className="mt-2 flex gap-2">
+              <Link href="/login" className="text-primary hover:underline">Go to login</Link>
+              <span className="text-gray-400">•</span>
+              <Link href="/forgot-password" className="text-primary hover:underline">Reset password</Link>
+            </div>
+          )}
+        </div>
+      )}
 
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <div>
@@ -94,6 +124,16 @@ export default function RegisterPage() {
               {form.formState.errors.password.message}
             </p>
           )}
+          <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+            {passwordChecklist.map((item) => (
+              <div key={item.label} className="flex items-center gap-2">
+                <span className={item.valid ? 'text-green-600' : 'text-gray-400'}>
+                  {item.valid ? '✓' : '•'}
+                </span>
+                <span className={item.valid ? 'text-green-700' : undefined}>{item.label}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div>

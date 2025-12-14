@@ -13,6 +13,7 @@ SQLAlchemy==2.0.44
 # Task queue
 celery==5.5.3
 redis==7.0.1
+kombu==5.5.3
 
 # Authentication and security
 PyJWT==2.10.1

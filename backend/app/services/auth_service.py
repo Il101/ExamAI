@@ -87,10 +87,14 @@ class AuthService:
         except Exception as e:
             error_msg = str(e).lower()
 
-            # Логируем конкретную ошибку для расследования, но наружу даём обобщённое сообщение
+            # Логируем конкретную ошибку для расследования, но наружу даём контролируемое сообщение
             self.logger.warning("Registration failed", extra={"email": email, "error": error_msg})
 
-            # Не выдаём признаки существования пользователя
+            if "already" in error_msg and "email" in error_msg:
+                raise ValueError("Email already registered. Try logging in or reset your password.")
+            if "already registered" in error_msg or "user already" in error_msg:
+                raise ValueError("Email already registered. Try logging in or reset your password.")
+
             raise ValueError("Registration failed. Please try again later.")
 
     # Login

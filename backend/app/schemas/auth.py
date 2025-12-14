@@ -22,8 +22,9 @@ class RegisterRequest(BaseModel):
             raise ValueError("Password must contain at least one lowercase letter")
         if not re.search(r"\d", v):
             raise ValueError("Password must contain at least one number")
-        if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", v):
-            raise ValueError("Password must contain at least one special character")
+        # Accept any non-alphanumeric as a special character (covers Apple-generated passwords with dashes)
+        if not re.search(r"[^A-Za-z0-9]", v):
+            raise ValueError("Password must contain at least one special character (e.g. !@#$%^&*()-_=+)")
         return v
 
     class Config:
@@ -84,6 +85,7 @@ class ChangePasswordRequest(BaseModel):
             raise ValueError("Password must contain at least one lowercase letter")
         if not re.search(r"\d", v):
             raise ValueError("Password must contain at least one number")
-        if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", v):
-            raise ValueError("Password must contain at least one special character")
+        # Accept any non-alphanumeric as a special character (covers Apple-generated passwords with dashes)
+        if not re.search(r"[^A-Za-z0-9]", v):
+            raise ValueError("Password must contain at least one special character (e.g. !@#$%^&*()-_=+)")
         return v
