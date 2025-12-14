@@ -26,10 +26,20 @@ type CreateExamFormData = z.infer<typeof createExamSchema>;
 
 import { useRouter } from 'next/navigation';
 
+const MAX_TOTAL_BYTES = 50 * 1024 * 1024; // 50MB
+
+const formatBytes = (bytes: number) => {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
+};
+
 export function CreateExamForm({ onSuccess }: { onSuccess?: () => void }) {
   const router = useRouter();
   const { createExam, isCreating } = useExams();
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [examType, setExamType] = useState<'oral' | 'written' | 'test'>('written');
   const [level, setLevel] = useState<'school' | 'bachelor' | 'master' | 'phd'>('bachelor');
 
@@ -50,12 +60,12 @@ export function CreateExamForm({ onSuccess }: { onSuccess?: () => void }) {
     formData.append('exam_type', exam_type);
     formData.append('level', level);
 
-    if (uploadedFile) {
-      formData.append('file', uploadedFile);
+    if (uploadedFiles.length) {
+      uploadedFiles.forEach((file) => formData.append('files', file));
     } else if (original_content) {
       const blob = new Blob([original_content], { type: 'text/plain' });
       const textFile = new File([blob], 'content.txt', { type: 'text/plain' });
-      formData.append('file', textFile);
+      formData.append('files', textFile);
     } else {
       toast.error('Please upload a file or paste content');
       return;
@@ -64,7 +74,7 @@ export function CreateExamForm({ onSuccess }: { onSuccess?: () => void }) {
     createExam(formData, {
       onSuccess: (data) => {
         form.reset();
-        setUploadedFile(null);
+        setUploadedFiles([]);
 
         // Redirect to exam detail page
         // Cast data to any because the hook's return type might not be fully inferred
@@ -79,11 +89,20 @@ export function CreateExamForm({ onSuccess }: { onSuccess?: () => void }) {
     });
   };
 
-  const handleFileUpload = (file: File) => {
-    setUploadedFile(file);
-    // Clear text content if file is uploaded
+  const handleFilesUpload = (files: File[]) => {
+    setUploadedFiles((prev) => {
+      const combined = [...prev, ...files].slice(0, 5);
+      const total = combined.reduce((acc, f) => acc + f.size, 0);
+      if (total > MAX_TOTAL_BYTES) {
+        toast.error('Total size exceeds 50MB. Remove some files or choose smaller ones.');
+        return prev;
+      }
+      return combined;
+    });
     form.setValue('original_content', '');
   };
+
+  const totalSize = uploadedFiles.reduce((acc, f) => acc + f.size, 0);
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -156,23 +175,45 @@ export function CreateExamForm({ onSuccess }: { onSuccess?: () => void }) {
 
       <div>
         <Label>Study Material</Label>
-        {uploadedFile ? (
-          <div className="border rounded-lg p-4 flex items-center justify-between">
-            <p className="text-sm">Uploaded: {uploadedFile.name}</p>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setUploadedFile(null);
-              }}
-            >
-              Remove
-            </Button>
-          </div>
-        ) : (
-          <FileUploadZone onFileContent={handleFileUpload} />
-        )}
+        <div className="space-y-3">
+          {uploadedFiles.length > 0 && (
+            <div className="border rounded-lg p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">Files selected ({uploadedFiles.length}/5)</p>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setUploadedFiles([])}
+                >
+                  Clear
+                </Button>
+              </div>
+              <ul className="space-y-1 text-sm text-gray-700">
+                {uploadedFiles.map((file, idx) => (
+                  <li key={`${file.name}-${idx}`} className="flex items-center justify-between">
+                    <span className="truncate">{file.name} · {formatBytes(file.size)}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setUploadedFiles((prev) => prev.filter((_, i) => i !== idx))}
+                    >
+                      Remove
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-xs text-gray-500">Total size: {formatBytes(totalSize)} / 50MB</p>
+            </div>
+          )}
+
+          <FileUploadZone
+            onFilesSelected={handleFilesUpload}
+            existingFilesCount={uploadedFiles.length}
+            existingTotalBytes={totalSize}
+          />
+        </div>
       </div>
 
       <div>

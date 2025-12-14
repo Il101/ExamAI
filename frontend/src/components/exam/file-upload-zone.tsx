@@ -7,13 +7,17 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 interface FileUploadZoneProps {
-  onFileContent: (file: File) => void;
+  onFilesSelected: (files: File[]) => void;
   accept?: Record<string, string[]>;
   maxSize?: number;
+  maxFiles?: number;
+  existingFilesCount?: number;
+  existingTotalBytes?: number;
+  totalMaxSize?: number;
 }
 
 export function FileUploadZone({
-  onFileContent,
+  onFilesSelected,
   accept = {
     'text/plain': ['.txt'],
     'application/pdf': ['.pdf'],
@@ -22,18 +26,38 @@ export function FileUploadZone({
     'video/mp4': ['.mp4'],
   },
   maxSize = 10 * 1024 * 1024, // 10MB
+  maxFiles = 5,
+  existingFilesCount = 0,
+  existingTotalBytes = 0,
+  totalMaxSize = 50 * 1024 * 1024, // 50MB combined
 }: FileUploadZoneProps) {
   const [isProcessing, setIsProcessing] = useState(false);
 
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {
-      const file = acceptedFiles[0];
-      if (!file) return;
+      if (!acceptedFiles.length) return;
+
+      const nextCount = existingFilesCount + acceptedFiles.length;
+      if (nextCount > maxFiles) {
+        toast.error(`You can upload up to ${maxFiles} files. Remove some files and try again.`);
+        return;
+      }
+
+      const incomingSize = acceptedFiles.reduce((acc, file) => acc + file.size, 0);
+      const nextTotal = existingTotalBytes + incomingSize;
+      if (nextTotal > totalMaxSize) {
+        toast.error('Total size exceeds limit (50MB). Remove files or upload smaller ones.');
+        return;
+      }
 
       setIsProcessing(true);
       try {
-        onFileContent(file);
-        toast.success('File ready for upload');
+        onFilesSelected(acceptedFiles);
+        toast.success(
+          acceptedFiles.length === 1
+            ? 'File ready for upload'
+            : `${acceptedFiles.length} files ready for upload`
+        );
       } catch (error) {
         console.error('File processing error:', error);
         toast.error('Failed to process file. Please ensure it is a valid text, PDF, or DOCX file.');
@@ -41,15 +65,26 @@ export function FileUploadZone({
         setIsProcessing(false);
       }
     },
-    [onFileContent]
+    [onFilesSelected]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept,
     maxSize,
-    multiple: false,
+    maxFiles,
+    multiple: true,
     disabled: isProcessing,
+    onDropRejected: (fileRejections) => {
+      const messages = fileRejections.map((rej) => {
+        const reason = rej.errors[0];
+        if (!reason) return 'File was rejected';
+        if (reason.code === 'file-too-large') return 'File exceeds 10MB limit';
+        if (reason.code === 'file-invalid-type') return 'Unsupported file type';
+        return reason.message;
+      });
+      toast.error(messages.join('\n'));
+    },
   });
 
   return (
@@ -77,8 +112,10 @@ export function FileUploadZone({
           ) : (
             <>
               <p className="text-lg font-medium mb-2">Drag & drop your study material</p>
-              <p className="text-sm text-gray-500">or click to browse (PDF, DOCX, TXT)</p>
-              <p className="text-xs text-gray-400 mt-2">Max file size: 10MB</p>
+              <p className="text-sm text-gray-500">or click to browse (PDF, DOCX, TXT, MP3, MP4)</p>
+              <p className="text-xs text-gray-400 mt-2">
+                Max 10MB per file, up to {maxFiles} files, 50MB total
+              </p>
             </>
           )}
         </>
