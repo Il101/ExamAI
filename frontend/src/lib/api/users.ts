@@ -20,7 +20,8 @@ export const usersApi = {
     },
 
     changePassword: async (data: ChangePasswordRequest): Promise<void> => {
-        await api.post('/users/change-password', data);
+        // Backend change password endpoint lives under /auth
+        await api.post('/auth/change-password', data);
     },
 
     deleteAccount: async (): Promise<void> => {

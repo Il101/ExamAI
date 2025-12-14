@@ -56,7 +56,11 @@ export function PasswordForm() {
             form.reset();
         } catch (error) {
             console.error('Failed to change password:', error);
-            toast.error('Failed to change password. Please check your current password.');
+            const message = error instanceof Error && 'response' in error
+                ? (error as { response?: { data?: { detail?: string; error?: { message?: string } } } }).response?.data?.detail
+                    || (error as { response?: { data?: { error?: { message?: string } } } }).response?.data?.error?.message
+                : null;
+            toast.error(message || 'Failed to change password. Please check your current password.');
         } finally {
             setIsLoading(false);
         }

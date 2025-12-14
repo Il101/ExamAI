@@ -73,80 +73,76 @@ function ResetPasswordContent() {
 
     if (!token) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4">
-                <Card className="w-full max-w-md p-8 shadow-2xl border-white/10 bg-card/50 backdrop-blur-xl text-center">
-                    <h1 className="text-2xl font-bold mb-4 text-foreground">Invalid Reset Link</h1>
-                    <p className="text-muted-foreground mb-6">
-                        This password reset link is invalid or has expired.
-                    </p>
-                    <Link href="/forgot-password">
-                        <Button className="w-full">
-                            Request new reset link
-                        </Button>
-                    </Link>
-                </Card>
-            </div>
+            <Card className="w-full p-8 shadow-2xl border-white/10 bg-card/50 backdrop-blur-xl text-center">
+                <h1 className="text-2xl font-bold mb-4 text-foreground">Invalid Reset Link</h1>
+                <p className="text-muted-foreground mb-6">
+                    This password reset link is invalid or has expired.
+                </p>
+                <Link href="/forgot-password">
+                    <Button className="w-full">
+                        Request new reset link
+                    </Button>
+                </Link>
+            </Card>
         );
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 px-4">
-            <Card className="w-full max-w-md p-8 shadow-2xl border-white/10 bg-card/50 backdrop-blur-xl">
-                <div className="mb-8 text-center">
-                    <h1 className="text-3xl font-bold mb-2 text-foreground">Reset password</h1>
-                    <p className="text-muted-foreground">Enter your new password below</p>
+        <Card className="w-full p-8 shadow-2xl border-white/10 bg-card/50 backdrop-blur-xl">
+            <div className="mb-8 text-center">
+                <h1 className="text-3xl font-bold mb-2 text-foreground">Reset password</h1>
+                <p className="text-muted-foreground">Enter your new password below</p>
+            </div>
+
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <div>
+                    <Label htmlFor="password">New Password</Label>
+                    <Input
+                        id="password"
+                        type="password"
+                        placeholder="••••••••"
+                        {...form.register('password')}
+                        disabled={isSubmitting}
+                    />
+                    {form.formState.errors.password && (
+                        <p className="text-sm text-red-500 mt-1">
+                            {form.formState.errors.password.message}
+                        </p>
+                    )}
                 </div>
 
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                    <div>
-                        <Label htmlFor="password">New Password</Label>
-                        <Input
-                            id="password"
-                            type="password"
-                            placeholder="••••••••"
-                            {...form.register('password')}
-                            disabled={isSubmitting}
-                        />
-                        {form.formState.errors.password && (
-                            <p className="text-sm text-red-500 mt-1">
-                                {form.formState.errors.password.message}
-                            </p>
-                        )}
-                    </div>
-
-                    <div>
-                        <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                        <Input
-                            id="confirmPassword"
-                            type="password"
-                            placeholder="••••••••"
-                            {...form.register('confirmPassword')}
-                            disabled={isSubmitting}
-                        />
-                        {form.formState.errors.confirmPassword && (
-                            <p className="text-sm text-red-500 mt-1">
-                                {form.formState.errors.confirmPassword.message}
-                            </p>
-                        )}
-                    </div>
-
-                    <Button
-                        type="submit"
-                        className="w-full"
+                <div>
+                    <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                    <Input
+                        id="confirmPassword"
+                        type="password"
+                        placeholder="••••••••"
+                        {...form.register('confirmPassword')}
                         disabled={isSubmitting}
-                    >
-                        {isSubmitting ? 'Resetting...' : 'Reset password'}
-                    </Button>
-                </form>
+                    />
+                    {form.formState.errors.confirmPassword && (
+                        <p className="text-sm text-red-500 mt-1">
+                            {form.formState.errors.confirmPassword.message}
+                        </p>
+                    )}
+                </div>
 
-                <p className="text-center text-sm text-muted-foreground mt-6">
-                    Remember your password?{' '}
-                    <Link href="/login" className="text-primary hover:text-accent hover:underline font-medium transition-colors">
-                        Sign in
-                    </Link>
-                </p>
-            </Card>
-        </div>
+                <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={isSubmitting}
+                >
+                    {isSubmitting ? 'Resetting...' : 'Reset password'}
+                </Button>
+            </form>
+
+            <p className="text-center text-sm text-muted-foreground mt-6">
+                Remember your password?{' '}
+                <Link href="/login" className="text-primary hover:text-accent hover:underline font-medium transition-colors">
+                    Sign in
+                </Link>
+            </p>
+        </Card>
     );
 }
 
