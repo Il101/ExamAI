@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, Suspense, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -31,7 +31,19 @@ type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
 function ResetPasswordContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const token = searchParams.get('token');
+    // Supabase recovery links may include tokens in query or hash fragment
+    const token = useMemo(() => {
+        const fromQuery = searchParams.get('token')
+            || searchParams.get('token_hash')
+            || searchParams.get('access_token');
+        if (fromQuery) return fromQuery;
+
+        if (typeof window !== 'undefined') {
+            const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+            return hashParams.get('access_token') || hashParams.get('token');
+        }
+        return null;
+    }, [searchParams]);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const form = useForm<ResetPasswordFormData>({

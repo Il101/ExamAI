@@ -293,7 +293,7 @@ class AuthService:
         try:
             # Supabase sends password reset email with magic link
             # The redirect URL should point to our frontend reset-password page
-            redirect_url = f"{settings.FRONTEND_URL}/reset-password"
+            redirect_url = f"{settings.FRONTEND_URL.rstrip('/')}/reset-password"
 
             self.supabase.auth.reset_password_email(
                 email, options={"redirect_to": redirect_url}
