@@ -22,21 +22,7 @@ export function FeedbackButton() {
     }, []);
 
     const handleClick = () => {
-        // Set user attributes before triggering survey
-        if (user) {
-            console.log('Setting Formbricks attributes:', {
-                userid: user.id,
-                useremail: user.email,
-                username: user.full_name
-            });
-
-            // Set attributes (these persist across surveys)
-            formbricks.setAttribute('userid', user.id);
-            if (user.email) formbricks.setAttribute('useremail', user.email);
-            if (user.full_name) formbricks.setAttribute('username', user.full_name);
-        }
-
-        // Trigger survey
+        // Trigger Formbricks survey (anonymous on free plan)
         console.log('Triggering Formbricks survey');
         formbricks.track('feedback_button_clicked');
     };
