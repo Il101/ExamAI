@@ -43,17 +43,18 @@ export function PullToRefresh({ children }: { children: React.ReactNode }) {
         const handleTouchEnd = async () => {
             if (pullDistance > 80 && !isRefreshing) {
                 setIsRefreshing(true);
+                setPullDistance(0);
+                setTouchStart(0);
+                pullProgress.set(0);
 
                 // Soft refresh - reload data without full page reload
                 router.refresh();
 
-                // Hide loading indicator after animation
+                // Keep loading indicator visible
+                // It will hide when user scrolls or after 3 seconds
                 setTimeout(() => {
                     setIsRefreshing(false);
-                    setPullDistance(0);
-                    setTouchStart(0);
-                    pullProgress.set(0);
-                }, 1500);
+                }, 3000);
             } else {
                 setPullDistance(0);
                 setTouchStart(0);
@@ -76,15 +77,15 @@ export function PullToRefresh({ children }: { children: React.ReactNode }) {
 
     return (
         <>
-            {/* Loading overlay during refresh */}
+            {/* Loading overlay during refresh - stays at top */}
             <AnimatePresence>
                 {isRefreshing && (
                     <motion.div
-                        initial={{ y: -100, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        exit={{ y: -100, opacity: 0 }}
-                        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                        className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-center py-8 bg-background/80 backdrop-blur-xl border-b border-border"
+                        initial={{ y: -60 }}
+                        animate={{ y: 0 }}
+                        exit={{ y: -60 }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                        className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-center py-4 bg-background/95 backdrop-blur-xl border-b border-border shadow-lg"
                     >
                         <div className="flex items-center gap-3">
                             {/* Animated brain */}
@@ -93,22 +94,22 @@ export function PullToRefresh({ children }: { children: React.ReactNode }) {
                                     rotate: [0, 360],
                                 }}
                                 transition={{
-                                    duration: 2,
+                                    duration: 1.5,
                                     repeat: Infinity,
                                     ease: "linear"
                                 }}
-                                className="text-3xl"
+                                className="text-2xl"
                             >
                                 🧠
                             </motion.div>
 
                             {/* Loading text */}
                             <motion.p
-                                animate={{ opacity: [0.5, 1, 0.5] }}
+                                animate={{ opacity: [0.6, 1, 0.6] }}
                                 transition={{ duration: 1.5, repeat: Infinity }}
-                                className="text-sm font-medium text-foreground"
+                                className="text-xs font-medium text-foreground/80"
                             >
-                                Refreshing...
+                                Updating...
                             </motion.p>
                         </div>
                     </motion.div>
