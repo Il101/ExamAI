@@ -53,7 +53,7 @@ export function FeedbackButton() {
 
                 {/* Text label */}
                 <span className="text-sm font-medium text-foreground/90 whitespace-nowrap">
-                    Beta Feedback v2
+                    Beta Feedback
                 </span>
             </div>
         </button>
