@@ -18,34 +18,29 @@ export function FeedbackButton() {
                 environmentId,
                 appUrl,
             });
-
-            // Set user information if logged in
-            if (user) {
-                console.log('Setting Formbricks user:', {
-                    userId: user.id,
-                    email: user.email,
-                    name: user.full_name
-                });
-                formbricks.setUserId(user.id);
-                if (user.email) {
-                    formbricks.setAttribute('email', user.email);
-                }
-                if (user.full_name) {
-                    formbricks.setAttribute('name', user.full_name);
-                }
-            } else {
-                console.log('No user logged in for Formbricks');
-            }
         }
-    }, [user]);
+    }, []);
 
     const handleClick = () => {
-        // Trigger Formbricks survey
+        // Trigger Formbricks survey with user data as hidden fields
         const environmentId = process.env.NEXT_PUBLIC_FORMBRICKS_ENVIRONMENT_ID;
 
         if (environmentId) {
+            // Pass user data as hidden fields (works on all plans)
+            const hiddenFields: Record<string, string> = {};
+
+            if (user) {
+                hiddenFields.userId = user.id;
+                if (user.email) hiddenFields.userEmail = user.email;
+                if (user.full_name) hiddenFields.userName = user.full_name;
+            }
+
+            console.log('Triggering Formbricks with hidden fields:', hiddenFields);
+
             // This will show the configured survey in Formbricks dashboard
-            formbricks.track('feedback_button_clicked');
+            formbricks.track('feedback_button_clicked', {
+                hiddenFields: hiddenFields
+            });
         } else {
             console.warn('Formbricks not configured. Please set environment variables.');
         }
