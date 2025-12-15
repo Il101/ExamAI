@@ -13,8 +13,8 @@ export function PullToRefresh({ children }: { children: React.ReactNode }) {
 
     // Spring for smooth animation
     const springConfig = { stiffness: 400, damping: 30 };
-    const contentOffset = useSpring(0, springConfig);
-    const spinnerOpacity = useTransform(contentOffset, [0, 60], [0, 1]);
+    const pullProgress = useSpring(0, springConfig);
+    const spinnerOpacity = useTransform(pullProgress, [0, 1], [0, 1]);
 
     useEffect(() => {
         setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
@@ -36,25 +36,25 @@ export function PullToRefresh({ children }: { children: React.ReactNode }) {
             const distance = Math.max(0, touchY - touchStart);
 
             // Apply resistance for natural feel
-            const resistedDistance = Math.min(distance * 0.5, 100);
+            const resistedDistance = Math.min(distance * 0.4, 80);
             setPullDistance(resistedDistance);
-            contentOffset.set(resistedDistance);
+            pullProgress.set(resistedDistance / 80);
         };
 
         const handleTouchEnd = () => {
-            if (pullDistance > 60 && !isRefreshing) {
+            if (pullDistance > 50 && !isRefreshing) {
                 setIsRefreshing(true);
-                contentOffset.set(60); // Keep spinner visible
+                pullProgress.set(1);
 
                 router.refresh();
 
                 // Hide after refresh
                 setTimeout(() => {
                     setIsRefreshing(false);
-                    contentOffset.set(0);
+                    pullProgress.set(0);
                 }, 2500);
             } else {
-                contentOffset.set(0);
+                pullProgress.set(0);
             }
 
             setPullDistance(0);
@@ -70,43 +70,38 @@ export function PullToRefresh({ children }: { children: React.ReactNode }) {
             document.removeEventListener('touchmove', handleTouchMove);
             document.removeEventListener('touchend', handleTouchEnd);
         };
-    }, [isMobile, touchStart, pullDistance, isRefreshing, contentOffset, router]);
+    }, [isMobile, touchStart, pullDistance, isRefreshing, pullProgress, router]);
 
     if (!isMobile) return <>{children}</>;
 
     return (
-        <div className="relative min-h-screen overflow-hidden">
-            {/* Spinner - fixed at top, visible when pulling */}
+        <>
+            {/* Spinner in header area - behind content */}
             <motion.div
-                className="fixed top-16 left-0 right-0 z-50 flex items-center justify-center pointer-events-none"
+                className="fixed top-0 left-0 right-0 h-16 z-40 flex items-center justify-center bg-background pointer-events-none"
                 style={{ opacity: spinnerOpacity }}
             >
                 <motion.div
-                    animate={isRefreshing ? { rotate: 360 } : { rotate: pullDistance * 3 }}
+                    animate={isRefreshing ? { rotate: 360 } : { rotate: pullDistance * 4 }}
                     transition={isRefreshing ? { duration: 1, repeat: Infinity, ease: "linear" } : { duration: 0 }}
-                    className="text-3xl"
+                    className="text-2xl"
                 >
                     🧠
                 </motion.div>
             </motion.div>
 
-            {/* Text indicator */}
-            {pullDistance > 40 && !isRefreshing && (
+            {/* Text hint */}
+            {pullDistance > 30 && !isRefreshing && (
                 <motion.p
                     initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="fixed top-28 left-0 right-0 z-50 text-center text-xs font-medium text-foreground/60"
+                    animate={{ opacity: 0.6 }}
+                    className="fixed top-12 left-0 right-0 z-50 text-center text-xs font-medium text-foreground/50 pointer-events-none"
                 >
-                    {pullDistance > 60 ? 'Release to refresh' : 'Pull to refresh'}
+                    {pullDistance > 50 ? 'Release to refresh' : 'Pull to refresh'}
                 </motion.p>
             )}
 
-            {/* Content that shifts down */}
-            <motion.div
-                style={{ y: contentOffset }}
-            >
-                {children}
-            </motion.div>
-        </div>
+            {children}
+        </>
     );
 }
