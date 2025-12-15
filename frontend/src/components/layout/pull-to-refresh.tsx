@@ -15,8 +15,8 @@ export function PullToRefresh({ children }: { children: React.ReactNode }) {
     const [isMobile, setIsMobile] = useState(false);
 
     // Instagram-like resistance configuration
-    const MAX_PULL = 120; // Maximum pixels you can pull down visually
-    const REFRESH_THRESHOLD = 70; // Pixel point where release triggers refresh
+    const MAX_PULL = 150; // Increased max pull for better feel
+    const REFRESH_THRESHOLD = 80; // Allow more space for status bar
 
     useEffect(() => {
         setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
@@ -99,16 +99,16 @@ export function PullToRefresh({ children }: { children: React.ReactNode }) {
         <div className="relative min-h-screen bg-black"> {/* Background color behind spinner */}
 
             {/* SPINNER LAYER (Z-0) - Fixed behind content */}
-            <div className="absolute top-0 left-0 w-full h-[120px] flex items-center justify-center z-0 overflow-hidden">
+            <div className="absolute top-0 left-0 w-full flex justify-center pt-10 z-0 overflow-hidden">
                 <motion.div
-                    className="flex flex-col items-center justify-center pt-8"
+                    className="flex flex-col items-center justify-center"
                     style={{
-                        opacity: Math.min(pullY / REFRESH_THRESHOLD, 1),
-                        scale: Math.min(0.5 + (pullY / MAX_PULL) * 0.5, 1) // Subtle zoom in
+                        opacity: Math.min(pullY / (REFRESH_THRESHOLD - 20), 1),
+                        scale: Math.min(0.8 + (pullY / MAX_PULL) * 0.2, 1)
                     }}
                 >
                     <motion.div
-                        className="text-3xl mb-2"
+                        className="text-3xl"
                         animate={isRefreshing ? { rotate: 360 } : { rotate: pullY * 2 }}
                         transition={isRefreshing ? { duration: 0.8, repeat: Infinity, ease: "linear" } : { duration: 0 }}
                     >
