@@ -3,8 +3,11 @@
 import { MessageSquare } from 'lucide-react';
 import { useEffect } from 'react';
 import formbricks from '@formbricks/js';
+import { useAuthStore } from '@/lib/stores/auth-store';
 
 export function FeedbackButton() {
+    const { user } = useAuthStore();
+
     useEffect(() => {
         // Initialize Formbricks only if environment variables are set
         const environmentId = process.env.NEXT_PUBLIC_FORMBRICKS_ENVIRONMENT_ID;
@@ -15,8 +18,19 @@ export function FeedbackButton() {
                 environmentId,
                 appUrl,
             });
+
+            // Set user information if logged in
+            if (user) {
+                formbricks.setUserId(user.id);
+                if (user.email) {
+                    formbricks.setAttribute('email', user.email);
+                }
+                if (user.full_name) {
+                    formbricks.setAttribute('name', user.full_name);
+                }
+            }
         }
-    }, []);
+    }, [user]);
 
     const handleClick = () => {
         // Trigger Formbricks survey
