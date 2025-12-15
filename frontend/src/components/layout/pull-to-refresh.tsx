@@ -60,7 +60,7 @@ export function PullToRefresh({ children }: { children: React.ReactNode }) {
                 // Trigger Refresh
                 setIsRefreshing(true);
                 // Snap content to threshold position while loading
-                contentControls.start({ y: REFRESH_THRESHOLD, transition: { type: "spring", stiffness: 300, damping: 30 } });
+                contentControls.start({ paddingTop: REFRESH_THRESHOLD, transition: { type: "spring", stiffness: 300, damping: 30 } });
 
                 // Perform Soft Refresh
                 router.refresh();
@@ -69,7 +69,7 @@ export function PullToRefresh({ children }: { children: React.ReactNode }) {
                 setTimeout(() => {
                     setIsRefreshing(false);
                     setPullY(0);
-                    contentControls.start({ y: 0 });
+                    contentControls.start({ paddingTop: 0 });
                 }, 2000);
             } else {
                 // Snap back if not pulled enough
