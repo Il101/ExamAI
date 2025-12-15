@@ -89,43 +89,37 @@ export function PullToRefresh({ children }: { children: React.ReactNode }) {
         };
     }, [isMobile, isRefreshing, pullY, contentControls, router]);
 
-    // Use framer motion controls for programmatic animation (snap back),
-    // but fall back to raw translation during gesture for zero-latency performance
-    const yValue = isRefreshing ? REFRESH_THRESHOLD : pullY;
+    // Use padding value for refreshing state, raw pull for gesture
+    const paddingValue = isRefreshing ? REFRESH_THRESHOLD : pullY;
 
     if (!isMobile) return <>{children}</>;
 
     return (
-        <div className="relative min-h-screen bg-black"> {/* Background color behind spinner */}
-
-            {/* SPINNER LAYER (Z-0) - Fixed behind content */}
-            <div className="absolute top-0 left-0 w-full flex justify-center pt-[calc(env(safe-area-inset-top)+1rem)] z-0 overflow-hidden">
-                <motion.div
-                    className="flex flex-col items-center justify-center"
-                    style={{
-                        opacity: Math.min(pullY / (REFRESH_THRESHOLD - 20), 1),
-                        scale: Math.min(0.8 + (pullY / MAX_PULL) * 0.2, 1)
-                    }}
-                >
-                    <motion.div
-                        className="text-3xl"
-                        animate={isRefreshing ? { rotate: 360 } : { rotate: pullY * 2 }}
-                        transition={isRefreshing ? { duration: 0.8, repeat: Infinity, ease: "linear" } : { duration: 0 }}
-                    >
-                        🧠
-                    </motion.div>
-                </motion.div>
-            </div>
-
-            {/* CONTENT LAYER (Z-10) - Slides over spinner */}
+        <motion.div
+            className="relative min-h-screen bg-background"
+            animate={contentControls}
+            style={{ paddingTop: paddingValue }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+        >
+            {/* SPINNER - Moves with padding */}
             <motion.div
-                className="relative z-10 bg-background min-h-screen shadow-2xl" // shadow creates depth separation
-                animate={contentControls}
-                style={{ y: yValue }}
-                transition={{ type: "spring", stiffness: 400, damping: 30 }} // Bounce effect
+                className="absolute left-0 right-0 flex justify-center"
+                style={{
+                    top: `calc(${Math.max(pullY - 60, -60)}px + env(safe-area-inset-top))`,
+                    opacity: Math.min(pullY / (REFRESH_THRESHOLD - 20), 1),
+                }}
             >
-                {children}
+                <motion.div
+                    className="text-3xl"
+                    animate={isRefreshing ? { rotate: 360 } : { rotate: pullY * 2 }}
+                    transition={isRefreshing ? { duration: 0.8, repeat: Infinity, ease: "linear" } : { duration: 0 }}
+                >
+                    🧠
+                </motion.div>
             </motion.div>
-        </div>
+
+            {/* CONTENT */}
+            {children}
+        </motion.div>
     );
 }
