@@ -1,15 +1,19 @@
 'use client';
 
 import { MessageSquare } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import formbricks from '@formbricks/js';
 import { useAuthStore } from '@/lib/stores/auth-store';
 
 export function FeedbackButton() {
     const { user } = useAuthStore();
+    const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
+        // Set mounted to true to prevent hydration mismatch
+        setMounted(true);
+
         // Initialize Formbricks only if environment variables are set
         const environmentId = process.env.NEXT_PUBLIC_FORMBRICKS_ENVIRONMENT_ID;
         const appUrl = process.env.NEXT_PUBLIC_FORMBRICKS_APP_URL;
@@ -27,6 +31,11 @@ export function FeedbackButton() {
         console.log('Triggering Formbricks survey');
         formbricks.track('feedback_button_clicked');
     };
+
+    // Don't render until mounted to prevent hydration mismatch
+    if (!mounted) {
+        return null;
+    }
 
     // Don't render if Formbricks is not configured
     if (!process.env.NEXT_PUBLIC_FORMBRICKS_ENVIRONMENT_ID) {
@@ -60,6 +69,5 @@ export function FeedbackButton() {
     );
 
     // Render button via portal to escape any potential transform/stacking contexts
-    if (typeof window === 'undefined') return null;
     return createPortal(buttonContent, document.body);
 }

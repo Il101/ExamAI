@@ -22,10 +22,14 @@ api.interceptors.request.use(
     // Check if we are in the browser
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('access_token');
-      console.log('Interceptor: token from localStorage:', token ? 'EXISTS' : 'NULL');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Interceptor: token from localStorage:', token ? 'EXISTS' : 'NULL');
+      }
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
-        console.log('Interceptor: Authorization header set');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Interceptor: Authorization header set');
+        }
       }
     }
     return config;
