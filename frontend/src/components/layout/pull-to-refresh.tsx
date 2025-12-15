@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { motion, useSpring } from 'framer-motion';
+import { motion, useSpring, AnimatePresence } from 'framer-motion';
 
 export function PullToRefresh({ children }: { children: React.ReactNode }) {
     const [pullDistance, setPullDistance] = useState(0);
@@ -41,12 +41,15 @@ export function PullToRefresh({ children }: { children: React.ReactNode }) {
         const handleTouchEnd = () => {
             if (pullDistance > 80 && !isRefreshing) {
                 setIsRefreshing(true);
-                window.location.reload();
+                // Small delay to show the loading state before reload
+                setTimeout(() => {
+                    window.location.reload();
+                }, 100);
+            } else {
+                setPullDistance(0);
+                setTouchStart(0);
+                pullProgress.set(0);
             }
-
-            setPullDistance(0);
-            setTouchStart(0);
-            pullProgress.set(0);
         };
 
         document.addEventListener('touchstart', handleTouchStart, { passive: true });
@@ -64,6 +67,60 @@ export function PullToRefresh({ children }: { children: React.ReactNode }) {
 
     return (
         <>
+            {/* Loading overlay during refresh */}
+            <AnimatePresence>
+                {isRefreshing && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] flex items-center justify-center bg-background"
+                    >
+                        <div className="flex flex-col items-center gap-4">
+                            {/* Animated brain */}
+                            <motion.div
+                                animate={{
+                                    rotate: [0, 360],
+                                    scale: [1, 1.1, 1],
+                                }}
+                                transition={{
+                                    duration: 2,
+                                    repeat: Infinity,
+                                    ease: "easeInOut"
+                                }}
+                                className="text-6xl"
+                            >
+                                🧠
+                            </motion.div>
+
+                            {/* Sparkles */}
+                            <motion.div
+                                animate={{
+                                    scale: [1, 1.2, 1],
+                                    rotate: [0, 180, 360]
+                                }}
+                                transition={{
+                                    duration: 1.5,
+                                    repeat: Infinity,
+                                }}
+                                className="text-3xl"
+                            >
+                                ✨
+                            </motion.div>
+
+                            {/* Loading text */}
+                            <motion.p
+                                animate={{ opacity: [0.5, 1, 0.5] }}
+                                transition={{ duration: 1.5, repeat: Infinity }}
+                                className="text-sm font-medium text-foreground/70"
+                            >
+                                Refreshing...
+                            </motion.p>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* Pull indicator */}
             <motion.div
                 className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center pointer-events-none"
