@@ -30,9 +30,9 @@ export function FeedbackButton() {
             const hiddenFields: Record<string, string> = {};
 
             if (user) {
-                hiddenFields.userId = user.id;
-                if (user.email) hiddenFields.userEmail = user.email;
-                if (user.full_name) hiddenFields.userName = user.full_name;
+                hiddenFields.userid = user.id;
+                if (user.email) hiddenFields.useremail = user.email;
+                if (user.full_name) hiddenFields.username = user.full_name;
             }
 
             console.log('Triggering Formbricks with hidden fields:', hiddenFields);
