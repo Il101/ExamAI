@@ -87,31 +87,30 @@ export function PullToRefresh({ children }: { children: React.ReactNode }) {
                         className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-center py-8 bg-background/80 backdrop-blur-xl border-b border-border"
                     >
                         <div className="flex items-center gap-3">
-                            <div className="flex items-center gap-3">
-                                {/* Animated brain */}
-                                <motion.div
-                                    animate={{
-                                        rotate: [0, 360],
-                                    }}
-                                    transition={{
-                                        duration: 2,
-                                        repeat: Infinity,
-                                        ease: "linear"
-                                    }}
-                                    className="text-3xl"
-                                >
-                                    🧠
-                                </motion.div>
+                            {/* Animated brain */}
+                            <motion.div
+                                animate={{
+                                    rotate: [0, 360],
+                                }}
+                                transition={{
+                                    duration: 2,
+                                    repeat: Infinity,
+                                    ease: "linear"
+                                }}
+                                className="text-3xl"
+                            >
+                                🧠
+                            </motion.div>
 
-                                {/* Loading text */}
-                                <motion.p
-                                    animate={{ opacity: [0.5, 1, 0.5] }}
-                                    transition={{ duration: 1.5, repeat: Infinity }}
-                                    className="text-sm font-medium text-foreground"
-                                >
-                                    Refreshing...
-                                </motion.p>
-                            </div>
+                            {/* Loading text */}
+                            <motion.p
+                                animate={{ opacity: [0.5, 1, 0.5] }}
+                                transition={{ duration: 1.5, repeat: Infinity }}
+                                className="text-sm font-medium text-foreground"
+                            >
+                                Refreshing...
+                            </motion.p>
+                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>
