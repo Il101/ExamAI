@@ -31,9 +31,11 @@ export function FeedbackButton() {
             });
 
             formbricks.track('feedback_button_clicked', {
-                userid: user.id,
-                useremail: user.email || '',
-                username: user.full_name || ''
+                hiddenFields: {
+                    userid: user.id,
+                    useremail: user.email || '',
+                    username: user.full_name || ''
+                }
             });
         } else {
             console.log('No user logged in, triggering anonymous survey');
