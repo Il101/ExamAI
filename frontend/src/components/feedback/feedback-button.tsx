@@ -2,6 +2,7 @@
 
 import { MessageSquare } from 'lucide-react';
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import formbricks from '@formbricks/js';
 import { useAuthStore } from '@/lib/stores/auth-store';
 
@@ -32,11 +33,15 @@ export function FeedbackButton() {
         return null;
     }
 
-    return (
+    const buttonContent = (
         <button
             onClick={handleClick}
-            className="fixed bottom-6 left-6 z-50 group"
+            className="fixed bottom-6 left-6 z-[9999] group safe-area-bottom"
             aria-label="Send feedback"
+            style={{
+                position: 'fixed',
+                marginBottom: 'env(safe-area-inset-bottom, 20px)'
+            }}
         >
             {/* Frosted glass capsule button */}
             <div className="flex items-center gap-2 px-4 py-3 rounded-full bg-white/10 dark:bg-black/20 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
@@ -53,4 +58,8 @@ export function FeedbackButton() {
             </div>
         </button>
     );
+
+    // Render button via portal to escape any potential transform/stacking contexts
+    if (typeof window === 'undefined') return null;
+    return createPortal(buttonContent, document.body);
 }
