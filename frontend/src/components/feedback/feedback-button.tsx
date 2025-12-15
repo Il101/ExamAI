@@ -52,7 +52,7 @@ export function FeedbackButton() {
     return (
         <button
             onClick={handleClick}
-            className="fixed bottom-6 right-6 z-50 group"
+            className="fixed bottom-6 left-6 z-50 group"
             aria-label="Send feedback"
         >
             {/* Frosted glass capsule button */}
