@@ -22,25 +22,23 @@ export function FeedbackButton() {
     }, []);
 
     const handleClick = () => {
-        // Trigger Formbricks App Survey with hidden fields
+        // Set user attributes before triggering survey
         if (user) {
-            console.log('Triggering Formbricks with user data:', {
+            console.log('Setting Formbricks attributes:', {
                 userid: user.id,
                 useremail: user.email,
                 username: user.full_name
             });
 
-            formbricks.track('feedback_button_clicked', {
-                hiddenFields: {
-                    userid: user.id,
-                    useremail: user.email || '',
-                    username: user.full_name || ''
-                }
-            });
-        } else {
-            console.log('No user logged in, triggering anonymous survey');
-            formbricks.track('feedback_button_clicked');
+            // Set attributes (these persist across surveys)
+            formbricks.setAttribute('userid', user.id);
+            if (user.email) formbricks.setAttribute('useremail', user.email);
+            if (user.full_name) formbricks.setAttribute('username', user.full_name);
         }
+
+        // Trigger survey
+        console.log('Triggering Formbricks survey');
+        formbricks.track('feedback_button_clicked');
     };
 
     // Don't render if Formbricks is not configured
