@@ -22,27 +22,22 @@ export function FeedbackButton() {
     }, []);
 
     const handleClick = () => {
-        // Trigger Formbricks survey with user data as hidden fields
-        const environmentId = process.env.NEXT_PUBLIC_FORMBRICKS_ENVIRONMENT_ID;
+        // Trigger Formbricks App Survey with hidden fields
+        if (user) {
+            console.log('Triggering Formbricks with user data:', {
+                userid: user.id,
+                useremail: user.email,
+                username: user.full_name
+            });
 
-        if (environmentId) {
-            // Pass user data as hidden fields (works on all plans)
-            const hiddenFields: Record<string, string> = {};
-
-            if (user) {
-                hiddenFields.userid = user.id;
-                if (user.email) hiddenFields.useremail = user.email;
-                if (user.full_name) hiddenFields.username = user.full_name;
-            }
-
-            console.log('Triggering Formbricks with hidden fields:', hiddenFields);
-
-            // This will show the configured survey in Formbricks dashboard
             formbricks.track('feedback_button_clicked', {
-                hiddenFields: hiddenFields
+                userid: user.id,
+                useremail: user.email || '',
+                username: user.full_name || ''
             });
         } else {
-            console.warn('Formbricks not configured. Please set environment variables.');
+            console.log('No user logged in, triggering anonymous survey');
+            formbricks.track('feedback_button_clicked');
         }
     };
 
