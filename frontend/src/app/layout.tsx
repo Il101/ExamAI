@@ -3,7 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { FeedbackButton } from "@/components/feedback/feedback-button";
-import { PullToRefresh } from "@/components/layout/pull-to-refresh";
+// TEMPORARILY DISABLED - Need to test on all pages before re-enabling
+// import { PullToRefresh } from "@/components/layout/pull-to-refresh";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -45,9 +46,10 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <Providers>
-          <PullToRefresh>
-            {children}
-          </PullToRefresh>
+          {/* TEMPORARILY DISABLED - Need to test on all pages before re-enabling */}
+          {/* <PullToRefresh> */}
+          {children}
+          {/* </PullToRefresh> */}
           <FeedbackButton />
         </Providers>
       </body>
