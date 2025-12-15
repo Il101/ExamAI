@@ -99,7 +99,7 @@ export function PullToRefresh({ children }: { children: React.ReactNode }) {
         <div className="relative min-h-screen bg-black"> {/* Background color behind spinner */}
 
             {/* SPINNER LAYER (Z-0) - Fixed behind content */}
-            <div className="absolute top-0 left-0 w-full flex justify-center pt-10 z-0 overflow-hidden">
+            <div className="absolute top-0 left-0 w-full flex justify-center pt-[calc(env(safe-area-inset-top)+1rem)] z-0 overflow-hidden">
                 <motion.div
                     className="flex flex-col items-center justify-center"
                     style={{
