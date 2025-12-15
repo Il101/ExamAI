@@ -21,6 +21,11 @@ export function FeedbackButton() {
 
             // Set user information if logged in
             if (user) {
+                console.log('Setting Formbricks user:', {
+                    userId: user.id,
+                    email: user.email,
+                    name: user.full_name
+                });
                 formbricks.setUserId(user.id);
                 if (user.email) {
                     formbricks.setAttribute('email', user.email);
@@ -28,6 +33,8 @@ export function FeedbackButton() {
                 if (user.full_name) {
                     formbricks.setAttribute('name', user.full_name);
                 }
+            } else {
+                console.log('No user logged in for Formbricks');
             }
         }
     }, [user]);
