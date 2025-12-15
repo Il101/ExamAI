@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { motion, useSpring, AnimatePresence } from 'framer-motion';
+import { motion, useSpring, useTransform } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 
 export function PullToRefresh({ children }: { children: React.ReactNode }) {
@@ -11,10 +11,12 @@ export function PullToRefresh({ children }: { children: React.ReactNode }) {
     const [touchStart, setTouchStart] = useState(0);
     const [isMobile, setIsMobile] = useState(false);
 
-    const pullProgress = useSpring(0, { stiffness: 300, damping: 30 });
+    // Spring for smooth animation
+    const springConfig = { stiffness: 400, damping: 30 };
+    const contentOffset = useSpring(0, springConfig);
+    const spinnerOpacity = useTransform(contentOffset, [0, 60], [0, 1]);
 
     useEffect(() => {
-        // Detect mobile device
         setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
     }, []);
 
@@ -22,44 +24,41 @@ export function PullToRefresh({ children }: { children: React.ReactNode }) {
         if (!isMobile) return;
 
         const handleTouchStart = (e: TouchEvent) => {
-            // Only trigger if at top of page
-            if (window.scrollY === 0) {
+            if (window.scrollY === 0 && !isRefreshing) {
                 setTouchStart(e.touches[0].clientY);
             }
         };
 
         const handleTouchMove = (e: TouchEvent) => {
-            if (touchStart === 0 || window.scrollY > 0) return;
+            if (touchStart === 0 || window.scrollY > 0 || isRefreshing) return;
 
             const touchY = e.touches[0].clientY;
-            const distance = touchY - touchStart;
+            const distance = Math.max(0, touchY - touchStart);
 
-            if (distance > 0 && distance < 150) {
-                setPullDistance(distance);
-                pullProgress.set(distance / 150);
-            }
+            // Apply resistance for natural feel
+            const resistedDistance = Math.min(distance * 0.5, 100);
+            setPullDistance(resistedDistance);
+            contentOffset.set(resistedDistance);
         };
 
-        const handleTouchEnd = async () => {
-            if (pullDistance > 80 && !isRefreshing) {
+        const handleTouchEnd = () => {
+            if (pullDistance > 60 && !isRefreshing) {
                 setIsRefreshing(true);
-                setPullDistance(0);
-                setTouchStart(0);
-                pullProgress.set(0);
+                contentOffset.set(60); // Keep spinner visible
 
-                // Soft refresh - reload data without full page reload
                 router.refresh();
 
-                // Keep loading indicator visible
-                // It will hide when user scrolls or after 3 seconds
+                // Hide after refresh
                 setTimeout(() => {
                     setIsRefreshing(false);
-                }, 3000);
+                    contentOffset.set(0);
+                }, 2500);
             } else {
-                setPullDistance(0);
-                setTouchStart(0);
-                pullProgress.set(0);
+                contentOffset.set(0);
             }
+
+            setPullDistance(0);
+            setTouchStart(0);
         };
 
         document.addEventListener('touchstart', handleTouchStart, { passive: true });
@@ -71,95 +70,43 @@ export function PullToRefresh({ children }: { children: React.ReactNode }) {
             document.removeEventListener('touchmove', handleTouchMove);
             document.removeEventListener('touchend', handleTouchEnd);
         };
-    }, [isMobile, touchStart, pullDistance, isRefreshing, pullProgress]);
+    }, [isMobile, touchStart, pullDistance, isRefreshing, contentOffset, router]);
 
     if (!isMobile) return <>{children}</>;
 
     return (
-        <>
-            {/* Loading overlay during refresh - stays at top */}
-            <AnimatePresence>
-                {isRefreshing && (
-                    <motion.div
-                        initial={{ y: -60 }}
-                        animate={{ y: 0 }}
-                        exit={{ y: -60 }}
-                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                        className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-center py-4 bg-background/95 backdrop-blur-xl border-b border-border shadow-lg"
-                    >
-                        <div className="flex items-center gap-3">
-                            {/* Animated brain */}
-                            <motion.div
-                                animate={{
-                                    rotate: [0, 360],
-                                }}
-                                transition={{
-                                    duration: 1.5,
-                                    repeat: Infinity,
-                                    ease: "linear"
-                                }}
-                                className="text-2xl"
-                            >
-                                🧠
-                            </motion.div>
-
-                            {/* Loading text */}
-                            <motion.p
-                                animate={{ opacity: [0.6, 1, 0.6] }}
-                                transition={{ duration: 1.5, repeat: Infinity }}
-                                className="text-xs font-medium text-foreground/80"
-                            >
-                                Updating...
-                            </motion.p>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            {/* Pull indicator */}
+        <div className="relative min-h-screen overflow-hidden">
+            {/* Spinner - fixed at top, visible when pulling */}
             <motion.div
-                className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center pointer-events-none"
-                style={{
-                    height: pullDistance,
-                    opacity: pullDistance / 100,
-                }}
+                className="fixed top-16 left-0 right-0 z-50 flex items-center justify-center pointer-events-none"
+                style={{ opacity: spinnerOpacity }}
             >
                 <motion.div
-                    className="relative"
-                    animate={{
-                        rotate: pullProgress.get() * 360,
-                        scale: 0.5 + pullProgress.get() * 0.5,
-                    }}
-                    transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                    animate={isRefreshing ? { rotate: 360 } : { rotate: pullDistance * 3 }}
+                    transition={isRefreshing ? { duration: 1, repeat: Infinity, ease: "linear" } : { duration: 0 }}
+                    className="text-3xl"
                 >
-                    {/* Brain emoji as loading icon */}
-                    <div className="text-4xl">🧠</div>
-
-                    {/* Sparkle effect */}
-                    {pullDistance > 60 && (
-                        <motion.div
-                            className="absolute -top-2 -right-2 text-2xl"
-                            animate={{ scale: [1, 1.2, 1], rotate: [0, 180, 360] }}
-                            transition={{ duration: 1, repeat: Infinity }}
-                        >
-                            ✨
-                        </motion.div>
-                    )}
+                    🧠
                 </motion.div>
-
-                {/* Progress text */}
-                {pullDistance > 40 && (
-                    <motion.p
-                        className="absolute bottom-4 text-sm font-medium text-foreground/70"
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                    >
-                        {pullDistance > 80 ? 'Release to refresh' : 'Pull to refresh'}
-                    </motion.p>
-                )}
             </motion.div>
 
-            {children}
-        </>
+            {/* Text indicator */}
+            {pullDistance > 40 && !isRefreshing && (
+                <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="fixed top-28 left-0 right-0 z-50 text-center text-xs font-medium text-foreground/60"
+                >
+                    {pullDistance > 60 ? 'Release to refresh' : 'Pull to refresh'}
+                </motion.p>
+            )}
+
+            {/* Content that shifts down */}
+            <motion.div
+                style={{ y: contentOffset }}
+            >
+                {children}
+            </motion.div>
+        </div>
     );
 }
