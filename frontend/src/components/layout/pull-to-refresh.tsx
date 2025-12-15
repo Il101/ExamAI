@@ -1,20 +1,22 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { motion, useSpring, useTransform } from 'framer-motion';
+import { useEffect, useState, useRef } from 'react';
+import { motion, useSpring, useTransform, useAnimation } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 
 export function PullToRefresh({ children }: { children: React.ReactNode }) {
     const router = useRouter();
-    const [pullDistance, setPullDistance] = useState(0);
     const [isRefreshing, setIsRefreshing] = useState(false);
-    const [touchStart, setTouchStart] = useState(0);
+    const contentControls = useAnimation();
+
+    // Internal state for gesture tracking
+    const touchStart = useRef(0);
+    const [pullY, setPullY] = useState(0);
     const [isMobile, setIsMobile] = useState(false);
 
-    // Spring for smooth animation
-    const springConfig = { stiffness: 400, damping: 30 };
-    const pullProgress = useSpring(0, springConfig);
-    const spinnerOpacity = useTransform(pullProgress, [0, 1], [0, 1]);
+    // Instagram-like resistance configuration
+    const MAX_PULL = 120; // Maximum pixels you can pull down visually
+    const REFRESH_THRESHOLD = 70; // Pixel point where release triggers refresh
 
     useEffect(() => {
         setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
@@ -24,45 +26,60 @@ export function PullToRefresh({ children }: { children: React.ReactNode }) {
         if (!isMobile) return;
 
         const handleTouchStart = (e: TouchEvent) => {
-            if (window.scrollY === 0 && !isRefreshing) {
-                setTouchStart(e.touches[0].clientY);
+            if (window.scrollY <= 1 && !isRefreshing) {
+                touchStart.current = e.touches[0].clientY;
+            } else {
+                touchStart.current = 0;
             }
         };
 
         const handleTouchMove = (e: TouchEvent) => {
-            if (touchStart === 0 || window.scrollY > 0 || isRefreshing) return;
+            if (!touchStart.current || window.scrollY > 1 || isRefreshing) return;
 
-            const touchY = e.touches[0].clientY;
-            const distance = Math.max(0, touchY - touchStart);
+            const currentY = e.touches[0].clientY;
+            const diff = currentY - touchStart.current;
 
-            // Apply resistance for natural feel
-            const resistedDistance = Math.min(distance * 0.4, 80);
-            setPullDistance(resistedDistance);
-            pullProgress.set(resistedDistance / 80);
+            if (diff > 0) {
+                // Logarithmic resistance formula for "native" feel
+                // As you pull further, it gets harder
+                const resistY = Math.min(diff * 0.45, MAX_PULL);
+
+                // Prevent default pull-to-refresh from browser if we are handling it
+                if (resistY > 5 && e.cancelable) {
+                    e.preventDefault();
+                }
+
+                setPullY(resistY);
+            }
         };
 
-        const handleTouchEnd = () => {
-            if (pullDistance > 50 && !isRefreshing) {
-                setIsRefreshing(true);
-                pullProgress.set(1);
+        const handleTouchEnd = async () => {
+            if (!touchStart.current || isRefreshing) return;
 
+            if (pullY > REFRESH_THRESHOLD) {
+                // Trigger Refresh
+                setIsRefreshing(true);
+                // Snap content to threshold position while loading
+                contentControls.start({ y: REFRESH_THRESHOLD, transition: { type: "spring", stiffness: 300, damping: 30 } });
+
+                // Perform Soft Refresh
                 router.refresh();
 
-                // Hide after refresh
+                // Fake network delay for UX (so user sees the spinner) + actual wait
                 setTimeout(() => {
                     setIsRefreshing(false);
-                    pullProgress.set(0);
-                }, 2500);
+                    setPullY(0);
+                    contentControls.start({ y: 0 });
+                }, 2000);
             } else {
-                pullProgress.set(0);
+                // Snap back if not pulled enough
+                setPullY(0);
             }
-
-            setPullDistance(0);
-            setTouchStart(0);
+            touchStart.current = 0;
         };
 
         document.addEventListener('touchstart', handleTouchStart, { passive: true });
-        document.addEventListener('touchmove', handleTouchMove, { passive: true });
+        document.addEventListener('touchmove', handleTouchMove, { passive: false }); // non-passive to allow preventDefault
         document.addEventListener('touchend', handleTouchEnd);
 
         return () => {
@@ -70,38 +87,45 @@ export function PullToRefresh({ children }: { children: React.ReactNode }) {
             document.removeEventListener('touchmove', handleTouchMove);
             document.removeEventListener('touchend', handleTouchEnd);
         };
-    }, [isMobile, touchStart, pullDistance, isRefreshing, pullProgress, router]);
+    }, [isMobile, isRefreshing, pullY, contentControls, router]);
+
+    // Use framer motion controls for programmatic animation (snap back),
+    // but fall back to raw translation during gesture for zero-latency performance
+    const yValue = isRefreshing ? REFRESH_THRESHOLD : pullY;
 
     if (!isMobile) return <>{children}</>;
 
     return (
-        <>
-            {/* Spinner in header area - behind content */}
-            <motion.div
-                className="fixed top-0 left-0 right-0 h-16 z-40 flex items-center justify-center bg-background pointer-events-none"
-                style={{ opacity: spinnerOpacity }}
-            >
+        <div className="relative min-h-screen bg-black"> {/* Background color behind spinner */}
+
+            {/* SPINNER LAYER (Z-0) - Fixed behind content */}
+            <div className="absolute top-0 left-0 w-full h-[120px] flex items-center justify-center z-0 overflow-hidden">
                 <motion.div
-                    animate={isRefreshing ? { rotate: 360 } : { rotate: pullDistance * 4 }}
-                    transition={isRefreshing ? { duration: 1, repeat: Infinity, ease: "linear" } : { duration: 0 }}
-                    className="text-2xl"
+                    className="flex flex-col items-center justify-center pt-8"
+                    style={{
+                        opacity: Math.min(pullY / REFRESH_THRESHOLD, 1),
+                        scale: Math.min(0.5 + (pullY / MAX_PULL) * 0.5, 1) // Subtle zoom in
+                    }}
                 >
-                    🧠
+                    <motion.div
+                        className="text-3xl mb-2"
+                        animate={isRefreshing ? { rotate: 360 } : { rotate: pullY * 2 }}
+                        transition={isRefreshing ? { duration: 0.8, repeat: Infinity, ease: "linear" } : { duration: 0 }}
+                    >
+                        🧠
+                    </motion.div>
                 </motion.div>
+            </div>
+
+            {/* CONTENT LAYER (Z-10) - Slides over spinner */}
+            <motion.div
+                className="relative z-10 bg-background min-h-screen shadow-2xl" // shadow creates depth separation
+                animate={contentControls}
+                style={{ y: yValue }}
+                transition={{ type: "spring", stiffness: 400, damping: 30 }} // Bounce effect
+            >
+                {children}
             </motion.div>
-
-            {/* Text hint */}
-            {pullDistance > 30 && !isRefreshing && (
-                <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 0.6 }}
-                    className="fixed top-12 left-0 right-0 z-50 text-center text-xs font-medium text-foreground/50 pointer-events-none"
-                >
-                    {pullDistance > 50 ? 'Release to refresh' : 'Pull to refresh'}
-                </motion.p>
-            )}
-
-            {children}
-        </>
+        </div>
     );
 }
