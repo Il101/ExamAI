@@ -31,10 +31,15 @@ run_migrations() {
 echo "Skipping migrations (already applied manually)"
 # run_migrations
 
-# Start Celery worker in the background with output redirection
-# Start Celery worker in the background with output redirection
-echo "Starting Celery worker..."
-DB_POOL_DISABLE=True celery -A app.tasks.celery_app worker --pool=solo --loglevel=info 2>&1 &
+# Start Celery worker with threads pool for parallel execution
+# Using threads pool to support asyncio.run() in tasks while enabling concurrency
+echo "Starting Celery worker with threads pool (concurrency=8)..."
+celery -A app.tasks.celery_app worker \
+    --pool=threads \
+    --concurrency=8 \
+    --loglevel=info \
+    --max-memory-per-child=400000 \
+    2>&1 &
 CELERY_PID=$!
 echo "Celery worker started with PID: $CELERY_PID"
 
