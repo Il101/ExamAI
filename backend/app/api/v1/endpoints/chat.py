@@ -1,5 +1,6 @@
 from typing import List
 from uuid import UUID
+import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -9,6 +10,7 @@ from app.domain.user import User
 from app.services.tutor_service import TutorService
 from app.dependencies import get_tutor_service
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -40,12 +42,18 @@ async def send_message(
     
     The AI can autonomously access topic content and flashcards using Function Calling.
     """
+    logger.info(f"[AI Tutor] Received message from user {current_user.id} for topic {topic_id}")
+    logger.info(f"[AI Tutor] Message preview: {request.message[:100]}...")
+    
     try:
+        logger.info(f"[AI Tutor] Calling tutor_service.chat...")
         response_msg = await tutor_service.chat(
             user_id=current_user.id,
             topic_id=topic_id,
             message=request.message,
         )
+        
+        logger.info(f"[AI Tutor] Response received: {len(response_msg.content)} chars")
         
         return ChatMessageResponse(
             id=str(response_msg.id),
@@ -54,6 +62,8 @@ async def send_message(
             created_at=response_msg.created_at.isoformat(),
         )
     except Exception as e:
+        logger.error(f"[AI Tutor] ERROR processing message: {type(e).__name__}: {str(e)}")
+        logger.exception("Full traceback:")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to process message: {str(e)}"
@@ -72,8 +82,11 @@ async def get_messages(
     tutor_service: TutorService = Depends(get_tutor_service),
 ):
     """Get chat history for a topic"""
+    logger.info(f"[AI Tutor] Getting history for topic {topic_id}, limit={limit}")
+    
     try:
         messages = await tutor_service.get_history(topic_id, limit)
+        logger.info(f"[AI Tutor] Retrieved {len(messages)} messages")
         
         return [
             ChatMessageResponse(
@@ -85,6 +98,8 @@ async def get_messages(
             for msg in messages
         ]
     except Exception as e:
+        logger.error(f"[AI Tutor] ERROR retrieving messages: {type(e).__name__}: {str(e)}")
+        logger.exception("Full traceback:")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve messages: {str(e)}"
@@ -101,9 +116,14 @@ async def clear_messages(
     tutor_service: TutorService = Depends(get_tutor_service),
 ):
     """Clear chat history for a topic"""
+    logger.info(f"[AI Tutor] Clearing history for topic {topic_id}")
+    
     try:
-        await tutor_service.clear_history(topic_id)
+        deleted_count = await tutor_service.clear_history(topic_id)
+        logger.info(f"[AI Tutor] Cleared {deleted_count} messages")
     except Exception as e:
+        logger.error(f"[AI Tutor] ERROR clearing messages: {type(e).__name__}: {str(e)}")
+        logger.exception("Full traceback:")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to clear messages: {str(e)}"

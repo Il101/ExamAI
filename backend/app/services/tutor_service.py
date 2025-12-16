@@ -149,17 +149,32 @@ class TutorService:
         Returns:
             AI's response as ChatMessage
         """
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.info(f"[TutorService] Starting chat for user={user_id}, topic={topic_id}")
+        
         # Save user message
-        user_msg = ChatMessage(
-            user_id=user_id,
-            topic_id=topic_id,
-            role="user",
-            content=message,
-        )
-        await self.chat_repo.create(user_msg)
+        try:
+            user_msg = ChatMessage(
+                user_id=user_id,
+                topic_id=topic_id,
+                role="user",
+                content=message,
+            )
+            await self.chat_repo.create(user_msg)
+            logger.info(f"[TutorService] User message saved to DB")
+        except Exception as e:
+            logger.error(f"[TutorService] Failed to save user message: {e}")
+            raise
 
         # Get chat history for context
-        history = await self.chat_repo.list_by_topic(topic_id, limit=10)
+        try:
+            history = await self.chat_repo.list_by_topic(topic_id, limit=10)
+            logger.info(f"[TutorService] Retrieved {len(history)} messages from history")
+        except Exception as e:
+            logger.error(f"[TutorService] Failed to get history: {e}")
+            raise
         
         # Build conversation context
         context_messages = []
@@ -167,23 +182,39 @@ class TutorService:
             context_messages.append(f"{msg.role}: {msg.content}")
         
         context = "\n".join(context_messages) if context_messages else ""
+        logger.info(f"[TutorService] Built context with {len(context_messages)} messages")
         
         # Get current topic content for grounding
-        current_study_notes = await self._get_current_topic_content(topic_id)
+        try:
+            current_study_notes = await self._get_current_topic_content(topic_id)
+            logger.info(f"[TutorService] Retrieved topic content: {len(current_study_notes)} chars")
+        except Exception as e:
+            logger.error(f"[TutorService] Failed to get topic content: {e}")
+            current_study_notes = "Content unavailable"
         
         # Get course outline for tool context
-        course_outline = await self._get_course_outline(topic_id)
+        try:
+            course_outline = await self._get_course_outline(topic_id)
+            logger.info(f"[TutorService] Retrieved course outline: {len(course_outline)} chars")
+        except Exception as e:
+            logger.error(f"[TutorService] Failed to get course outline: {e}")
+            course_outline = "Outline unavailable"
         
         # Load prompt template with grounding
         from app.prompts import load_prompt
         
-        prompt = load_prompt(
-            'tutor/chat_system.txt',
-            context=context,
-            message=message,
-            current_study_notes=current_study_notes,
-            course_outline=course_outline
-        )
+        try:
+            prompt = load_prompt(
+                'tutor/chat_system.txt',
+                context=context,
+                message=message,
+                current_study_notes=current_study_notes,
+                course_outline=course_outline
+            )
+            logger.info(f"[TutorService] Loaded prompt template: {len(prompt)} chars")
+        except Exception as e:
+            logger.error(f"[TutorService] Failed to load prompt: {e}")
+            raise
 
 
         # Define tool functions mapping
@@ -194,25 +225,38 @@ class TutorService:
         }
 
         # Call LLM with tools
-        response = await self.llm.generate_with_tools(
-            prompt=prompt,
-            tools=self._get_tool_declarations(),
-            tool_functions=tool_functions,
-            temperature=0.7,
-            system_prompt="You are a helpful AI tutor.",
-        )
+        try:
+            logger.info(f"[TutorService] Calling LLM with tools...")
+            response = await self.llm.generate_with_tools(
+                prompt=prompt,
+                tools=self._get_tool_declarations(),
+                tool_functions=tool_functions,
+                temperature=0.7,
+                system_prompt="You are a helpful AI tutor.",
+            )
+            logger.info(f"[TutorService] LLM response received: {len(response.content)} chars")
+        except Exception as e:
+            logger.error(f"[TutorService] LLM generation failed: {type(e).__name__}: {str(e)}")
+            logger.exception("Full LLM error traceback:")
+            raise
         
         # Clean response (remove <analysis> tags)
         cleaned_response = strip_analysis_tags(response.content)
+        logger.info(f"[TutorService] Response cleaned: {len(cleaned_response)} chars")
 
         # Save assistant response
-        assistant_msg = ChatMessage(
-            user_id=user_id,
-            topic_id=topic_id,
-            role="assistant",
-            content=cleaned_response,
-        )
-        await self.chat_repo.create(assistant_msg)
+        try:
+            assistant_msg = ChatMessage(
+                user_id=user_id,
+                topic_id=topic_id,
+                role="assistant",
+                content=cleaned_response,
+            )
+            await self.chat_repo.create(assistant_msg)
+            logger.info(f"[TutorService] Assistant message saved to DB, id={assistant_msg.id}")
+        except Exception as e:
+            logger.error(f"[TutorService] Failed to save assistant message: {e}")
+            raise
 
         return assistant_msg
 
