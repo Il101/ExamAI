@@ -46,7 +46,15 @@ function DashboardLayoutContent({
   const isAdmin = user?.role === 'admin';
 
   return (
-    <div className="min-h-screen bg-background relative">
+    <div
+      className="min-h-screen bg-background relative"
+      style={{
+        paddingTop: 'env(safe-area-inset-top)',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+        paddingLeft: 'env(safe-area-inset-left)',
+        paddingRight: 'env(safe-area-inset-right)',
+      }}
+    >
       {/* Background Gradients */}
       <div className="fixed inset-0 -z-10 pointer-events-none">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl opacity-30 animate-pulse" />

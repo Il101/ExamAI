@@ -116,7 +116,15 @@ export default function Index() {
   };
 
   return (
-    <div className="min-h-screen bg-background overflow-hidden">
+    <div
+      className="min-h-screen bg-background overflow-hidden"
+      style={{
+        paddingTop: 'env(safe-area-inset-top)',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+        paddingLeft: 'env(safe-area-inset-left)',
+        paddingRight: 'env(safe-area-inset-right)',
+      }}
+    >
       {/* Landing Page Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border">
         <div className="container mx-auto px-6 py-4">
