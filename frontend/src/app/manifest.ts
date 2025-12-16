@@ -6,8 +6,8 @@ export default function manifest(): MetadataRoute.Manifest {
         short_name: 'ExamAI Pro',
         description: 'AI-powered exam preparation platform',
         start_url: '/',
-        display: 'standalone',
-        background_color: '#ffffff',
+        display: 'fullscreen', // Use fullscreen to extend into Dynamic Island area
+        background_color: '#1c1917', // Match dark theme background
         theme_color: '#000000',
         icons: [
             {
