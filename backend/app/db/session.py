@@ -43,6 +43,11 @@ engine = create_async_engine(
     pool_pre_ping=True,  # Check connection before using
     poolclass=NullPool if settings.ENVIRONMENT == "test" or os.getenv("DB_POOL_DISABLE") else None,
     connect_args=connect_args,
+    # Connection pool settings for 8 concurrent Celery workers
+    # Each worker can use 1-2 connections, so 20 base + 10 overflow = 30 total
+    # This is well within Supabase Hobby tier limit of 60 connections
+    pool_size=20,  # Base pool size
+    max_overflow=10,  # Additional connections if needed
 )
 
 # Session factory

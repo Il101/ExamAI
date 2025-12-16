@@ -34,7 +34,11 @@ celery_app.conf.update(
     result_expires=3600,  # Results expire after 1 hour
     # Worker settings
     worker_prefetch_multiplier=1,  # One task per worker at a time
-    worker_max_tasks_per_child=100,  # Restart worker after 100 tasks
+    worker_max_tasks_per_child=50,  # Restart worker after 50 tasks (reduced from 100 for 8 workers)
+    worker_max_memory_per_child=400000,  # 400MB limit per worker (in KB)
+    # Monitoring settings for 8 concurrent workers
+    worker_send_task_events=True,  # Enable task event monitoring
+    task_send_sent_event=True,  # Track when tasks are dispatched
 )
 
 # Configure Celery Beat schedule
