@@ -15,6 +15,7 @@ interface ExamHeaderProps {
     topicCount: number;
     createdAt: string;
     updatedAt: string;
+    onStudyClick?: () => void;
 }
 
 export function ExamHeader({
@@ -25,6 +26,7 @@ export function ExamHeader({
     topicCount,
     createdAt,
     updatedAt,
+    onStudyClick,
 }: ExamHeaderProps) {
     const router = useRouter();
     const statusColors = {
@@ -50,12 +52,10 @@ export function ExamHeader({
                                 <Download className="h-4 w-4 mr-2" />
                                 Export
                             </Button>
-                            <Link href={`/dashboard/study/session?examId=${examId}`}>
-                                <Button size="sm">
-                                    <Play className="h-4 w-4 mr-2" />
-                                    Study Now
-                                </Button>
-                            </Link>
+                            <Button size="sm" onClick={onStudyClick}>
+                                <Play className="h-4 w-4 mr-2" />
+                                Study Now
+                            </Button>
                         </>
                     )}
                 </div>

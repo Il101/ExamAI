@@ -28,8 +28,12 @@ export function FeedbackButton() {
 
     const handleClick = () => {
         // Trigger Formbricks survey (anonymous on free plan)
-        console.log('Triggering Formbricks survey');
-        formbricks.track('feedback_button_clicked');
+        try {
+            console.log('Triggering Formbricks survey');
+            formbricks.track('feedback_button_clicked');
+        } catch (error) {
+            console.error('Failed to trigger feedback survey:', error);
+        }
     };
 
     // Don't render until mounted to prevent hydration mismatch
