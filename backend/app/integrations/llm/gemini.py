@@ -227,11 +227,12 @@ class GeminiProvider(LLMProvider):
         except errors.APIError as e:
             elapsed = time.time() - start_time
             print(
-                f"[GeminiProvider] API ERROR after {elapsed:.2f}s: code={e.code}, message={e.message}"
+                f"[GeminiProvider] API ERROR after {elapsed:.2f}s: code={e.code} (type={type(e.code).__name__}), message={e.message}"
             )
             
-            # Check if we should try fallback model on 503
-            if e.code == 503 and self.fallback_model_name and self.fallback_model_name != self.model_name:
+            # Check if we should try fallback model on 503 (handle both int and str)
+            error_code = int(e.code) if isinstance(e.code, str) else e.code
+            if error_code == 503 and self.fallback_model_name and self.fallback_model_name != self.model_name:
                 print(f"[GeminiProvider] 🔄 Primary model '{self.model_name}' overloaded (503). Trying fallback: '{self.fallback_model_name}'...")
                 
                 try:
