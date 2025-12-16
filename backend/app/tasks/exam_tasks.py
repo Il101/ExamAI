@@ -265,24 +265,37 @@ async def _generate_exam_content_async(
         # - topic state machine remains consistent (pending/failed -> generating -> ready/failed)
         # - flashcards are generated via FlashcardGenerator (and not skipped silently)
         # - cache fallback behavior is consistent
+        print(f"[CELERY ASYNC] Creating first GeminiProvider instance...")
         llm = GeminiProvider(api_key=settings.GEMINI_API_KEY, model=settings.GEMINI_MODEL, fallback_model=settings.GEMINI_FALLBACK_MODEL)
+        print(f"[CELERY ASYNC] First GeminiProvider created successfully")
 
+        print(f"[CELERY ASYNC] Creating executor services...")
         executor = TopicExecutor(llm)
         quiz_gen = QuizGenerator(llm)
         flashcard_gen = FlashcardGenerator(quiz_gen, review_repo)
+        print(f"[CELERY ASYNC] Executor services created successfully")
 
+        print(f"[CELERY ASYNC] Creating storage service...")
         storage = SupabaseStorage(
             url=settings.SUPABASE_URL,
             key=settings.SUPABASE_KEY,
             bucket=settings.SUPABASE_BUCKET,
         )
+        print(f"[CELERY ASYNC] Storage service created successfully")
+        
         # Initialize GeminiProvider (centralized logic)
-
+        print(f"[CELERY ASYNC] Creating second GeminiProvider instance...")
         llm_provider = GeminiProvider(api_key=settings.GEMINI_API_KEY)
+        print(f"[CELERY ASYNC] Second GeminiProvider created successfully")
         
         # Initialize helper services
+        print(f"[CELERY ASYNC] Creating cache manager...")
         cache_manager = ContextCacheManager(llm_provider)
+        print(f"[CELERY ASYNC] Cache manager created successfully")
+        
+        print(f"[CELERY ASYNC] Creating fallback service...")
         fallback_service = CacheFallbackService(storage, cache_manager)
+        print(f"[CELERY ASYNC] Fallback service created successfully")
 
         topic_gen = TopicContentGenerator(
             executor=executor,
@@ -391,8 +404,10 @@ async def _generate_exam_content_async(
                 output_language=getattr(user, "preferred_language", None),
                 cache_name=exam.cache_name,
             )
-            if tldr:
+            if tldr and len(tldr.strip()) > 0:  # Only use if non-empty
                 summary = tldr
+            else:
+                print(f"[PIPELINE] tldr_empty exam_id={exam_id}, using fallback")
         except Exception as e:
             print(f"[PIPELINE] tldr_failed exam_id={exam_id} error_type={type(e).__name__} error={e}")
 
