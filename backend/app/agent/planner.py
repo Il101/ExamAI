@@ -122,6 +122,10 @@ class CoursePlanner:
         """Parse JSON response into ExamPlan object with Pydantic validation"""
         from app.agent.schemas import ExamPlan
         
+        # Null-safety check
+        if response_text is None:
+            raise ValueError("Received None response from LLM - API may be overloaded or returned empty content")
+        
         # Clean response (remove markdown code blocks if present)
         json_text = response_text.strip()
 

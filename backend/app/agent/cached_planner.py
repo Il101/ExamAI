@@ -185,6 +185,8 @@ class CachedCoursePlanner(CoursePlanner):
                         
                         # Parse response
                         plan_text = response.text
+                        if plan_text is None:
+                            raise ValueError("Received None response from cached LLM call")
                     
                     except Exception as cache_error:
                         # Check if cache expired
@@ -235,6 +237,8 @@ class CachedCoursePlanner(CoursePlanner):
                                         timeout=120.0  # 2 minute timeout
                                     )
                                     plan_text = response.text
+                                    if plan_text is None:
+                                        raise ValueError("Received None response from recreated cache LLM call")
                                 else:
                                     raise ValueError("No content available to recreate cache")
                                     
@@ -253,6 +257,8 @@ class CachedCoursePlanner(CoursePlanner):
                                 )
                                 
                                 plan_text = response.content
+                                if plan_text is None:
+                                    raise ValueError("Received None response from fallback LLM call")
                         else:
                             # Not a cache error, re-raise
                             raise
@@ -269,6 +275,8 @@ class CachedCoursePlanner(CoursePlanner):
                     )
                     
                     plan_text = response.content
+                    if plan_text is None:
+                        raise ValueError("Received None response from LLM call")
                 
                 # Parse and validate (returns ExamPlan, not converted)
                 plan = self._parse_plan_response(plan_text)
