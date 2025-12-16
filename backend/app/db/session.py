@@ -35,20 +35,28 @@ except Exception as e:
 print(f"DEBUG: DATABASE_URL={settings.DATABASE_URL}")
 print(f"DEBUG: connect_args={connect_args}")
 
-# Create async engine
-engine = create_async_engine(
-    clean_url,
-    echo=settings.DEBUG,  # Log SQL in debug mode
-    future=True,
-    pool_pre_ping=True,  # Check connection before using
-    poolclass=NullPool if settings.ENVIRONMENT == "test" or os.getenv("DB_POOL_DISABLE") else None,
-    connect_args=connect_args,
+# Create async engine with conditional pool settings
+# NullPool doesn't support pool_size/max_overflow parameters
+use_null_pool = settings.ENVIRONMENT == "test" or os.getenv("DB_POOL_DISABLE")
+
+engine_kwargs = {
+    "echo": settings.DEBUG,  # Log SQL in debug mode
+    "future": True,
+    "pool_pre_ping": True,  # Check connection before using
+    "connect_args": connect_args,
+}
+
+# Only add pool settings when NOT using NullPool
+if use_null_pool:
+    engine_kwargs["poolclass"] = NullPool
+else:
     # Connection pool settings for 8 concurrent Celery workers
     # Each worker can use 1-2 connections, so 20 base + 10 overflow = 30 total
     # This is well within Supabase Hobby tier limit of 60 connections
-    pool_size=20,  # Base pool size
-    max_overflow=10,  # Additional connections if needed
-)
+    engine_kwargs["pool_size"] = 20  # Base pool size
+    engine_kwargs["max_overflow"] = 10  # Additional connections if needed
+
+engine = create_async_engine(clean_url, **engine_kwargs)
 
 # Session factory
 AsyncSessionLocal = async_sessionmaker(
