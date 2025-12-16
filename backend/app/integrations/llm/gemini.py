@@ -65,6 +65,10 @@ class GeminiProvider(LLMProvider):
     # Shared client instance for Singleton pattern
     _shared_client: Optional[genai.Client] = None
     _shared_api_key: Optional[str] = None
+    
+    # Request counter for monitoring
+    _request_count: int = 0
+    _request_count_lock = None  # Will be initialized as asyncio.Lock()
 
     def __init__(self, api_key: str, model: str = "gemini-2.0-flash-exp", fallback_model: Optional[str] = None):
         """
@@ -115,6 +119,38 @@ class GeminiProvider(LLMProvider):
             
         return cls._shared_client
 
+    @classmethod
+    async def _increment_request_count(cls):
+        """Increment the global request counter (thread-safe)"""
+        if cls._request_count_lock is None:
+            import asyncio
+            cls._request_count_lock = asyncio.Lock()
+        
+        async with cls._request_count_lock:
+            cls._request_count += 1
+            current_count = cls._request_count
+        
+        # Log every 10 requests
+        if current_count % 10 == 0:
+            print(f"[GeminiProvider] 📊 Total API requests: {current_count}")
+        
+        return current_count
+    
+    @classmethod
+    def get_request_stats(cls) -> dict:
+        """Get current request statistics"""
+        return {
+            "total_requests": cls._request_count,
+            "timestamp": time.time(),
+        }
+    
+    @classmethod
+    def reset_request_count(cls):
+        """Reset request counter (for testing/debugging)"""
+        cls._request_count = 0
+        print("[GeminiProvider] Request counter reset to 0")
+
+
     async def generate(
         self,
         prompt: str,
@@ -128,6 +164,9 @@ class GeminiProvider(LLMProvider):
     ) -> LLMResponse:
         """Generate text with Gemini"""
 
+        # Track API request
+        request_num = await self._increment_request_count()
+        
         start_time = time.time()
 
         try:
@@ -549,6 +588,94 @@ class GeminiProvider(LLMProvider):
     def get_model_name(self) -> str:
         """Get model name"""
         return self.model_name
+
+    async def generate_with_cache(
+        self,
+        cache_name: str,
+        prompt: str,
+        temperature: float = 0.3,
+        timeout: int = 120,
+    ) -> LLMResponse:
+        """
+        Generate content using cached context.
+        
+        This method uses the SDK's configured retry logic with jitter,
+        unlike direct client.aio.models.generate_content() calls.
+        
+        Args:
+            cache_name: Name of the cached content
+            prompt: User prompt (cache content is already loaded)
+            temperature: Sampling temperature
+            timeout: Request timeout in seconds
+            
+        Returns:
+            LLMResponse with generated content
+        """
+        from app.core.config import settings
+        import asyncio
+        
+        # Track API request
+        request_num = await self._increment_request_count()
+        
+        start_time = time.time()
+        
+        try:
+            print(f"[GeminiProvider] Generating with cache: {cache_name} (request #{request_num})")
+            
+            # Use SDK client with configured retry options
+            response = await asyncio.wait_for(
+                self.client.aio.models.generate_content(
+                    model=settings.GEMINI_MODEL,
+                    config={
+                        "cached_content": cache_name,
+                        "temperature": temperature,
+                    },
+                    contents=[{"role": "user", "parts": [{"text": prompt}]}]
+                ),
+                timeout=timeout
+            )
+            
+            elapsed = time.time() - start_time
+            
+            # Extract response text
+            plan_text = response.text
+            if plan_text is None:
+                raise ValueError("Received None response from cached LLM call")
+            
+            # Calculate tokens and cost
+            tokens_input = response.usage_metadata.prompt_token_count if response.usage_metadata else 0
+            tokens_output = response.usage_metadata.candidates_token_count if response.usage_metadata else 0
+            cost = self.calculate_cost(tokens_input, tokens_output)
+            
+            print(
+                f"[GeminiProvider] Cache generation completed in {elapsed:.2f}s. "
+                f"Tokens: {tokens_input}/{tokens_output}, Cost: ${cost:.6f}"
+            )
+            
+            return LLMResponse(
+                content=plan_text,
+                model=self.model_name,
+                tokens_input=tokens_input,
+                tokens_output=tokens_output,
+                cost_usd=cost,
+                finish_reason="stop",
+            )
+            
+        except asyncio.TimeoutError:
+            elapsed = time.time() - start_time
+            error_msg = f"[GeminiProvider] ⚠️ Cache generation TIMEOUT after {elapsed:.2f}s"
+            print(error_msg)
+            raise RuntimeError(f"Cache generation timed out after {timeout} seconds")
+        
+        except errors.APIError as e:
+            elapsed = time.time() - start_time
+            print(f"[GeminiProvider] Cache generation API ERROR after {elapsed:.2f}s: {e.code} - {e.message}")
+            raise RuntimeError(f"Gemini API error [{e.code}]: {e.message}")
+        
+        except Exception as e:
+            elapsed = time.time() - start_time
+            print(f"[GeminiProvider] Cache generation ERROR after {elapsed:.2f}s: {type(e).__name__}: {str(e)}")
+            raise RuntimeError(f"Cache generation error: {str(e)}")
 
     def calculate_cost(self, tokens_input: int, tokens_output: int, model: Optional[str] = None) -> float:
         """Calculate cost based on token usage for the specified model"""
