@@ -68,18 +68,17 @@ class GeminiProvider(LLMProvider):
 
     def __init__(self, api_key: str, model: str = "gemini-2.0-flash-exp", fallback_model: Optional[str] = None):
         """
-        Initialize Gemini provider.
+        Initialize with both a primary model and optional fallback model.
         
-        Uses a shared client instance to enable connection pooling and efficient resource usage.
-        Configures automatic retries for transient errors (429, 503).
-
         Args:
             api_key: Gemini API key
-            model: Model name (gemini-2.0-flash-exp, gemini-1.5-flash, gemini-1.5-pro)
-            fallback_model: Optional fallback model for 503 errors (e.g., gemini-2.0-flash)
+            model: Primary model name (e.g. 'gemini-2.5-flash')
+            fallback_model: Optional fallback model (e.g. 'gemini-2.0-flash')
         """
         self.model_name = model
         self.fallback_model_name = fallback_model
+        self.api_key = api_key
+        print(f"[GeminiProvider] Initialized with primary_model='{self.model_name}', fallback_model='{self.fallback_model_name}'")
         self.client = self._get_client(api_key)
 
     @classmethod
@@ -93,13 +92,13 @@ class GeminiProvider(LLMProvider):
             # with our application-level retry mechanism in executor.py
             http_options = types.HttpOptions(
                 timeout=240000,  # 240 seconds - must be > highest gen timeout (180s)
-                retry_options={
-                    "attempts": 2,  # Reduced from 5 to prevent retry cascade
-                    "initial_delay": 1.0,
-                    "max_delay": 10.0,  # Reduced from 60s
-                    "exp_base": 2.0,
-                    "http_status_codes": [429, 503],
-                },
+                retry=types.RetryConfig(
+                    max_attempts=2,  # Reduced from 5 to prevent retry cascade
+                    initial_delay=1.0,
+                    max_delay=10.0,  # Reduced from 60s
+                    multiplier=2.0,  # Exponential backoff base
+                    retryable_status_codes=[429, 503],
+                ),
             )
             
             print(f"[GeminiProvider] Initializing new shared client with timeout=240s and 2 SDK retries...")

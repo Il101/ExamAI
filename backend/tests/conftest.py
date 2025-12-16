@@ -1,28 +1,36 @@
+import os
+
 import pytest_asyncio
+from sqlalchemy.engine.url import make_url
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.core.config import settings
 from app.db.base import Base
 
 
+def _ensure_safe_test_db(url: str) -> str:
+    """Fail hard if the test DB URL is not clearly a test database."""
+    parsed = make_url(url)
+    db_name = parsed.database or ""
+    if settings.ENVIRONMENT.lower() == "production":
+        raise RuntimeError("Refusing to run tests in production environment")
+    if not db_name.endswith("_test"):
+        raise RuntimeError(f"Refusing to use non-test database '{db_name}' for tests")
+    return url
+
+
 @pytest_asyncio.fixture
 async def test_engine():
-    """Create test database engine"""
-    # Use separate test database
-    if settings.DATABASE_URL:
-        # If DATABASE_URL already contains test database, use it as-is
-        # Otherwise, replace /examai with /examai_test
-        if "/examai_test" in settings.DATABASE_URL:
-            test_db_url = settings.DATABASE_URL
-        else:
-            test_db_url = settings.DATABASE_URL.replace("/examai", "/examai_test")
-    else:
-        # Fallback for local testing if .env not loaded
-        test_db_url = (
-            "postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/examai_test"
-        )
+    """Create test database engine (locked to *_test DB)."""
+    test_db_url = (
+        os.getenv("TEST_DATABASE_URL")
+        or settings.DATABASE_URL
+        or "postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/examai_test"
+    )
 
-    engine = create_async_engine(test_db_url, echo=False)
+    safe_url = _ensure_safe_test_db(test_db_url)
+
+    engine = create_async_engine(safe_url, echo=False)
 
     # Create tables
     async with engine.begin() as conn:
@@ -30,7 +38,7 @@ async def test_engine():
 
     yield engine
 
-    # Drop tables
+    # Drop tables (safe because URL is enforced to *_test)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
 
