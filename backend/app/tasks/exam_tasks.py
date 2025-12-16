@@ -150,6 +150,9 @@ Traceback:
                 raise self.retry(exc=e)
 
             raise e
+        
+
+            raise e
 
     # Run the wrapper in a single event loop
     return asyncio.run(task_wrapper())

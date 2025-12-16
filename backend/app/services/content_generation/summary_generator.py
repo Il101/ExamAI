@@ -41,20 +41,16 @@ class ExamSummaryGenerator:
         return "\n".join(lines)
 
     @staticmethod
-    def _normalize_bullets(markdown: str, max_lines: int = 25) -> str:  # Increased from 15 to allow longer summaries
+    def _normalize_bullets(markdown: str, max_lines: int = 25) -> str:
+        """Extract and normalize bullet points from markdown text."""
         if not markdown:
             return ""
 
         lines = []
-        in_fence = False
         for raw_line in markdown.splitlines():
             line = raw_line.rstrip()
-            if line.strip().startswith("```"):
-                in_fence = not in_fence
-                continue
-            if in_fence:
-                continue
-            if line.strip():
+            # Skip empty lines and code fence markers
+            if line.strip() and not line.strip().startswith("```"):
                 lines.append(line.strip())
 
         bullets: list[str] = []
@@ -64,8 +60,9 @@ class ExamSummaryGenerator:
             elif line.startswith("* "):
                 bullets.append("- " + line[2:].strip())
 
+        # If no bullets found, convert all lines to bullets
         if not bullets:
-            bullets = ["- " + line.lstrip("-*").strip() for line in lines]
+            bullets = ["- " + line.lstrip("-*").strip() for line in lines if line.strip()]
 
         return "\n".join(bullets[:max_lines]).strip()
 

@@ -172,7 +172,7 @@ class GeminiProvider(LLMProvider):
             # Extract usage stats
             usage = response.usage_metadata
             tokens_input = usage.prompt_token_count if usage else 0
-            tokens_output = usage.candidates_token_count if usage else 0
+            tokens_output = usage.candidates_token_count if (usage and usage.candidates_token_count is not None) else 0
             cached_tokens = getattr(usage, "cached_content_token_count", 0) if usage else 0
 
             print(

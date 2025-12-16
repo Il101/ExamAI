@@ -33,6 +33,9 @@ echo "Skipping migrations (already applied manually)"
 
 # Start Celery worker with threads pool for parallel execution
 # Using threads pool to support asyncio.run() in tasks while enabling concurrency
+# CRITICAL: Disable DB connection pooling for worker processes to prevent
+# "Event loop is closed" errors when sharing QueuePool across asyncio.run() loops
+export DB_POOL_DISABLE=True
 echo "Starting Celery worker with threads pool (concurrency=8)..."
 celery -A app.tasks.celery_app worker \
     --pool=threads \
