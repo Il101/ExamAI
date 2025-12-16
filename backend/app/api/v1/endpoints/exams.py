@@ -35,6 +35,7 @@ router = APIRouter()
 
 @router.post("/v3", response_model=dict, status_code=status.HTTP_201_CREATED)
 async def create_exam_v3(
+    request: Request,
     title: str = Form(...),
     subject: str = Form(...),
     exam_type: str = Form(...),
@@ -189,7 +190,7 @@ async def create_exam_v3(
         llm = GeminiProvider(api_key=settings.GEMINI_API_KEY, model=settings.GEMINI_MODEL, fallback_model=settings.GEMINI_FALLBACK_MODEL)
         planner = CachedCoursePlanner(llm_provider=llm)
         store = get_storage()
-        cache_manager = get_cache_manager()
+        cache_manager = get_cache_manager(request)
 
         # Create exam with plan (multi-file aware)
         primary_gemini_uri = gemini_files[0]["uri"] if gemini_files else None
