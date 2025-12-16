@@ -92,11 +92,11 @@ class GeminiProvider(LLMProvider):
             http_options = types.HttpOptions(
                 timeout=240000,  # 240 seconds - must be > highest gen timeout (180s)
                 retry_options={
-                    "attempts": 2,  # Only 2 SDK-level retries (reduced from 5)
-                    "initial_delay": 1.0,  # Start with 1s delay (reduced from 2s)
-                    "max_delay": 30.0,  # Max delay 30s (reduced from 60s)
-                    "exp_base": 2.0,  # Exponential backoff
-                    "http_status_codes": [429, 503],  # Only retry rate limits and service unavailable
+                    "attempts": 5,  # Increased to 5 robust retries
+                    "initial_delay": 1.0,
+                    "max_delay": 60.0,
+                    "exp_base": 2.0,
+                    "http_status_codes": [429, 503],
                 },
             )
             

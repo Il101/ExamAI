@@ -103,9 +103,19 @@ class TopicExecutor:
                 last_error = e
                 error_msg = str(e)
                 
-                # Check if it's a timeout or transient error
-                if "timed out" in error_msg.lower() or "timeout" in error_msg.lower():
-                    print(f"[Executor] ⚠️ Attempt {attempt + 1}/{max_retries} failed with timeout: {error_msg}")
+                # Check if it's a transient error (timeout, service unavailable, rate limit)
+                is_transient = (
+                    "timed out" in error_msg.lower() or 
+                    "timeout" in error_msg.lower() or
+                    "503" in error_msg or
+                    "429" in error_msg or
+                    "overloaded" in error_msg or
+                    "resource exhausted" in error_msg or
+                    "service unavailable" in error_msg
+                )
+
+                if is_transient:
+                    print(f"[Executor] ⚠️ Attempt {attempt + 1}/{max_retries} failed with transient error: {error_msg}")
                     
                     if attempt < max_retries - 1:
                         # Exponential backoff: 5s, 10s, 20s
