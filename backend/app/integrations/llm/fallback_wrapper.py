@@ -117,3 +117,8 @@ class FallbackLLMProvider(LLMProvider):
     def reset_fallback_state(self):
         """Reset fallback tracking (call between separate requests)"""
         self._fallback_used = False
+    
+    @property
+    def client(self):
+        """Expose the primary provider's client for compatibility"""
+        return self.primary.client
