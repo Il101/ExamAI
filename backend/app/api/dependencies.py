@@ -27,7 +27,12 @@ def get_storage() -> SupabaseStorage:
 @lru_cache()
 def get_cache_manager() -> ContextCacheManager:
     """Get Gemini Cache Manager instance"""
-    client = genai.Client(api_key=settings.GEMINI_API_KEY)
+    from google.genai import types
+    
+    client = genai.Client(
+        api_key=settings.GEMINI_API_KEY,
+        http_options=types.HttpOptions(api_version='v1')
+    )
     return ContextCacheManager(client)
 
 

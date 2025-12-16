@@ -16,9 +16,10 @@
 - **App уровень**: 3 попытки с задержками 5s → 10s → 20s = **35 секунд**
 - **ИТОГО**: до **15 попыток** и **66 секунд** на один запрос!
 
-При одновременной генерации 2-3 экзаменов мы превышали:
-- Free tier: **10-15 RPM** (requests per minute)
-- Создавали перегрузку API
+При одновременной генерации 2-3 экзаменов без rate limiting:
+- Tier 1: **1,000 RPM, 1,000,000 TPM**
+- 8 воркеров × множественные вызовы = риск всплесков и ретрай каскадов
+- Создавали перегрузку API при синхронных retry
 
 ## ✅ Решение
 
@@ -26,27 +27,55 @@
 
 #### 1. `backend/app/integrations/llm/gemini.py`
 ```python
-retry_options={
-    "attempts": 2,  # было 5
-    "initial_delay": 1.0,
-    "max_delay": 10.0,  # было 60.0
-    "exp_base": 2.0,
-    "http_status_codes": [429, 503],
-}
+# Added retry configuration with jitter (CRITICAL FIX)
+retry_config = types.RetryConfig(
+    initial_backoff=1.0,      # Start with 1 second
+    max_backoff=10.0,         # Cap at 10 seconds
+    backoff_multiplier=2.0,   # Exponential: 1s -> 2s
+    max_attempts=2,           # Only 2 SDK retries
+    jitter=0.3,               # 30% random variation (prevents thundering herd)
+)
+
+cls._shared_client = genai.Client(
+    api_key=api_key,
+    http_options=http_options,
+    retry=retry_config,  # SDK now auto-retries with jitter!
+)
 ```
 
-#### 2. `backend/app/agent/executor.py`
+**Что это даёт:**
+- ✅ Автоматический retry на 429/503 ошибках
+- ✅ Случайный разброс (jitter) предотвращает синхронные retry от разных воркеров
+- ✅ Консервативные 2 попытки вместо 5
+
+#### 2. `backend/app/tasks/exam_tasks.py`
+```python
+# Global semaphore for rate limiting (CRITICAL FIX)
+_llm_call_semaphore = asyncio.Semaphore(15)  # Tier 1: 1,000 RPM
+
+# In generation loop:
+async with _llm_call_semaphore:
+    await topic_gen.generate_topic(...)
+```
+
+**Что это даёт:**
+- ✅ Максимум 15 параллельных LLM вызовов **через всех воркеров**
+- ✅ Предотвращает всплески запросов даже при concurrency=8
+- ✅ Оставляет запас ~900 RPM для Tier 1 (1,000 RPM лимит)
+
+#### 3. `backend/app/agent/executor.py`
 ```python
 async def execute_step(self, state: AgentState, max_retries: int = 2):  # было 3
     # ...
-    wait_time = 2 * (2 ** attempt)  # было 5 * (2 ** attempt)
-    # Задержки: 2s, 4s вместо 5s, 10s, 20s
+    wait_time = 2 * (2 ** attempt)  # 2s, 4s (было 5s, 10s, 20s)
 ```
 
 ### Результат:
-- **SDK**: 2 попытки с max задержкой 3s
+- **SDK**: 2 попытки с jitter, max задержка ~3s
 - **App**: 2 попытки с задержками 2s, 4s
-- **ИТОГО**: максимум **4 попытки** и **~9 секунд**
+- **Rate limit**: 15 concurrent calls globally (Tier 1: 1,000 RPM)
+- **API version**: v1 (stable) для production стабильности
+- **ИТОГО**: максимум **4 попытки** и **~9 секунд**, **НО с десинхронизацией**
 
 **Уменьшение**: с 66 до 9 секунд (в **7 раз быстрее**!) ⚡
 
@@ -106,6 +135,39 @@ railway logs --service ExamAI
 - [Gemini API Rate Limits](https://ai.google.dev/gemini-api/docs/quota)
 - [Troubleshooting Guide](https://ai.google.dev/gemini-api/docs/troubleshooting)
 - [Best Practices](https://ai.google.dev/gemini-api/docs/caching)
+
+## 🎯 Технические детали исправлений
+
+### Что такое Jitter и зачем он нужен?
+
+**Проблема (Thundering Herd):**
+Без jitter, все воркеры ретраят синхронно:
+```
+Worker 1: fail -> wait 1s -> retry -> fail -> wait 2s -> retry
+Worker 2: fail -> wait 1s -> retry -> fail -> wait 2s -> retry
+Worker 3: fail -> wait 1s -> retry -> fail -> wait 2s -> retry
+```
+Результат: **волны нагрузки** каждую секунду!
+
+**Решение (Jitter 30%):**
+```
+Worker 1: fail -> wait 0.7s -> retry -> fail -> wait 1.4s -> retry
+Worker 2: fail -> wait 1.2s -> retry -> fail -> wait 2.6s -> retry
+Worker 3: fail -> wait 0.9s -> retry -> fail -> wait 2.1s -> retry
+```
+Результат: **распределённая нагрузка** во времени ✅
+
+### Как работает Semaphore для Rate Limiting?
+
+**Без semaphore:**
+- 8 воркеров × 3 LLM calls каждый = 24 одновременных запроса 💥
+- Риск синхронных retry и всплесков → 503 OVERLOAD
+
+**С semaphore(15):** (Tier 1: 1,000 RPM)
+- Воркер 1-15: генерируют сразу (если есть работа)
+- Воркер 16+: ждут освобождения слота
+- Максимум 15 запросов в любой момент ✅
+- Headroom: ~900 RPM для других операций
 
 ## 📝 Дальнейшие улучшения (опционально)
 

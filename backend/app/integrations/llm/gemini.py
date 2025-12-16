@@ -88,16 +88,27 @@ class GeminiProvider(LLMProvider):
         The SDK has built-in retry logic for transient errors (429, 503).
         """
         if cls._shared_client is None or cls._shared_api_key != api_key:
-            # Configure HTTP options with timeout
-            # The SDK automatically retries on transient errors
+            # Configure HTTP options with timeout and stable v1 API
             http_options = types.HttpOptions(
                 timeout=240000,  # 240 seconds - must be > highest gen timeout (180s)
+                api_version='v1',  # Use stable v1 API (not v1beta preview)
             )
             
-            print(f"[GeminiProvider] Initializing new shared client with timeout=240s (SDK will auto-retry on 429/503)...")
+            # Configure retry with jitter to prevent thundering herd
+            # Recommended by Vertex AI: max 2 retries, exponential backoff, add jitter
+            retry_config = types.RetryConfig(
+                initial_backoff=1.0,      # Start with 1 second
+                max_backoff=10.0,         # Cap at 10 seconds (reduced from 60s)
+                backoff_multiplier=2.0,   # Exponential: 1s -> 2s
+                max_attempts=2,           # Only 2 SDK retries to prevent cascade
+                jitter=0.3,               # 30% random variation to desync workers
+            )
+            
+            print(f"[GeminiProvider] Initializing new shared client with timeout=240s, retry=2 attempts with jitter...")
             cls._shared_client = genai.Client(
                 api_key=api_key, 
                 http_options=http_options,
+                retry=retry_config,
             )
             cls._shared_api_key = api_key
             

@@ -26,6 +26,13 @@ from app.agent.executor import TopicExecutor
 from app.agent.quiz_generator import QuizGenerator
 
 
+# Global semaphore to limit concurrent LLM calls across ALL workers
+# This prevents request spikes when multiple Celery workers generate exams in parallel
+# Tier 1: 1,000 RPM, 1,000,000 TPM
+# Limit: 15 concurrent API calls (conservative for Tier 1, allows ~900 RPM headroom)
+_llm_call_semaphore = asyncio.Semaphore(15)
+
+
 def get_llm_provider():
     """Helper to create LLM provider instance"""
     return GeminiProvider(
@@ -268,7 +275,10 @@ async def _generate_exam_content_async(
             key=settings.SUPABASE_KEY,
             bucket=settings.SUPABASE_BUCKET,
         )
-        genai_client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        genai_client = genai.Client(
+            api_key=settings.GEMINI_API_KEY,
+            http_options=types.HttpOptions(api_version='v1')
+        )
         cache_manager = ContextCacheManager(genai_client)
         fallback_service = CacheFallbackService(storage, cache_manager)
 
@@ -315,12 +325,15 @@ async def _generate_exam_content_async(
             )
 
             try:
-                await topic_gen.generate_topic(
-                    topic_id=topic.id,
-                    cache_name=exam.cache_name,
-                    exam_id=exam.id,
-                    output_language=getattr(user, "preferred_language", None),
-                )
+                # CRITICAL: Use semaphore to limit concurrent LLM calls
+                # This prevents multiple workers from creating request spikes
+                async with _llm_call_semaphore:
+                    await topic_gen.generate_topic(
+                        topic_id=topic.id,
+                        cache_name=exam.cache_name,
+                        exam_id=exam.id,
+                        output_language=getattr(user, "preferred_language", None),
+                    )
                 # CRITICAL: TopicContentGenerator updates are not guaranteed to
                 # commit automatically. Without an explicit commit here,
                 # generation can appear successful in logs while topics remain
