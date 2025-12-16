@@ -7,7 +7,7 @@ class TopicPlan(BaseModel):
     """Single topic within a block"""
     id: str = Field(description="Unique topic ID, e.g., 'topic_01'")
     title: str = Field(description="Topic title, short and clear", max_length=100)
-    description: str = Field(description="What will be covered", max_length=200)
+    description: str = Field(description="What will be covered", max_length=500)
     estimated_paragraphs: int = Field(default=3, ge=2, le=10)
 
 
