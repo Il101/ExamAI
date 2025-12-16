@@ -1,5 +1,6 @@
 """Gemini Context Cache Manager"""
 from google import genai
+from google.genai import types
 from datetime import datetime, timedelta
 from typing import Optional, Dict, List, Tuple
 from uuid import UUID
@@ -188,7 +189,7 @@ class ContextCacheManager:
         try:
             await self.client.aio.caches.update(
                 name=cache_name,
-                config={"ttl": f"{ttl_seconds}s"}
+                config=types.UpdateCachedContentConfig(ttl=f"{ttl_seconds}s")
             )
             logger.info(f"Refreshed cache {cache_name} with TTL {ttl_seconds}s")
         except Exception as e:
