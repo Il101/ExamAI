@@ -1,5 +1,6 @@
 """Dependency injection for v3.0 services"""
 from functools import lru_cache
+from fastapi import Request
 from redis import Redis
 from google import genai
 from google.genai import types
@@ -28,12 +29,15 @@ def get_storage() -> SupabaseStorage:
     )
 
 
-@lru_cache()
-def get_cache_manager() -> ContextCacheManager:
-    """Get Gemini Cache Manager instance"""
+def get_cache_manager(request: Request) -> ContextCacheManager:
+    """
+    Get Gemini Cache Manager instance with singleton LLM provider.
+    
+    Note: Cannot use @lru_cache because we need request parameter.
+    """
     from google.genai import types
     
-    llm_provider = get_llm_provider()
+    llm_provider = get_llm_provider(request)
     # Ensure it's the expected provider type
     if not isinstance(llm_provider, GeminiProvider):
          # This might happen if config changed to OpenAI etc.
@@ -43,12 +47,12 @@ def get_cache_manager() -> ContextCacheManager:
     return ContextCacheManager(llm_provider)
 
 
-def get_cache_fallback_service() -> "CacheFallbackService":
+def get_cache_fallback_service(request: Request) -> "CacheFallbackService":
     """Get Cache Fallback Service instance"""
     from app.services.cache_fallback import CacheFallbackService
     
     storage = get_storage()
-    cache_manager = get_cache_manager()
+    cache_manager = get_cache_manager(request)
     
     return CacheFallbackService(storage, cache_manager)
 
