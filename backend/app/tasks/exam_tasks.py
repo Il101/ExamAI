@@ -21,6 +21,7 @@ from app.integrations.storage.supabase_storage import SupabaseStorage
 from app.integrations.llm.cache_manager import ContextCacheManager
 from app.tasks.celery_app import celery_app
 from google import genai
+from google.genai import types
 
 from app.agent.executor import TopicExecutor
 from app.agent.quiz_generator import QuizGenerator

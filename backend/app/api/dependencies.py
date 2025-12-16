@@ -2,6 +2,7 @@
 from functools import lru_cache
 from redis import Redis
 from google import genai
+from google.genai import types
 
 from app.core.config import settings
 from app.integrations.storage import SupabaseStorage
