@@ -1,7 +1,7 @@
 from typing import List
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
@@ -141,6 +141,7 @@ async def on_topic_viewed(
 @router.get("/{topic_id}/quiz")
 async def get_topic_quiz(
     topic_id: UUID,
+    request: Request,
     num_questions: int = Query(5, ge=1, le=10, description="Number of questions"),
     current_user: User = Depends(get_current_active_user),
     session: AsyncSession = Depends(get_db),
@@ -179,7 +180,7 @@ async def get_topic_quiz(
     
     # Generate new quiz if not cached
     try:
-        llm_provider = get_llm_provider()
+        llm_provider = get_llm_provider(request)
         quiz_gen = QuizGenerator(llm_provider)
         
         questions = await quiz_gen.generate_mcq_quiz(
@@ -227,6 +228,7 @@ async def get_topic_quiz(
 @router.post("/{topic_id}/quiz/regenerate")
 async def regenerate_topic_quiz(
     topic_id: UUID,
+    request: Request,
     num_questions: int = Query(5, ge=1, le=10, description="Number of questions"),
     current_user: User = Depends(get_current_active_user),
     session: AsyncSession = Depends(get_db),
@@ -253,7 +255,7 @@ async def regenerate_topic_quiz(
         )
     
     try:
-        llm_provider = get_llm_provider()
+        llm_provider = get_llm_provider(request)
         quiz_gen = QuizGenerator(llm_provider)
         
         questions = await quiz_gen.generate_mcq_quiz(
