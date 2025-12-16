@@ -47,58 +47,46 @@ class CoursePlanner:
 
         prompt = self._build_planning_prompt(state)
 
-        max_retries = 3
-        last_error = None
+        try:
+            print(f"[Planner] Calling LLM to generate plan for {state.subject}...")
+            
+            # Call LLM with structured output schema
+            response = await self.llm.generate(
+                prompt=prompt,
+                temperature=0.3,
+                max_tokens=16000,
+                response_mime_type="application/json",
+                system_prompt="You are an expert educator creating study plans.",
+                response_schema=ExamPlan,
+            )
+            print(
+                f"[Planner] LLM response received. Tokens: {response.tokens_input}/{response.tokens_output}, Finish: {response.finish_reason}"
+            )
+            
+            # Check if response was truncated
+            if response.finish_reason == 'length':
+                raise ValueError("Response truncated due to max_tokens limit. This indicates the content is too large for planning.")
 
-        for attempt in range(max_retries):
-            try:
-                print(f"[Planner] Calling LLM to generate plan for {state.subject} (Attempt {attempt + 1}/{max_retries})...")
-                
-                # Call LLM with structured output schema
-                # Increased max_tokens to prevent truncation
-                response = await self.llm.generate(
-                    prompt=prompt,
-                    temperature=0.3,
-                    max_tokens=16000,
-                    response_mime_type="application/json",
-                    system_prompt="You are an expert educator creating study plans.",
-                    response_schema=ExamPlan,  # Use new ExamPlan schema
-                )
-                print(
-                    f"[Planner] LLM response received. Tokens: {response.tokens_input}/{response.tokens_output}, Finish: {response.finish_reason}"
-                )
-                
-                # Check if response was truncated
-                if response.finish_reason == 'length':
-                    print(f"[Planner] WARNING: Response truncated (finish_reason=length). Retrying with shorter prompt...")
-                    raise ValueError("Response truncated due to max_tokens limit. Retry needed.")
+            # Track token usage
+            state.add_token_usage(
+                response.tokens_input, response.tokens_output, response.cost_usd
+            )
 
-                # Track token usage
-                state.add_token_usage(
-                    response.tokens_input, response.tokens_output, response.cost_usd
-                )
+            # Parse and validate
+            plan = self._parse_plan_response(response.content)
+            self._validate_plan(plan)
+            
+            print(f"[Planner] Plan validated: {plan.total_blocks} blocks, {plan.total_topics} topics")
+            
+            # Convert to legacy format for backward compatibility
+            from app.agent.plan_adapter import exam_plan_to_steps
+            legacy_steps = exam_plan_to_steps(plan)
+            
+            return legacy_steps
 
-                # Parse and validate
-                plan = self._parse_plan_response(response.content)
-                self._validate_plan(plan)
-                
-                print(f"[Planner] Plan validated: {plan.total_blocks} blocks, {plan.total_topics} topics")
-                
-                # Convert to legacy format for backward compatibility
-                from app.agent.plan_adapter import exam_plan_to_steps
-                legacy_steps = exam_plan_to_steps(plan)
-                
-                return legacy_steps
-
-            except Exception as e:
-                last_error = e
-                print(f"[Planner] Plan generation failed (Attempt {attempt + 1}): {str(e)}")
-                # If it was the last attempt, raise the error
-                if attempt == max_retries - 1:
-                    raise ValueError(f"Failed to generate plan after {max_retries} attempts: {str(e)}")
-        
-        # Should not be reached due to raise in loop
-        raise ValueError(f"Plan generation failed: {str(last_error)}")
+        except Exception as e:
+            print(f"[Planner] Plan generation failed: {str(e)}")
+            raise ValueError(f"Failed to generate plan: {str(e)}")
 
     def _build_planning_prompt(self, state: AgentState) -> str:
         """Build prompt for block-based plan generation"""

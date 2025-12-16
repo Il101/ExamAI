@@ -93,7 +93,7 @@ class QuizGenerator:
         
         # Retry mechanism for transient 504 errors (server overload during prefill)
         # First attempt may hit overloaded servable, retry gets routed to different server
-        max_retries = 3
+        max_retries = 2  # Reduced from 3 (SDK already retries once)
         last_error = None
         current_model = settings.GEMINI_MODEL
         

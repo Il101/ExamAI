@@ -97,8 +97,8 @@ class CachedCoursePlanner(CoursePlanner):
 
         elif file_uri:
             # Retry logic for cache creation (Gemini API can be temporarily overloaded)
-            max_retries = 3
-            retry_delay = 5  # Start with 5 seconds
+            max_retries = 2  # Reduced from 3 (SDK already retries once)
+            retry_delay = 3  # Reduced from 5 (SDK already waited)
             
             for attempt in range(max_retries):
                 try:
@@ -158,7 +158,7 @@ class CachedCoursePlanner(CoursePlanner):
     
     async def _make_plan_internal(self, state: AgentState, cache_name: str = None) -> ExamPlan:
         """Internal method that returns ExamPlan before adapter conversion"""
-        max_retries = 3
+        max_retries = 2  # Reduced from 3 (SDK already retries once)
         last_error = None
         
         for attempt in range(max_retries):
