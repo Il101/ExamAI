@@ -84,17 +84,29 @@ class GeminiProvider(LLMProvider):
     @classmethod
     def _get_client(cls, api_key: str) -> genai.Client:
         """
-        Get or create a shared genai.Client instance.
+        Get or create a shared genai.Client instance with retry configuration.
         """
         if cls._shared_client is None or cls._shared_api_key != api_key:
-            # Configure timeout using types.HttpOptions
-            # The SDK has built-in retry logic for 429/503 errors
+            # Configure HTTP options with timeout
             http_options = types.HttpOptions(
                 timeout=240000,  # 240 seconds - must be > highest gen timeout (180s)
             )
             
-            print(f"[GeminiProvider] Initializing new shared client with timeout=240s...")
-            cls._shared_client = genai.Client(api_key=api_key, http_options=http_options)
+            # Configure retry logic with exponential backoff for transient errors
+            # This handles 429 (rate limit) and 503 (service unavailable) errors automatically
+            retry_config = genai.retry.RetryConfig(
+                initial_delay=1.0,      # Start with 1 second delay
+                max_delay=60.0,         # Maximum delay between retries
+                max_retries=5,          # Maximum number of retry attempts
+                timeout=300.0,          # Total timeout for all retries
+            )
+            
+            print(f"[GeminiProvider] Initializing new shared client with timeout=240s, retry_config=(max_retries=5, max_delay=60s)...")
+            cls._shared_client = genai.Client(
+                api_key=api_key, 
+                http_options=http_options,
+                retry_config=retry_config
+            )
             cls._shared_api_key = api_key
             
         return cls._shared_client

@@ -186,7 +186,7 @@ async def create_exam_v3(
         original_content = ""  # Content is in Gemini Files API, not extracted text
 
         # Initialize services
-        llm = GeminiProvider(api_key=settings.GEMINI_API_KEY, model=settings.GEMINI_MODEL)
+        llm = GeminiProvider(api_key=settings.GEMINI_API_KEY, model=settings.GEMINI_MODEL, fallback_model=settings.GEMINI_FALLBACK_MODEL)
         planner = CachedCoursePlanner(llm_provider=llm)
         store = get_storage()
         cache_manager = get_cache_manager()

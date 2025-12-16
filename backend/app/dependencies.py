@@ -172,7 +172,8 @@ async def get_tutor_service(
     # Use separate model for chat (optimized for speed and cost)
     chat_llm = GeminiProvider(
         api_key=settings.GEMINI_API_KEY,
-        model=settings.GEMINI_CHAT_MODEL
+        model=settings.GEMINI_CHAT_MODEL,
+        fallback_model=settings.GEMINI_FALLBACK_MODEL
     )
     return TutorService(chat_llm, chat_repo, topic_repo, review_repo, exam_repo)
 

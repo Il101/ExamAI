@@ -31,6 +31,7 @@ def get_llm_provider():
     return GeminiProvider(
         api_key=settings.GEMINI_API_KEY,
         model=settings.GEMINI_MODEL,
+        fallback_model=settings.GEMINI_FALLBACK_MODEL,
     )
 
 
@@ -256,7 +257,7 @@ async def _generate_exam_content_async(
         # - topic state machine remains consistent (pending/failed -> generating -> ready/failed)
         # - flashcards are generated via FlashcardGenerator (and not skipped silently)
         # - cache fallback behavior is consistent
-        llm = GeminiProvider(api_key=settings.GEMINI_API_KEY, model=settings.GEMINI_MODEL)
+        llm = GeminiProvider(api_key=settings.GEMINI_API_KEY, model=settings.GEMINI_MODEL, fallback_model=settings.GEMINI_FALLBACK_MODEL)
 
         executor = TopicExecutor(llm)
         quiz_gen = QuizGenerator(llm)
