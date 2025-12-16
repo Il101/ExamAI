@@ -87,10 +87,9 @@ async def analyze_content(
         
         try:
             # Get client from provider (assuming it's migrated to google-genai)
-            client = llm_provider.client
             
             # Upload to Gemini
-            uploaded_file = client.files.upload(file=tmp_path, config={'mime_type': file.content_type})
+            uploaded_file = llm_provider.client.files.upload(file=tmp_path, config={'mime_type': file.content_type})
             
             # Load prompt template
             from app.prompts import load_prompt
@@ -101,20 +100,20 @@ async def analyze_content(
             )
 
 
-            # Generate with file context and structured output
-            response = await client.aio.models.generate_content(
-                model=llm_provider.model_name,
+            # Generate with file context and structured output using Provider
+            # Note: We use the 'contents' kwarg to override the prompt with [file, prompt]
+            llm_response = await llm_provider.generate(
+                prompt=prompt,
                 contents=[uploaded_file, prompt],
-                config=types.GenerateContentConfig(
-                    temperature=0.2,
-                    response_mime_type="application/json",
-                    response_schema=OutlineSchema
-                )
+                temperature=0.2,
+                response_schema=OutlineSchema,
+                # Explicitly override response_mime_type via generate's logic for schema
             )
+            response_text = llm_response.content
             
             # Parse JSON response
             import json
-            json_text = response.text.strip()
+            json_text = response_text.strip()
             # Gemini with response_schema returns raw JSON, no markdown blocks usually, but we play safe
             if json_text.startswith("```json"):
                 json_text = json_text[7:-3].strip()
@@ -127,7 +126,7 @@ async def analyze_content(
             # Note: google-genai SDK might not have explicit delete in client.files yet or it's different
             # Checking docs or assuming it's similar: client.files.delete(name=...)
             try:
-                client.files.delete(name=uploaded_file.name)
+                llm_provider.client.files.delete(name=uploaded_file.name)
             except:
                 pass # Ignore cleanup errors for now
             

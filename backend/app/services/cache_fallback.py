@@ -143,39 +143,21 @@ class CacheFallbackService:
         exam_id: UUID,
         cache_name: Optional[str],
         prompt: str,
-        llm_client: Any,
+        llm_provider: Any, # Typed as Any to avoid circular import, but expects GeminiProvider
         fallback_content: Optional[str] = None
     ) -> str:
         """
-        Centralized method to generate content with automatic cache fallback
-        
-        Args:
-            exam_id: Exam UUID
-            cache_name: Cache identifier (may be None or expired)
-            prompt: Prompt to send
-            llm_client: LLM client instance (e.g., self.llm.client)
-            fallback_content: Optional content to use if cache fails and storage unavailable
-        
-        Returns:
-            Generated text
-        
-        Example:
-            result = await fallback_service.generate_with_cache(
-                exam_id=exam.id,
-                cache_name=exam.cache_name,
-                prompt="Generate plan...",
-                llm_client=self.llm.client,
-                fallback_content=exam.original_content
-            )
+        kdoc...
         """
         async def operation(cache: Optional[str]):
             if cache:
-                # Use cache
-                response = await llm_client.aio.models.generate_content(
-                    model=cache,
-                    contents=[{"role": "user", "parts": [{"text": prompt}]}]
+                # Use provider's generate method (handles retries, counting, etc.)
+                response = await llm_provider.generate(
+                    prompt=prompt,
+                    cache_name=cache,
+                    temperature=0.3
                 )
-                return response.text
+                return response.content
             else:
                 # No cache - need content
                 if not fallback_content:

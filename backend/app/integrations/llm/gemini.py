@@ -62,11 +62,7 @@ class GeminiProvider(LLMProvider):
         },
     }
 
-    # Shared client instance for Singleton pattern
-    _shared_client: Optional[genai.Client] = None
-    _shared_api_key: Optional[str] = None
-    
-    # Request counter for monitoring
+    # Shared request counter (still useful for monitoring)
     _request_count: int = 0
     _request_count_lock = None  # Will be initialized as asyncio.Lock()
 
@@ -85,39 +81,37 @@ class GeminiProvider(LLMProvider):
         print(f"[GeminiProvider] Initialized with primary_model='{self.model_name}', fallback_model='{self.fallback_model_name}'")
         self.client = self._get_client(api_key)
 
-    @classmethod
-    def _get_client(cls, api_key: str) -> genai.Client:
+    def _get_client(self, api_key: str) -> genai.Client:
         """
-        Get or create a shared genai.Client instance.
-        The SDK has built-in retry logic for transient errors (429, 503).
+        Create a new genai.Client instance.
+        
+        IMPORTANT: We do NOT share clients across instances anymore.
+        Sharing clients across Celery tasks or different event loops causes 
+        'RuntimeError: Event loop is closed' because the client's internal 
+        HTTPX session is bound to a specific loop that gets closed.
         """
-        if cls._shared_client is None or cls._shared_api_key != api_key:
-            # Configure retry with jitter to prevent thundering herd
-            # Recommended by Vertex AI: max 2 retries, exponential backoff, add jitter
-            retry_options = types.HttpRetryOptions(
-                attempts=2,               # Only 2 SDK retries to prevent cascade
-                initialDelay=1.0,         # Start with 1 second
-                maxDelay=10.0,            # Cap at 10 seconds (reduced from 60s)
-                expBase=2.0,              # Exponential: 1s -> 2s
-                jitter=0.3,               # 30% random variation to desync workers
-                httpStatusCodes=[429, 503],  # Retry on rate limit and overload
-            )
-            
-            # Configure HTTP options with timeout and v1beta API (required for caching)
-            http_options = types.HttpOptions(
-                timeout=240000,  # 240 seconds - must be > highest gen timeout (180s)
-                api_version='v1beta',  # Use v1beta for Context Caching support
-                retry_options=retry_options,
-            )
-            
-            print(f"[GeminiProvider] Initializing new shared client with timeout=240s, retry=2 attempts with jitter...")
-            cls._shared_client = genai.Client(
-                api_key=api_key, 
-                http_options=http_options,
-            )
-            cls._shared_api_key = api_key
-            
-        return cls._shared_client
+        # Configure retry with jitter to prevent thundering herd
+        retry_options = types.HttpRetryOptions(
+            attempts=5,
+            initialDelay=1.0,
+            maxDelay=30.0,
+            expBase=2.0,
+            jitter=0.3,
+            httpStatusCodes=[429, 503],
+        )
+        
+        # Configure HTTP options
+        http_options = types.HttpOptions(
+            timeout=240000,
+            api_version='v1beta',
+            retry_options=retry_options,
+        )
+        
+        print(f"[GeminiProvider] Initializing new client with timeout=240s")
+        return genai.Client(
+            api_key=api_key, 
+            http_options=http_options,
+        )
 
     @classmethod
     async def _increment_request_count(cls):
@@ -170,8 +164,10 @@ class GeminiProvider(LLMProvider):
         start_time = time.time()
 
         try:
+            # Allow passing non-string contents payloads (e.g., [uploaded_file, prompt]).
+            contents_payload = kwargs.get("contents")
+
             # Combine system prompt with user prompt
-            # Note: new SDK supports system_instruction in config, but appending is safer for compatibility
             full_prompt = prompt
             
             config_args = {
@@ -208,7 +204,7 @@ class GeminiProvider(LLMProvider):
             response = await asyncio.wait_for(
                 self.client.aio.models.generate_content(
                     model=self.model_name,
-                    contents=full_prompt,
+                    contents=contents_payload if contents_payload is not None else full_prompt,
                     config=config
                 ),
                 timeout=timeout
@@ -312,7 +308,7 @@ class GeminiProvider(LLMProvider):
                     fallback_response = await asyncio.wait_for(
                         self.client.aio.models.generate_content(
                             model=self.fallback_model_name,
-                            contents=full_prompt,
+                            contents=contents_payload if contents_payload is not None else full_prompt,
                             config=config
                         ),
                         timeout=timeout

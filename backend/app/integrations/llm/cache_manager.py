@@ -9,11 +9,17 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+from app.integrations.llm.base import LLMProvider
+
 class ContextCacheManager:
-    """Manages Gemini context caching for exam content"""
+    """Manages Context Caching for Gemini API"""
     
-    def __init__(self, client: genai.Client):
-        self.client = client
+    def __init__(self, provider: LLMProvider):
+        self.provider = provider
+        # Try to access internal client if possible, or use property
+        self.client = getattr(provider, 'client', None)
+        if not self.client:
+             raise ValueError("GeminiProvider must have a client initialized")
         self.caches: Dict[str, any] = {}  # Cache metadata storage
     
     async def create_cache(

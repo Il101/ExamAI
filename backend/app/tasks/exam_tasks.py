@@ -276,11 +276,12 @@ async def _generate_exam_content_async(
             key=settings.SUPABASE_KEY,
             bucket=settings.SUPABASE_BUCKET,
         )
-        genai_client = genai.Client(
-            api_key=settings.GEMINI_API_KEY,
-            http_options=types.HttpOptions(api_version='v1beta')
-        )
-        cache_manager = ContextCacheManager(genai_client)
+        # Initialize GeminiProvider (centralized logic)
+        from app.integrations.llm.gemini import GeminiProvider
+        llm_provider = GeminiProvider(api_key=settings.GEMINI_API_KEY)
+        
+        # Initialize helper services
+        cache_manager = ContextCacheManager(llm_provider)
         fallback_service = CacheFallbackService(storage, cache_manager)
 
         topic_gen = TopicContentGenerator(
