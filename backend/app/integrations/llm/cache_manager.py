@@ -186,9 +186,9 @@ class ContextCacheManager:
             ttl_seconds: New TTL in seconds
         """
         try:
-            await self.client.caches.update(
+            await self.client.aio.caches.update(
                 name=cache_name,
-                ttl=f"{ttl_seconds}s"
+                config={"ttl": f"{ttl_seconds}s"}
             )
             logger.info(f"Refreshed cache {cache_name} with TTL {ttl_seconds}s")
         except Exception as e:
@@ -206,7 +206,7 @@ class ContextCacheManager:
             Dict with cache info or None if not found
         """
         try:
-            cache = await self.client.caches.get(name=cache_name)
+            cache = await self.client.aio.caches.get(name=cache_name)
             ttl_remaining = (cache.expire_time - datetime.now()).total_seconds()
             
             return {
@@ -230,7 +230,7 @@ class ContextCacheManager:
             True if deleted successfully
         """
         try:
-            await self.client.caches.delete(name=cache_name)
+            await self.client.aio.caches.delete(name=cache_name)
             logger.info(f"Deleted cache {cache_name}")
             return True
         except Exception as e:

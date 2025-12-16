@@ -4,7 +4,7 @@ import sys
 from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy import text
-import google.generativeai as genai
+from google import genai
 from supabase import create_client
 from jose import jwt
 
@@ -99,12 +99,17 @@ def check_gemini():
         return False
         
     try:
-        genai.configure(api_key=api_key)
+        # Use new SDK client API
+        client = genai.Client(api_key=api_key)
         # Use model from env or fallback
         model_name = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
         print(f"Testing model: {model_name}")
-        model = genai.GenerativeModel(model_name)
-        response = model.generate_content("Say 'OK'")
+        
+        response = client.models.generate_content(
+            model=model_name,
+            contents="Say 'OK'"
+        )
+        
         if response and response.text:
             print(f"✅ Gemini API successful. Response: {response.text.strip()}")
             return True
