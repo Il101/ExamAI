@@ -169,22 +169,16 @@ class CachedCoursePlanner(CoursePlanner):
                         # Use cache - minimal prompt without content
                         prompt = self._build_planning_prompt_with_cache(state)
                         
-                        # Call with cache
-                        from app.core.config import settings
-                        import asyncio
-                        response = await asyncio.wait_for(
-                            self.llm.client.aio.models.generate_content(
-                                model=settings.GEMINI_MODEL,  # Use base model
-                                config={
-                                    "cached_content": cache_name,
-                                },
-                                contents=[{"role": "user", "parts": [{"text": prompt}]}]
-                            ),
-                            timeout=120.0  # 2 minute timeout
+                        # Use GeminiProvider's generate_with_cache (has SDK retry + jitter + counter)
+                        response = await self.llm.generate_with_cache(
+                            cache_name=cache_name,
+                            prompt=prompt,
+                            temperature=0.3,
+                            timeout=120
                         )
                         
                         # Parse response
-                        plan_text = response.text
+                        plan_text = response.content
                         if plan_text is None:
                             raise ValueError("Received None response from cached LLM call")
                     
@@ -224,19 +218,15 @@ class CachedCoursePlanner(CoursePlanner):
                                     )
                                     logger.info(f"Successfully recreated cache: {new_cache_name}")
                                     
-                                    # Retry with new cache
+                                    # Retry with new cache using GeminiProvider method
                                     prompt = self._build_planning_prompt_with_cache(state)
-                                    response = await asyncio.wait_for(
-                                        self.llm.client.aio.models.generate_content(
-                                            model=settings.GEMINI_MODEL,
-                                            config={
-                                                "cached_content": new_cache_name,
-                                            },
-                                            contents=[{"role": "user", "parts": [{"text": prompt}]}]
-                                        ),
-                                        timeout=120.0  # 2 minute timeout
+                                    response = await self.llm.generate_with_cache(
+                                        cache_name=new_cache_name,
+                                        prompt=prompt,
+                                        temperature=0.3,
+                                        timeout=120
                                     )
-                                    plan_text = response.text
+                                    plan_text = response.content
                                     if plan_text is None:
                                         raise ValueError("Received None response from recreated cache LLM call")
                                 else:
