@@ -35,13 +35,41 @@ async def lifespan(app: FastAPI):
     init_monitoring()
     if settings.SENTRY_DSN:
         print("✅ Sentry monitoring initialized")
+    
+    # Initialize singleton LLM providers
+    print("🤖 Initializing LLM providers...")
+    if settings.LLM_PROVIDER == "openai":
+        print(f"  - OpenAI provider: {settings.OPENAI_MODEL}")
+        from app.integrations.llm.openai import OpenAIProvider
+        app.state.llm_provider = OpenAIProvider(
+            api_key=settings.OPENAI_API_KEY,
+            model=settings.OPENAI_MODEL
+        )
+    else:  # Default to Gemini
+        print(f"  - Gemini provider: {settings.GEMINI_MODEL} (fallback: {settings.GEMINI_FALLBACK_MODEL})")
+        from app.integrations.llm.gemini import GeminiProvider
+        app.state.llm_provider = GeminiProvider(
+            api_key=settings.GEMINI_API_KEY,
+            model=settings.GEMINI_MODEL,
+            fallback_model=settings.GEMINI_FALLBACK_MODEL
+        )
+    
+    # Initialize chat-specific LLM provider for tutor service
+    print(f"  - Chat LLM provider: {settings.GEMINI_CHAT_MODEL}")
+    from app.integrations.llm.gemini import GeminiProvider
+    app.state.chat_llm_provider = GeminiProvider(
+        api_key=settings.GEMINI_API_KEY,
+        model=settings.GEMINI_CHAT_MODEL,
+        fallback_model=settings.GEMINI_FALLBACK_MODEL
+    )
+    print("✅ LLM providers initialized (singleton)")
 
     # Initialize database
     try:
         await init_db()
         print("✅ Database initialized")
         
-        # Cleanup stale generating exams (only those stuck for > 60 minutes)
+        # Cleanup stale generating exams (only those stuck for >60 minutes)
         try:
             from sqlalchemy import select
             from app.db.models.exam import ExamModel
@@ -49,7 +77,7 @@ async def lifespan(app: FastAPI):
             from datetime import timedelta
             
             async with AsyncSessionLocal() as session:
-                # Find exams stuck in generating for > 60 minutes
+                # Find exams stuck in generating for >60 minutes
                 # This prevents marking newly-started Celery tasks as failed
                 # Increased from 10 to 60 minutes to allow for longer generation times
                 cutoff_time = datetime.now(timezone.utc) - timedelta(minutes=60)
@@ -77,6 +105,7 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"⚠️  Database initialization failed: {e}")
         print("⚠️  App will start but database operations will fail")
+
 
     yield
 

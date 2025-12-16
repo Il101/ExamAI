@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -98,24 +98,26 @@ def get_stripe_service() -> StripeService:
 # --- LLM Provider ---
 
 
-def get_llm_provider() -> LLMProvider:
+def get_llm_provider(request: Request) -> LLMProvider:
     """
-    Get LLM provider based on configuration.
+    Get singleton LLM provider from application state.
+    
+    The provider is initialized once on application startup (see lifespan in main.py).
+    This ensures efficient resource usage and proper lifecycle management.
+    
+    Args:
+        request: FastAPI request object (provides access to app.state)
     
     Returns:
-        LLMProvider instance (Gemini or OpenAI) with automatic fallback on 503
+        Singleton LLMProvider instance (Gemini or OpenAI)
     """
-    if settings.LLM_PROVIDER == "openai":
-        return OpenAIProvider(
-            api_key=settings.OPENAI_API_KEY,
-            model=settings.OPENAI_MODEL
+    if not hasattr(request.app.state, "llm_provider"):
+        raise RuntimeError(
+            "LLM provider not initialized. This is a critical startup error. "
+            "Check application lifespan in main.py."
         )
-    else:  # Default to Gemini with fallback
-        return GeminiProvider(
-            api_key=settings.GEMINI_API_KEY,
-            model=settings.GEMINI_MODEL,
-            fallback_model=settings.GEMINI_FALLBACK_MODEL  # Auto-fallback on 503
-        )
+    return request.app.state.llm_provider
+
 
 
 # --- Domain Services ---
@@ -163,18 +165,20 @@ async def get_subscription_service(
 
 
 async def get_tutor_service(
+    request: Request,
     chat_repo: ChatMessageRepository = Depends(get_chat_repo),
     topic_repo: TopicRepository = Depends(get_topic_repo),
     review_repo: ReviewItemRepository = Depends(get_review_repo),
     exam_repo: ExamRepository = Depends(get_exam_repo),
 ) -> TutorService:
     """Get AI tutor service with dedicated chat model"""
-    # Use separate model for chat (optimized for speed and cost)
-    chat_llm = GeminiProvider(
-        api_key=settings.GEMINI_API_KEY,
-        model=settings.GEMINI_CHAT_MODEL,
-        fallback_model=settings.GEMINI_FALLBACK_MODEL
-    )
+    # Use singleton chat LLM provider initialized at startup
+    if not hasattr(request.app.state, "chat_llm_provider"):
+        raise RuntimeError(
+            "Chat LLM provider not initialized. This is a critical startup error. "
+            "Check application lifespan in main.py."
+        )
+    chat_llm = request.app.state.chat_llm_provider
     return TutorService(chat_llm, chat_repo, topic_repo, review_repo, exam_repo)
 
 
