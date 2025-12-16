@@ -277,7 +277,7 @@ async def _generate_exam_content_async(
             bucket=settings.SUPABASE_BUCKET,
         )
         # Initialize GeminiProvider (centralized logic)
-        from app.integrations.llm.gemini import GeminiProvider
+
         llm_provider = GeminiProvider(api_key=settings.GEMINI_API_KEY)
         
         # Initialize helper services
