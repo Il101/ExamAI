@@ -20,6 +20,9 @@ export default function ExamDetailPage() {
 
     const { exam, isLoading, isError, error, refetch } = useExamDetail(examId);
 
+    // State for generation button (used in 'planned' status)
+    const [isGenerating, setIsGenerating] = useState(false);
+
     const handleStartReview = () => {
         if (!exam) return;
 
@@ -151,8 +154,6 @@ export default function ExamDetailPage() {
         }
 
         if (exam.status === 'planned') {
-            const [isGenerating, setIsGenerating] = useState(false);
-
             const handleStartGeneration = async () => {
                 setIsGenerating(true);
                 try {
