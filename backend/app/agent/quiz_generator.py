@@ -101,24 +101,17 @@ class QuizGenerator:
             try:
                 # Generate with AGGRESSIVE timeout (50s) to fail fast on stuck requests
                 # Normal generation takes ~15s. If > 50s, it's likely stuck -> retry immediately.
-                # REMOVED response_schema to reduce prefill load and 504 errors.
-                # Using JSON mode instead.
-                config = types.GenerateContentConfig(
+                # Use GeminiProvider.generate for robust retries + counting
+                llm_response = await self.llm.generate(
+                    prompt=prompt,
                     temperature=0.3,
-                    system_instruction="You are an expert tutor creating study materials.",
-                    response_mime_type="application/json"
-                )
-
-                response = await asyncio.wait_for(
-                    self.llm.client.aio.models.generate_content(
-                        model=current_model,
-                        contents=prompt,
-                        config=config
-                    ),
-                    timeout=50.0  # Fail fast! Don't wait 3 minutes.
+                    system_prompt="You are an expert tutor creating study materials.",
+                    response_mime_type="application/json",
+                    # Timeout handled by GeminiProvider (180s) or passing explicit
+                    timeout=120.0
                 )
                 
-                json_text = response.text
+                json_text = llm_response.content
 
                 # Parse response
                 try:
@@ -143,34 +136,41 @@ class QuizGenerator:
                     logger.debug("Raw text preview", extra={"component": "quiz_generator", "preview": json_text[:500]})
                     raise ValueError(f"Failed to generate flashcards: {str(e)}")
                     
-            except RuntimeError as e:
+            except (RuntimeError, ValueError) as e:
                 last_error = e
                 error_msg = str(e).lower()
                 
-                # Retry on:
-                # 1. 504 DEADLINE_EXCEEDED (Server timeout)
-                # 2. "timed out" (Our local 50s fail-fast timeout)
-                if ("504" in error_msg or "deadline_exceeded" in error_msg or "timed out" in error_msg or "503" in error_msg or "overloaded" in error_msg) and attempt < max_retries - 1:
+                # Check for recoverable errors:
+                # 1. API Errors: 503, 504, timeout, overloaded
+                # 2. Content Errors: JSON parsing failed (ValueError)
+                is_api_error = any(x in error_msg for x in ["504", "deadline_exceeded", "timed out", "503", "overloaded"])
+                is_json_error = "json" in error_msg or "delimiter" in error_msg or "parse" in error_msg or "failed to generate" in error_msg
+
+                if (is_api_error or is_json_error) and attempt < max_retries - 1:
+                    retry_wait = 2.0 * (attempt + 1)  # Linear backoff for content errors
+                    
                     # Switch to fallback model on overload
                     if ("503" in error_msg or "overloaded" in error_msg) and current_model != settings.GEMINI_FALLBACK_MODEL:
                         logger.warning(
                             f"Flashcard generation overload on {current_model}, switching to fallback {settings.GEMINI_FALLBACK_MODEL}",
                             extra={"component": "quiz_generator"}
                         )
+                        self.llm.model_name = settings.GEMINI_FALLBACK_MODEL
                         current_model = settings.GEMINI_FALLBACK_MODEL
-
-                    wait_time = 2 * (2 ** attempt)  # Reduced wait: 2s, 4s, 8s (fail fast, retry fast)
+                    
                     logger.warning(
-                        "Flashcard generation issue (%s), retry %s/%s in %ss",
-                        "TIMEOUT" if "timed out" in error_msg else "API ERROR",
-                        attempt + 1, max_retries, wait_time,
-                        extra={"component": "quiz_generator", "attempt": attempt + 1, "wait_time": wait_time, "model": current_model}
+                        f"Generation attempt {attempt + 1} failed: {str(e)}. Retrying in {retry_wait}s...",
+                        extra={"component": "quiz_generator"}
                     )
-                    await asyncio.sleep(wait_time)
+                    await asyncio.sleep(retry_wait)
                     continue
-                else:
-                    # Non-retriable error or final attempt - raise immediately
-                    raise
+                
+                # If retries exhausted or non-recoverable error
+                logger.error(
+                    f"All {max_retries} attempts failed for flashcards. Last error: {str(e)}",
+                    extra={"component": "quiz_generator"}
+                )
+                raise last_error
         
         # All retries exhausted
         raise last_error if last_error else RuntimeError("Unknown error in flashcard generation")
