@@ -277,7 +277,7 @@ async def _generate_exam_content_async(
         )
         genai_client = genai.Client(
             api_key=settings.GEMINI_API_KEY,
-            http_options=types.HttpOptions(api_version='v1')
+            http_options=types.HttpOptions(api_version='v1beta')
         )
         cache_manager = ContextCacheManager(genai_client)
         fallback_service = CacheFallbackService(storage, cache_manager)

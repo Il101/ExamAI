@@ -99,10 +99,10 @@ class GeminiProvider(LLMProvider):
                 httpStatusCodes=[429, 503],  # Retry on rate limit and overload
             )
             
-            # Configure HTTP options with timeout and stable v1 API
+            # Configure HTTP options with timeout and v1beta API (required for caching)
             http_options = types.HttpOptions(
                 timeout=240000,  # 240 seconds - must be > highest gen timeout (180s)
-                api_version='v1',  # Use stable v1 API (not v1beta preview)
+                api_version='v1beta',  # Use v1beta for Context Caching support
                 retry_options=retry_options,
             )
             
