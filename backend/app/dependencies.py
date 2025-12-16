@@ -100,21 +100,44 @@ def get_stripe_service() -> StripeService:
 
 def get_llm_provider() -> LLMProvider:
     """
-    Get LLM provider based on configuration.
+    Get LLM provider with automatic fallback on 503 errors.
+    
+    Primary: GEMINI_MODEL (e.g., gemini-2.5-flash)
+    Fallback: GEMINI_FALLBACK_MODEL (e.g., gemini-2.0-flash)
     
     Returns:
-        LLMProvider instance (Gemini or OpenAI)
+        LLMProvider instance with automatic fallback capability
     """
     if settings.LLM_PROVIDER == "openai":
         return OpenAIProvider(
             api_key=settings.OPENAI_API_KEY,
             model=settings.OPENAI_MODEL
         )
-    else:  # Default to Gemini
-        return GeminiProvider(
+    else:  # Gemini with fallback
+        from app.integrations.llm.fallback_wrapper import FallbackLLMProvider
+        
+        # Create primary provider
+        primary = GeminiProvider(
             api_key=settings.GEMINI_API_KEY,
             model=settings.GEMINI_MODEL
         )
+        
+        # Create fallback provider (only if different from primary)
+        if settings.GEMINI_FALLBACK_MODEL and settings.GEMINI_FALLBACK_MODEL != settings.GEMINI_MODEL:
+            fallback = GeminiProvider(
+                api_key=settings.GEMINI_API_KEY,
+                model=settings.GEMINI_FALLBACK_MODEL
+            )
+            
+            # Wrap with automatic fallback on 503 errors
+            return FallbackLLMProvider(
+                primary=primary,
+                fallback=fallback,
+                fallback_on_codes=[503, 429]  # Overload and rate limit
+            )
+        else:
+            # No fallback configured, return primary only
+            return primary
 
 
 # --- Domain Services ---
