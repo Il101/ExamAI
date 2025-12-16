@@ -92,15 +92,15 @@ class GeminiProvider(LLMProvider):
             http_options = types.HttpOptions(
                 timeout=240000,  # 240 seconds - must be > highest gen timeout (180s)
                 retry_options={
-                    "attempts": 5,  # Increased to 5 robust retries
+                    "attempts": 2,  # Reduced from 5 to prevent retry cascade
                     "initial_delay": 1.0,
-                    "max_delay": 60.0,
+                    "max_delay": 10.0,  # Reduced from 60s
                     "exp_base": 2.0,
                     "http_status_codes": [429, 503],
                 },
             )
             
-            print(f"[GeminiProvider] Initializing new shared client with timeout=240s and 2 retries...")
+            print(f"[GeminiProvider] Initializing new shared client with timeout=240s and 2 SDK retries...")
             cls._shared_client = genai.Client(api_key=api_key, http_options=http_options)
             cls._shared_api_key = api_key
             

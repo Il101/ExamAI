@@ -14,13 +14,13 @@ class TopicExecutor:
     def __init__(self, llm_provider: LLMProvider):
         self.llm = llm_provider
 
-    async def execute_step(self, state: AgentState, max_retries: int = 3) -> str:
+    async def execute_step(self, state: AgentState, max_retries: int = 2) -> str:
         """
         Generate content for current step with retry logic.
 
         Args:
             state: AgentState with plan and current step index
-            max_retries: Maximum number of retry attempts
+            max_retries: Maximum number of retry attempts (reduced to 2 to prevent cascade)
 
         Returns:
             Generated content for the topic
@@ -118,8 +118,9 @@ class TopicExecutor:
                     print(f"[Executor] ⚠️ Attempt {attempt + 1}/{max_retries} failed with transient error: {error_msg}")
                     
                     if attempt < max_retries - 1:
-                        # Exponential backoff: 5s, 10s, 20s
-                        wait_time = 5 * (2 ** attempt)
+                        # Reduced backoff: 2s, 4s (was 5s, 10s, 20s)
+                        # SDK already retried, so we just need short app-level retry
+                        wait_time = 2 * (2 ** attempt)
                         print(f"[Executor] Retrying in {wait_time}s...")
                         import asyncio
                         await asyncio.sleep(wait_time)
