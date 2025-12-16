@@ -39,14 +39,16 @@ class ContextCacheManager:
             # Create cache with model from settings
             cache = await self.client.aio.caches.create(
                 model=settings.GEMINI_MODEL,
-                config={
-                    "contents": [{
-                        "role": "user",
-                        "parts": [{"text": content}]
-                    }],
-                    "ttl": f"{ttl_seconds}s",
-                    "display_name": f"exam_{exam_id}" if exam_id else None
-                }
+                config=types.CreateCachedContentConfig(
+                    contents=[
+                        types.Content(
+                            role="user",
+                            parts=[types.Part(text=content)]
+                        )
+                    ],
+                    ttl=f"{ttl_seconds}s",
+                    display_name=f"exam_{exam_id}" if exam_id else None
+                )
             )
             
             if exam_id:
@@ -91,14 +93,16 @@ class ContextCacheManager:
             # Create cache with file data
             cache = await self.client.aio.caches.create(
                 model=settings.GEMINI_MODEL,
-                config={
-                    "contents": [{
-                        "role": "user",
-                        "parts": [{"file_data": {"file_uri": file_uri, "mime_type": mime_type}}]
-                    }],
-                    "ttl": f"{ttl_seconds}s",
-                    "display_name": f"exam_{exam_id}" if exam_id else None
-                }
+                config=types.CreateCachedContentConfig(
+                    contents=[
+                        types.Content(
+                            role="user",
+                            parts=[types.Part.from_uri(file_uri=file_uri, mime_type=mime_type)]
+                        )
+                    ],
+                    ttl=f"{ttl_seconds}s",
+                    display_name=f"exam_{exam_id}" if exam_id else None
+                )
             )
             
             if exam_id:
@@ -139,7 +143,7 @@ class ContextCacheManager:
                 raise ValueError("No files provided for cache creation")
 
             parts = [
-                {"file_data": {"file_uri": uri, "mime_type": mime}}
+                types.Part.from_uri(file_uri=uri, mime_type=mime)
                 for uri, mime in files
             ]
 
@@ -149,16 +153,16 @@ class ContextCacheManager:
 
             cache = await self.client.aio.caches.create(
                 model=settings.GEMINI_MODEL,
-                config={
-                    "contents": [
-                        {
-                            "role": "user",
-                            "parts": parts,
-                        }
+                config=types.CreateCachedContentConfig(
+                    contents=[
+                        types.Content(
+                            role="user",
+                            parts=parts,
+                        )
                     ],
-                    "ttl": f"{ttl_seconds}s",
-                    "display_name": f"exam_{exam_id}" if exam_id else None,
-                },
+                    ttl=f"{ttl_seconds}s",
+                    display_name=f"exam_{exam_id}" if exam_id else None,
+                ),
             )
 
             if exam_id:
