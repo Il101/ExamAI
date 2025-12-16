@@ -66,7 +66,7 @@ class GeminiProvider(LLMProvider):
     _shared_client: Optional[genai.Client] = None
     _shared_api_key: Optional[str] = None
 
-    def __init__(self, api_key: str, model: str = "gemini-2.0-flash-exp"):
+    def __init__(self, api_key: str, model: str = "gemini-2.0-flash-exp", fallback_model: Optional[str] = None):
         """
         Initialize Gemini provider.
         
@@ -76,8 +76,10 @@ class GeminiProvider(LLMProvider):
         Args:
             api_key: Gemini API key
             model: Model name (gemini-2.0-flash-exp, gemini-1.5-flash, gemini-1.5-pro)
+            fallback_model: Optional fallback model for 503 errors (e.g., gemini-2.0-flash)
         """
         self.model_name = model
+        self.fallback_model_name = fallback_model
         self.client = self._get_client(api_key)
 
     @classmethod
@@ -227,6 +229,83 @@ class GeminiProvider(LLMProvider):
             print(
                 f"[GeminiProvider] API ERROR after {elapsed:.2f}s: code={e.code}, message={e.message}"
             )
+            
+            # Check if we should try fallback model on 503
+            if e.code == 503 and self.fallback_model_name and self.fallback_model_name != self.model_name:
+                print(f"[GeminiProvider] 🔄 Primary model '{self.model_name}' overloaded (503). Trying fallback: '{self.fallback_model_name}'." ...")
+                
+                try:
+                    # Retry with fallback model using same parameters
+                    config_args = {
+                        "temperature": temperature,
+                        "max_output_tokens": max_tokens,
+                    }
+                    
+                    if system_prompt:
+                        if "cache_name" in kwargs and kwargs["cache_name"]:
+                            full_prompt = f"{system_prompt}\n\n{prompt}"
+                        else:
+                            config_args["system_instruction"] = system_prompt
+                    else:
+                        full_prompt = prompt
+                    
+                    if "cache_name" in kwargs and kwargs["cache_name"]:
+                        config_args["cached_content"] = kwargs["cache_name"]
+                    
+                    if response_schema:
+                        config_args["response_mime_type"] = "application/json"
+                        config_args["response_schema"] = response_schema
+                    elif response_mime_type:
+                        config_args["response_mime_type"] = response_mime_type
+                    
+                    config = types.GenerateContentConfig(**config_args)
+                    
+                    # Try fallback model
+                    fallback_response = await asyncio.wait_for(
+                        self.client.aio.models.generate_content(
+                            model=self.fallback_model_name,
+                            contents=full_prompt,
+                            config=config
+                        ),
+                        timeout=timeout
+                    )
+                    
+                    # Extract usage stats from fallback
+                    usage = fallback_response.usage_metadata
+                    tokens_input = usage.prompt_token_count if usage else 0
+                    tokens_output = usage.candidates_token_count if (usage and usage.candidates_token_count is not None) else 0
+                    
+                    total_time = time.time() - start_time
+                    print(f"[GeminiProvider] ✅ Fallback succeeded! Model: {self.fallback_model_name}, Time: {total_time:.2f}s")
+                    
+                    # Calculate cost using fallback model pricing
+                    cost = self.calculate_cost(tokens_input, tokens_output, model=self.fallback_model_name)
+                    
+                    finish_reason = "unknown"
+                    if fallback_response.candidates and fallback_response.candidates[0].finish_reason:
+                        finish_reason = fallback_response.candidates[0].finish_reason.lower()
+                    
+                    # Record success metrics for fallback
+                    metrics = get_metrics()
+                    metrics.record_success(
+                        tokens_in=tokens_input,
+                        tokens_out=tokens_output,
+                        cost=cost,
+                        duration_ms=total_time * 1000
+                    )
+                    
+                    return LLMResponse(
+                        content=fallback_response.text,
+                        model=f"{self.model_name} -> {self.fallback_model_name}",  # Indicate fallback was used
+                        tokens_input=tokens_input,
+                        tokens_output=tokens_output,
+                        cost_usd=cost,
+                        finish_reason=finish_reason,
+                    )
+                    
+                except Exception as fallback_error:
+                    print(f"[GeminiProvider] ❌ Fallback also failed: {fallback_error}")
+                    # Fall through to original error handling
             
             # Record failure metrics
             metrics = get_metrics()
@@ -462,14 +541,16 @@ class GeminiProvider(LLMProvider):
         """Get model name"""
         return self.model_name
 
-    def calculate_cost(self, tokens_input: int, tokens_output: int) -> float:
-        """Calculate cost in USD"""
-        pricing = self.PRICING.get(
-            self.model_name, self.PRICING["gemini-2.0-flash-exp"]
-        )
-
-        input_cost = tokens_input * pricing["input"]
-        output_cost = tokens_output * pricing["output"]
-
-        return input_cost + output_cost
-
+    def calculate_cost(self, tokens_input: int, tokens_output: int, model: Optional[str] = None) -> float:
+        """Calculate cost based on token usage for the specified model"""
+        model_name = model or self.model_name
+        
+        # Get pricing for the specified model (with fallback to base model name)
+        pricing_key = model_name
+        if pricing_key not in self.PRICING:
+            # Try without version suffix (e.g., "gemini-2.5-flash-002" -> "gemini-2.5-flash")
+            base_model = "-".join(pricing_key.split("-")[:-1]) if pricing_key.split("-")[-1].isdigit() else pricing_key
+            pricing_key = base_model if base_model in self.PRICING else "gemini-2.0-flash-exp"
+        
+        pricing = self.PRICING.get(pricing_key, self.PRICING["gemini-2.0-flash-exp"])
+        return (tokens_input * pricing["input"]) + (tokens_output * pricing["output"])
