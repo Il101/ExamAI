@@ -232,7 +232,7 @@ class GeminiProvider(LLMProvider):
             
             # Check if we should try fallback model on 503
             if e.code == 503 and self.fallback_model_name and self.fallback_model_name != self.model_name:
-                print(f"[GeminiProvider] 🔄 Primary model '{self.model_name}' overloaded (503). Trying fallback: '{self.fallback_model_name}'." ...")
+                print(f"[GeminiProvider] 🔄 Primary model '{self.model_name}' overloaded (503). Trying fallback: '{self.fallback_model_name}'...")
                 
                 try:
                     # Retry with fallback model using same parameters
