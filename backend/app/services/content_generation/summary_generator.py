@@ -89,6 +89,7 @@ class ExamSummaryGenerator:
             topic_gists=self._format_topic_gists(topics),
         )
 
+        # Try with normal token limit first
         response = await self.llm.generate(
             prompt=prompt,
             temperature=0.2,
@@ -99,6 +100,36 @@ class ExamSummaryGenerator:
             ),
             cache_name=cache_name,
         )
+
+        # Check if response was truncated
+        finish_reason = (response.finish_reason or "").lower()
+        if finish_reason in {"max_tokens", "length", "max_output_tokens"}:
+            print(
+                f"[SummaryGenerator] ⚠️ Summary truncated (finish_reason={finish_reason}). "
+                f"Retrying with higher token limit..."
+            )
+            
+            # Retry with doubled token limit
+            response = await self.llm.generate(
+                prompt=prompt,
+                temperature=0.2,
+                max_tokens=4000,  # Double the limit
+                system_prompt=(
+                    "You write short, accurate study TL;DRs. "
+                    "Never reveal hidden reasoning or meta text."
+                ),
+                cache_name=cache_name,
+            )
+            
+            # Check again
+            finish_reason = (response.finish_reason or "").lower()
+            if finish_reason in {"max_tokens", "length", "max_output_tokens"}:
+                # Still truncated - return fallback
+                print(
+                    f"[SummaryGenerator] ❌ Summary still truncated after retry. "
+                    f"Using fallback message."
+                )
+                return f"- Сгенерировано {ready_count}/{total_count} тем по предмету: {subject}"
 
         cleaned = clean_ai_content(response.content, content_type="general")
         return self._normalize_bullets(cleaned)
