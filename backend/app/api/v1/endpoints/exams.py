@@ -116,37 +116,46 @@ async def create_exam_v3(
             async with aiofiles.open(tmp_path, 'wb') as f:
                 await f.write(content_bytes)
 
-            # 1. Upload to Gemini (for Context Caching)
-            uploaded_file = client.files.upload(file=tmp_path, config={'mime_type': upload.content_type})
-            gemini_files.append({
-                "uri": uploaded_file.uri,
-                "mime_type": upload.content_type,
-                "filename": upload.filename,
-            })
-            logger.info(
-                f"Uploaded file '{upload.filename}' ({upload.content_type}) to Gemini: {uploaded_file.uri}"
-            )
+            # Pre-process: Convert DOCX to PDF (required for Gemini Caching and Storage)
+            processing_path = tmp_path
+            processing_mime = upload.content_type
 
-            # 2. Upload to Supabase Storage (Source of Truth)
-            media_supported_types = [
-                "application/pdf",
-                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            ]
-
-            storage_path = None
-
-            if upload.content_type in media_supported_types:
+            if processing_mime == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
                 try:
                     from app.utils.pdf_converter import ensure_pdf
                     from starlette.concurrency import run_in_threadpool
+                    
+                    processing_path = await run_in_threadpool(ensure_pdf, tmp_path, processing_mime)
+                    processing_mime = "application/pdf"
+                    pdf_paths.append(processing_path)
+                    logger.info(f"Converted DOCX {upload.filename} to PDF for processing")
+                except Exception as e:
+                    logger.error(f"DOCX conversion failed: {e}", exc_info=True)
+                    raise ValidationException(f"Failed to process DOCX file: {upload.filename}")
 
-                    pdf_path = await run_in_threadpool(ensure_pdf, tmp_path, upload.content_type)
-                    pdf_paths.append(pdf_path)
+            # 1. Upload to Gemini (for Context Caching)
+            # Use processed file (PDF for DOCX)
+            uploaded_file = client.files.upload(file=processing_path, config={'mime_type': processing_mime})
+            gemini_files.append({
+                "uri": uploaded_file.uri,
+                "mime_type": processing_mime,
+                "filename": upload.filename,
+            })
+            logger.info(
+                f"Uploaded file '{upload.filename}' ({processing_mime}) to Gemini: {uploaded_file.uri}"
+            )
 
+            # 2. Upload to Supabase Storage (Source of Truth)
+            # We store the processed file (PDF) if it's a document
+            storage_path = None
+            
+            # If it's PDF (either natively or converted)
+            if processing_mime == "application/pdf":
+                try:
                     filename = f"{uuid4()}.pdf"
                     storage_path = f"exams/source/{filename}"
 
-                    async with aiofiles.open(pdf_path, "rb") as f:
+                    async with aiofiles.open(processing_path, "rb") as f:
                         file_data = await f.read()
 
                     await get_storage().upload_file(file_data, storage_path)
@@ -163,9 +172,10 @@ async def create_exam_v3(
                     logger.error(f"Source file upload failed: {e}", exc_info=True)
                     warnings.append(f"Failed to backup source file: {upload.filename}")
             else:
+                # For non-document types (Audio/Video/Txt), we currently don't store in Supabase
                 stored_files.append({
                     "storage_path": None,
-                    "mime_type": upload.content_type,
+                    "mime_type": processing_mime,
                     "filename": upload.filename,
                 })
 
