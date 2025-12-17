@@ -47,6 +47,8 @@ class ExamResponse(BaseModel):
     level: str
     status: str
     topic_count: int
+    completed_topics: int = 0
+    due_flashcards_count: int = 0
     created_at: datetime
     updated_at: datetime
 

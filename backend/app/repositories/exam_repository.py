@@ -23,8 +23,29 @@ class ExamRepository(BaseRepository[Exam, ExamModel]):
         limit: int = 100,
         offset: int = 0,
     ) -> List[Exam]:
-        """List exams by user with optional status filter"""
-        stmt = select(ExamModel).where(ExamModel.user_id == user_id)
+        """List exams by user with optional status filter and progress counts"""
+        from datetime import datetime, timezone
+        from app.db.models.topic import TopicModel
+        from app.db.models.review import ReviewItemModel
+
+        # Subquery for completed topics (quiz_completed = True)
+        completed_topics_sub = (
+            select(func.count(TopicModel.id))
+            .where(TopicModel.exam_id == ExamModel.id)
+            .where(TopicModel.quiz_completed == True)
+            .label("completed_topics")
+        )
+
+        # Subquery for due flashcards (next_review_date <= now)
+        due_flashcards_sub = (
+            select(func.count(ReviewItemModel.id))
+            .join(TopicModel, TopicModel.id == ReviewItemModel.topic_id)
+            .where(TopicModel.exam_id == ExamModel.id)
+            .where(ReviewItemModel.next_review_date <= datetime.now(timezone.utc))
+            .label("due_flashcards_count")
+        )
+
+        stmt = select(ExamModel, completed_topics_sub, due_flashcards_sub).where(ExamModel.user_id == user_id)
 
         if status:
             stmt = stmt.where(ExamModel.status == status)
@@ -32,9 +53,15 @@ class ExamRepository(BaseRepository[Exam, ExamModel]):
         stmt = stmt.order_by(ExamModel.created_at.desc()).limit(limit).offset(offset)
 
         result = await self.session.execute(stmt)
-        models = result.scalars().all()
+        rows = result.all()
 
-        return [self.mapper.to_domain(model) for model in models]
+        exams = []
+        for model, completed_count, due_count in rows:
+            setattr(model, "completed_topics", completed_count)
+            setattr(model, "due_flashcards_count", due_count)
+            exams.append(self.mapper.to_domain(model))
+
+        return exams
 
     async def count_by_user(
         self, user_id: UUID, status: Optional[ExamStatus] = None
@@ -53,14 +80,39 @@ class ExamRepository(BaseRepository[Exam, ExamModel]):
         return result.scalar_one()
 
     async def get_by_user_and_id(self, user_id: UUID, exam_id: UUID) -> Optional[Exam]:
-        """Get exam by user and ID (for authorization)"""
-        stmt = select(ExamModel).where(
+        """Get exam by user and ID with progress counts"""
+        from datetime import datetime, timezone
+        from app.db.models.topic import TopicModel
+        from app.db.models.review import ReviewItemModel
+
+        # Subquery for completed topics
+        completed_topics_sub = (
+            select(func.count(TopicModel.id))
+            .where(TopicModel.exam_id == ExamModel.id)
+            .where(TopicModel.quiz_completed == True)
+            .label("completed_topics")
+        )
+
+        # Subquery for due flashcards
+        due_flashcards_sub = (
+            select(func.count(ReviewItemModel.id))
+            .join(TopicModel, TopicModel.id == ReviewItemModel.topic_id)
+            .where(TopicModel.exam_id == ExamModel.id)
+            .where(ReviewItemModel.next_review_date <= datetime.now(timezone.utc))
+            .label("due_flashcards_count")
+        )
+
+        stmt = select(ExamModel, completed_topics_sub, due_flashcards_sub).where(
             ExamModel.id == exam_id, ExamModel.user_id == user_id
         )
         result = await self.session.execute(stmt)
-        model = result.scalar_one_or_none()
+        row = result.first()
 
-        if model is None:
+        if row is None:
             return None
 
+        model, completed_count, due_count = row
+        setattr(model, "completed_topics", completed_count)
+        setattr(model, "due_flashcards_count", due_count)
+        
         return self.mapper.to_domain(model)

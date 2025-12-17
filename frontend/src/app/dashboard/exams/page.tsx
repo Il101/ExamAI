@@ -65,6 +65,15 @@ export default function ExamsPage() {
                         <ExamCard
                             key={exam.id}
                             exam={exam}
+                            totalTopics={exam.topic_count}
+                            completedTopics={exam.completed_topics}
+                            dueFlashcards={exam.due_flashcards_count}
+                            onPressReview={() => {
+                                window.location.href = `/dashboard/exams/${exam.id}/review`;
+                            }}
+                            onPressLearn={() => {
+                                window.location.href = `/dashboard/exams/${exam.id}`;
+                            }}
                             onDelete={() => {
                                 if (window.confirm('Are you sure you want to delete this exam? This action cannot be undone.')) {
                                     deleteExam(exam.id);

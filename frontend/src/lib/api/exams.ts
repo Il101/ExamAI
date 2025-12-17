@@ -17,6 +17,8 @@ export interface Exam {
   level?: 'school' | 'bachelor' | 'master' | 'phd';
   status: 'draft' | 'planned' | 'generating' | 'ready' | 'failed';
   topic_count: number;
+  completed_topics: number;
+  due_flashcards_count: number;
   created_at: string;
   updated_at: string;
   user_id: string;

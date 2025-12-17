@@ -29,6 +29,8 @@ class ExamMapper:
             token_count_output=model.token_count_output,
             generation_cost_usd=model.generation_cost_usd,
             topic_count=model.topic_count,
+            completed_topics=getattr(model, "completed_topics", 0),
+            due_flashcards_count=getattr(model, "due_flashcards_count", 0),
             # V3.0 cache fields
             cache_name=model.cache_name,
             storage_path=model.storage_path,

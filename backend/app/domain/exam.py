@@ -50,6 +50,8 @@ class Exam:
 
     # Topics (will be populated by Agent)
     topic_count: int = 0
+    completed_topics: int = 0
+    due_flashcards_count: int = 0
 
     def __post_init__(self):
         self._validate()
