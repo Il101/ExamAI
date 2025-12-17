@@ -50,6 +50,8 @@ class ExamResponse(BaseModel):
     completed_topics: int = 0
     due_flashcards_count: int = 0
     total_actual_study_minutes: int = 0
+    total_planned_study_minutes: int = 0
+    average_difficulty: float = 0.0
     created_at: datetime
     updated_at: datetime
 

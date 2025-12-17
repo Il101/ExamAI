@@ -53,6 +53,8 @@ class Exam:
     completed_topics: int = 0
     due_flashcards_count: int = 0
     total_actual_study_minutes: int = 0
+    total_planned_study_minutes: int = 0
+    average_difficulty: float = 0.0
 
     def __post_init__(self):
         self._validate()

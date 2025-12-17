@@ -20,6 +20,8 @@ export interface Exam {
   completed_topics: number;
   due_flashcards_count: number;
   total_actual_study_minutes: number;
+  total_planned_study_minutes: number;
+  average_difficulty: number;
   created_at: string;
   updated_at: string;
   user_id: string;

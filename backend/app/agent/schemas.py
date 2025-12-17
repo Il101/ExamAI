@@ -9,6 +9,8 @@ class TopicPlan(BaseModel):
     title: str = Field(description="Topic title, short and clear", max_length=100)
     description: str = Field(description="What will be covered", max_length=500)
     estimated_paragraphs: int = Field(default=3, ge=2, le=10)
+    difficulty_level: int = Field(default=3, ge=1, le=5, description="Complexity of this topic (1-5 points)")
+    estimated_study_minutes: int = Field(default=15, ge=5, le=60, description="Estimated minutes to study this topic")
 
 
 class BlockPlan(BaseModel):

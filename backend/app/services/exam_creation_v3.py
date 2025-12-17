@@ -111,7 +111,8 @@ async def create_exam_with_plan(
             status="pending",
             order_index=idx,
             generation_priority=1,  # All topics have equal priority for now
-            difficulty_level=3,  # Default difficulty
+            difficulty_level=topic_plan.difficulty_level,
+            estimated_study_minutes=topic_plan.estimated_study_minutes,
         )
         created_topic = await topic_repo.create(topic)
         created_topics.append(created_topic)

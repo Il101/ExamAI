@@ -32,6 +32,8 @@ class ExamMapper:
             completed_topics=getattr(model, "completed_topics", 0),
             due_flashcards_count=getattr(model, "due_flashcards_count", 0),
             total_actual_study_minutes=getattr(model, "total_actual_study_minutes", 0),
+            total_planned_study_minutes=getattr(model, "total_planned_study_minutes", 0),
+            average_difficulty=getattr(model, "average_difficulty", 0.0),
             # V3.0 cache fields
             cache_name=model.cache_name,
             storage_path=model.storage_path,

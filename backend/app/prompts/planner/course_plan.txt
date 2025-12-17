@@ -111,7 +111,9 @@ Before creating blocks/topics, identify **3-6 high-level Learning Outcomes** tha
           "id": "topic_01",
           "title": "Core Concept Name",
           "description": "What this topic covers (1 sentence)",
-          "estimated_paragraphs": 4
+          "estimated_paragraphs": 4,
+          "difficulty_level": 3,
+          "estimated_study_minutes": 15
         }},
         {{
           "id": "topic_02",
@@ -143,6 +145,8 @@ Before creating blocks/topics, identify **3-6 high-level Learning Outcomes** tha
 | `topic.title` | String | 50 chars | "If-Else Statements" |
 | `topic.description` | String | 100 chars | "Making decisions with conditional logic" |
 | `estimated_paragraphs` | Integer | 3-8 | 5 |
+| `difficulty_level` | Integer (1-5) | - | 3 (1: Very Easy, 5: Very Hard) |
+| `estimated_study_minutes` | Integer | - | 15 (Estimate based on depth) |
 
 ---
 
@@ -252,7 +256,9 @@ Before outputting JSON, verify:
           "id": "topic_01",
           "title": "Variables and Assignment",
           "description": "How to create and use variables in Python",
-          "estimated_paragraphs": 4
+          "estimated_paragraphs": 4,
+          "difficulty_level": 1,
+          "estimated_study_minutes": 10
         }},
         {{
           "id": "topic_02",

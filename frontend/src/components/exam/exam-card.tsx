@@ -106,15 +106,44 @@ export function ExamCard({
             )}
           </div>
 
-          {/* Study Time */}
-          <div className="flex items-center justify-between pt-1 border-t border-border/20">
-            <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-              <Clock className="h-3.5 w-3.5" />
-              <span>Actual Study Time</span>
+          {/* Study Time (Actual vs Planned) */}
+          <div className="pt-1 border-t border-border/20 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                <Clock className="h-3.5 w-3.5" />
+                <span>Study Time</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-bold text-foreground">
+                  {formatMinutes(exam.total_actual_study_minutes)}
+                </span>
+                <span className="text-[10px] text-muted-foreground font-medium">
+                  / {formatMinutes(exam.total_planned_study_minutes)}
+                </span>
+              </div>
             </div>
-            <span className="text-xs font-bold text-foreground">
-              {formatMinutes(exam.total_actual_study_minutes)}
-            </span>
+
+            {/* Difficulty Level (5 Dots) */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                <Brain className="h-3.5 w-3.5" />
+                <span>Difficulty</span>
+              </div>
+              <div className="flex gap-1">
+                {[1, 2, 3, 4, 5].map((dot) => {
+                  const isActive = dot <= Math.round(exam.average_difficulty);
+                  return (
+                    <div
+                      key={dot}
+                      className={`h-1.5 w-1.5 rounded-full transition-colors ${isActive
+                          ? 'bg-primary shadow-[0_0_5px_rgba(var(--primary),0.5)]'
+                          : 'bg-muted/40'
+                        }`}
+                    />
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
 
