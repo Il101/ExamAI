@@ -70,14 +70,14 @@ export function TopicList({ exam }: TopicListProps) {
                                     <Badge variant="secondary" className="font-mono text-xs">
                                         Topic {index + 1}
                                     </Badge>
-                                    {/* Difficulty Indicator Mockup */}
+                                    {/* Difficulty Indicator (5 Dots) */}
                                     <div className="flex gap-0.5">
-                                        {[1, 2, 3].map((i) => (
+                                        {[1, 2, 3, 4, 5].map((i) => (
                                             <div
                                                 key={i}
-                                                className={`h-2 w-2 rounded-full ${i <= (topic.difficulty_level || 2) // Default to medium if not set
-                                                    ? 'bg-primary'
-                                                    : 'bg-muted'
+                                                className={`h-1.5 w-1.5 rounded-full transition-colors ${i <= (topic.difficulty_level || 3)
+                                                    ? 'bg-primary shadow-[0_0_3px_rgba(var(--primary),0.4)]'
+                                                    : 'bg-muted/40'
                                                     }`}
                                             />
                                         ))}

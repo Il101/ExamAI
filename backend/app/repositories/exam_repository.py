@@ -43,8 +43,20 @@ class ExamRepository(BaseRepository[Exam, ExamModel]):
             select(func.count(ReviewItemModel.id))
             .join(TopicModel, TopicModel.id == ReviewItemModel.topic_id)
             .where(TopicModel.exam_id == ExamModel.id)
-            .where(ReviewItemModel.next_review_date <= datetime.now(timezone.utc))
             .label("due_flashcards_count")
+        )
+
+        # Subquery for actual study time (sum from study_sessions)
+        actual_study_time_sub = (
+            select(func.sum(
+                cast(
+                    extract('epoch', StudySessionModel.ended_at - StudySessionModel.started_at) / 60,
+                    Integer
+                )
+            ))
+            .where(StudySessionModel.exam_id == ExamModel.id)
+            .where(StudySessionModel.ended_at.is_not(None))
+            .label("total_actual_study_minutes")
         )
 
         # Subquery for planned study time
@@ -129,6 +141,19 @@ class ExamRepository(BaseRepository[Exam, ExamModel]):
             .where(TopicModel.exam_id == ExamModel.id)
             .where(ReviewItemModel.next_review_date <= datetime.now(timezone.utc))
             .label("due_flashcards_count")
+        )
+
+        # Subquery for actual study time
+        actual_study_time_sub = (
+            select(func.sum(
+                cast(
+                    extract('epoch', StudySessionModel.ended_at - StudySessionModel.started_at) / 60,
+                    Integer
+                )
+            ))
+            .where(StudySessionModel.exam_id == ExamModel.id)
+            .where(StudySessionModel.ended_at.is_not(None))
+            .label("total_actual_study_minutes")
         )
 
         # Subquery for planned study time
