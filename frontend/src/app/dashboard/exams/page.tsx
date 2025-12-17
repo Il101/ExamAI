@@ -69,7 +69,7 @@ export default function ExamsPage() {
                             completedTopics={exam.completed_topics}
                             dueFlashcards={exam.due_flashcards_count}
                             onPressReview={() => {
-                                window.location.href = `/dashboard/exams/${exam.id}/review`;
+                                window.location.href = `/dashboard/flashcards/${exam.id}`;
                             }}
                             onPressLearn={() => {
                                 window.location.href = `/dashboard/exams/${exam.id}`;
