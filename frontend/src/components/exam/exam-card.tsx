@@ -36,18 +36,11 @@ export function ExamCard({
     failed: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
   };
 
-  const handleCardClick = (e: React.MouseEvent) => {
-    // Navigate to exam details if clicking the card body (not buttons)
-    if ((e.target as HTMLElement).closest('button')) return;
-    router.push(`/dashboard/exams/${exam.id}`);
-  };
-
   const progress = totalTopics > 0 ? (completedTopics / totalTopics) * 100 : 0;
 
   return (
     <Card
-      className="group hover:border-primary/50 transition-all duration-300 cursor-pointer overflow-hidden bg-card/50 backdrop-blur-sm border-border/40"
-      onClick={handleCardClick}
+      className="group hover:border-primary/50 transition-all duration-300 overflow-hidden bg-card/50 backdrop-blur-sm border-border/40"
     >
       <CardHeader className="pb-3 px-5 pt-5">
         <div className="flex items-start justify-between gap-4">
