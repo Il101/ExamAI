@@ -49,6 +49,7 @@ class ExamResponse(BaseModel):
     topic_count: int
     completed_topics: int = 0
     due_flashcards_count: int = 0
+    total_actual_study_minutes: int = 0
     created_at: datetime
     updated_at: datetime
 

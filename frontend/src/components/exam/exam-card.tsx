@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Book, Brain, Play, Trash2, GraduationCap } from 'lucide-react';
+import { Book, Brain, Play, Trash2, GraduationCap, Clock } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -37,6 +37,14 @@ export function ExamCard({
   };
 
   const progress = totalTopics > 0 ? (completedTopics / totalTopics) * 100 : 0;
+
+  const formatMinutes = (mins: number) => {
+    if (mins <= 0) return '0m';
+    if (mins < 60) return `${mins}m`;
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  };
 
   return (
     <Card
@@ -96,6 +104,17 @@ export function ExamCard({
             ) : (
               <span className="text-xs font-medium text-emerald-500">All caught up</span>
             )}
+          </div>
+
+          {/* Study Time */}
+          <div className="flex items-center justify-between pt-1 border-t border-border/20">
+            <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+              <Clock className="h-3.5 w-3.5" />
+              <span>Actual Study Time</span>
+            </div>
+            <span className="text-xs font-bold text-foreground">
+              {formatMinutes(exam.total_actual_study_minutes)}
+            </span>
           </div>
         </div>
 
