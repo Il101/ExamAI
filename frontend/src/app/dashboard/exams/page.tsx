@@ -5,12 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Plus, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ExamCard } from '@/components/exam/exam-card';
 import { Card } from '@/components/ui/card';
 import { useState } from 'react';
 import type { Exam } from '@/lib/api/exams';
 
 export default function ExamsPage() {
+    const router = useRouter();
     const { exams, isLoading, deleteExam } = useExams();
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -69,10 +71,10 @@ export default function ExamsPage() {
                             completedTopics={exam.completed_topics}
                             dueFlashcards={exam.due_flashcards_count}
                             onPressReview={() => {
-                                window.location.href = `/dashboard/flashcards/${exam.id}`;
+                                router.push(`/dashboard/flashcards/${exam.id}`);
                             }}
                             onPressLearn={() => {
-                                window.location.href = `/dashboard/exams/${exam.id}`;
+                                router.push(`/dashboard/exams/${exam.id}`);
                             }}
                             onDelete={() => {
                                 if (window.confirm('Are you sure you want to delete this exam? This action cannot be undone.')) {
