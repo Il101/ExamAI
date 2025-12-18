@@ -57,6 +57,8 @@ class StepResult:
     success: bool
     error_message: Optional[str] = None
     tokens_used: int = 0
+    tokens_input: int = 0
+    tokens_output: int = 0
     cost_usd: float = 0.0
     timestamp: str = ""
 
@@ -92,6 +94,8 @@ class AgentState:
 
     # Metadata
     total_tokens_used: int = 0
+    total_tokens_input: int = 0
+    total_tokens_output: int = 0
     total_cost_usd: float = 0.0
     error_log: List[str] = field(default_factory=list)  # Track all errors
 
@@ -134,5 +138,7 @@ class AgentState:
 
     def add_token_usage(self, tokens_input: int, tokens_output: int, cost: float):
         """Track token usage and costs"""
+        self.total_tokens_input += tokens_input
+        self.total_tokens_output += tokens_output
         self.total_tokens_used += tokens_input + tokens_output
         self.total_cost_usd += cost

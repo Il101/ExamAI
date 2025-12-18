@@ -42,6 +42,11 @@ class Topic:
     # Estimated study time (in minutes)
     estimated_study_minutes: int = 0
 
+    # Progress tracking
+    is_viewed: bool = False
+    quiz_completed: bool = False
+    last_viewed_at: Optional[datetime] = None
+
     def __post_init__(self):
         self._validate()
 

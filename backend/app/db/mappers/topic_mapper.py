@@ -26,6 +26,11 @@ class TopicMapper:
             created_at=model.created_at,
             updated_at=model.updated_at,
             estimated_study_minutes=model.estimated_study_minutes,
+            is_viewed=model.is_viewed,
+            quiz_completed=model.quiz_completed,
+            last_viewed_at=model.last_viewed_at,
+            content_blocknote=model.content_blocknote,
+            content_markdown_backup=model.content_markdown_backup,
         )
 
     @staticmethod
@@ -46,6 +51,11 @@ class TopicMapper:
             created_at=entity.created_at,
             updated_at=entity.updated_at,
             estimated_study_minutes=entity.estimated_study_minutes,
+            is_viewed=entity.is_viewed,
+            quiz_completed=entity.quiz_completed,
+            last_viewed_at=entity.last_viewed_at,
+            content_blocknote=entity.content_blocknote,
+            content_markdown_backup=entity.content_markdown_backup,
         )
 
     @staticmethod
@@ -61,5 +71,14 @@ class TopicMapper:
         model.difficulty_level = entity.difficulty_level
         model.updated_at = entity.updated_at
         model.estimated_study_minutes = entity.estimated_study_minutes
+        
+        # Update progress fields
+        model.is_viewed = entity.is_viewed
+        model.quiz_completed = entity.quiz_completed
+        model.last_viewed_at = entity.last_viewed_at
+
+        # Update editor fields
+        model.content_blocknote = entity.content_blocknote
+        model.content_markdown_backup = entity.content_markdown_backup
         
         return model

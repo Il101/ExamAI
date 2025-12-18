@@ -41,6 +41,8 @@ class TopicModel(Base):
     file_context: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     media_references: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     quiz_data: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    content_blocknote: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    content_markdown_backup: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     # Metadata
     status: Mapped[str] = mapped_column(

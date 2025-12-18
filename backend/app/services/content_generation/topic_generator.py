@@ -1,10 +1,5 @@
-"""
-Topic content generation service.
-
-Single responsibility: Generate content for ONE topic.
-This is the ONLY place where topic content is generated.
-"""
-from typing import Optional
+from dataclasses import dataclass
+from typing import Optional, Dict, Any
 from uuid import UUID
 import logging
 
@@ -17,6 +12,15 @@ from app.agent.state import AgentState, PlanStep, Priority
 from app.utils.content_cleaner import strip_thinking_tags
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class TopicGenerationResult:
+    """Result of topic generation including usage metrics."""
+    content: str
+    tokens_input: int
+    tokens_output: int
+    cost_usd: float
 
 
 class TopicContentGenerator:
@@ -73,7 +77,7 @@ class TopicContentGenerator:
         cache_name: Optional[str] = None,
         exam_id: Optional[UUID] = None,
         output_language: Optional[str] = None,
-    ) -> str:
+    ) -> TopicGenerationResult:
         """
         Generate content and flashcards for a topic.
         
@@ -91,7 +95,7 @@ class TopicContentGenerator:
             exam_id: Optional exam UUID (fetched from topic if not provided)
             
         Returns:
-            Generated content (cleaned)
+            TopicGenerationResult containing content and usage metrics
             
         Raises:
             ValueError: If topic not found or generation fails
@@ -167,6 +171,8 @@ class TopicContentGenerator:
                 content=content,
                 success=True,
                 tokens_used=state.total_tokens_used,
+                tokens_input=state.total_tokens_input,
+                tokens_output=state.total_tokens_output,
                 cost_usd=state.total_cost_usd
             )
         
@@ -200,14 +206,23 @@ class TopicContentGenerator:
         
         logger.info(f"✅ Topic {topic_id} marked as ready")
         
-        # 8. Generate flashcards (ALWAYS)
+        # Topic generation usage (from AgentState)
+        total_tokens_in = state.total_tokens_input
+        total_tokens_out = state.total_tokens_output
+        total_cost = state.total_cost_usd
+
         try:
-            flashcards = await self.flashcard_gen.create_for_topic(
+            flashcards, cards_usage = await self.flashcard_gen.create_for_topic(
                 topic_id=topic.id,
                 user_id=topic.user_id,
                 content=content,
                 cache_name=effective_cache_name
             )
+            
+            total_tokens_in += cards_usage.get("tokens_input", 0)
+            total_tokens_out += cards_usage.get("tokens_output", 0)
+            total_cost += cards_usage.get("cost_usd", 0.0)
+            
             logger.info(
                 f"✅ Created {len(flashcards)} flashcards for topic {topic_id}"
             )
@@ -224,13 +239,18 @@ class TopicContentGenerator:
             )
             # Don't raise - topic generation succeeded
         
-        return content
+        return TopicGenerationResult(
+            content=content,
+            tokens_input=total_tokens_in,
+            tokens_output=total_tokens_out,
+            cost_usd=total_cost
+        )
     
     async def regenerate_topic(
         self,
         topic_id: UUID,
         force_new_cache: bool = False
-    ) -> str:
+    ) -> TopicGenerationResult:
         """
         Regenerate content for an existing topic.
         
@@ -244,7 +264,7 @@ class TopicContentGenerator:
             force_new_cache: If True, don't use existing cache
             
         Returns:
-            Newly generated content
+            Newly generated content and usage metrics
         """
         topic = await self.topic_repo.get_by_id(topic_id)
         if not topic:

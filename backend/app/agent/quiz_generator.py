@@ -56,7 +56,7 @@ class QuizGenerator:
         num_cards: int = 5,
         cache_name: str = None,
         exam_id: "UUID" = None
-    ) -> List[FlashcardSchema]:
+    ) -> tuple[List[FlashcardSchema], dict[str, Any]]:
         """
         Generate flashcards from the provided content.
 
@@ -65,7 +65,7 @@ class QuizGenerator:
             num_cards: Target number of cards to generate
 
         Returns:
-            List of FlashcardSchema objects
+            Tuple of (List of FlashcardSchema objects, usage_metadata dict)
         """
         
         from app.prompts import load_prompt
@@ -128,8 +128,14 @@ class QuizGenerator:
                     # Validate and convert
                     flashcards = [FlashcardSchema(**item) for item in cards_data]
                     
+                    usage = {
+                        "tokens_input": llm_response.tokens_input,
+                        "tokens_output": llm_response.tokens_output,
+                        "cost_usd": llm_response.cost_usd,
+                    }
+                    
                     logger.info("Generated %s %s", len(flashcards), "flashcards", extra={"component": "quiz_generator", "count": len(flashcards)})
-                    return flashcards
+                    return flashcards, usage
 
                 except Exception as e:
                     logger.error("Error parsing %s", "flashcards", extra={"component": "quiz_generator", "error": str(e)})
@@ -226,7 +232,7 @@ class QuizGenerator:
         self, 
         content: str, 
         num_questions: int = 5
-    ) -> List[MCQQuestion]:
+    ) -> tuple[List[MCQQuestion], dict[str, Any]]:
         """
         Generate multiple choice questions from the provided content.
         
@@ -235,7 +241,7 @@ class QuizGenerator:
             num_questions: Number of questions to generate (1-10)
         
         Returns:
-            List of MCQQuestion objects with questions, options, and explanations
+            Tuple of (List of MCQQuestion objects, usage_metadata dict)
         """
         
         from app.prompts import load_prompt
@@ -298,6 +304,17 @@ class QuizGenerator:
                 })
                 
                 json_text = response.text
+                
+                # Extract usage from response
+                usage_meta = response.usage_metadata
+                usage = {
+                    "tokens_input": usage_meta.prompt_token_count if usage_meta else 0,
+                    "tokens_output": usage_meta.candidates_token_count if (usage_meta and usage_meta.candidates_token_count is not None) else 0,
+                    "cost_usd": self.llm.calculate_cost(
+                        usage_meta.prompt_token_count if usage_meta else 0,
+                        usage_meta.candidates_token_count if (usage_meta and usage_meta.candidates_token_count is not None) else 0
+                    )
+                }
                 
                 # Success - break retry loop
                 break
@@ -420,7 +437,7 @@ class QuizGenerator:
                 }
             )
             
-            return questions
+            return questions, usage
             
         except json.JSONDecodeError as e:
             logger.error(f"JSON decode error in MCQ response: {e}", extra={"component": "quiz_generator", "json_text": json_text[:500]})

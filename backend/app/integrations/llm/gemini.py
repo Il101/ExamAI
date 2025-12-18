@@ -7,7 +7,7 @@ from google import genai
 from google.genai import types, errors
 
 from app.integrations.llm.base import LLMProvider, LLMResponse
-from app.integrations.llm.metrics import get_metrics
+from app.integrations.llm.metrics import get_metrics, record_usage_to_db
 
 logger = logging.getLogger(__name__)
 
@@ -15,51 +15,58 @@ logger = logging.getLogger(__name__)
 class GeminiProvider(LLMProvider):
     """Google Gemini LLM provider implementation using google-genai SDK"""
 
-    # Pricing (as of January 2025, verify on https://ai.google.dev/pricing)
+    # Pricing (as of late 2025, verify on https://ai.google.dev/pricing)
+    # Tiered pricing applies to Gemini 1.5 Series (prices double > 128K).
+    # Newer models (2.0+) have different caching/tiering strategies.
     PRICING = {
         # Gemini 3.0 Series (Preview)
-        "gemini-3-pro-preview": {
-            "input": 2.00 / 1_000_000,   # $2.00 per 1M tokens (≤200K context)
-            "output": 12.00 / 1_000_000,  # $12.00 per 1M tokens (≤200K context)
+        "gemini-3-flash": {
+            "input": 0.50 / 1_000_000,
+            "output": 3.00 / 1_000_000,
+            "cache": 0.05 / 1_000_000,  # 90% discount on processing
         },
         
         # Gemini 2.5 Series
-        "gemini-2.5-pro": {
-            "input": 1.25 / 1_000_000,   # $1.25 per 1M tokens
-            "output": 10.00 / 1_000_000,  # $10.00 per 1M tokens
-        },
         "gemini-2.5-flash": {
-            "input": 0.30 / 1_000_000,   # $0.30 per 1M tokens
-            "output": 2.50 / 1_000_000,  # $2.50 per 1M tokens
+            "input": 0.30 / 1_000_000,
+            "output": 2.50 / 1_000_000,
+            "cache": 0.03 / 1_000_000,  # 90% discount on processing
         },
         "gemini-2.5-flash-lite": {
-            "input": 0.10 / 1_000_000,   # $0.10 per 1M tokens
-            "output": 0.40 / 1_000_000,  # $0.40 per 1M tokens
+            "input": 0.10 / 1_000_000,
+            "output": 0.40 / 1_000_000,
+            "cache": 0.01 / 1_000_000,  # 90% discount on processing
         },
         
         # Gemini 2.0 Series
         "gemini-2.0-flash": {
-            "input": 0.10 / 1_000_000,   # $0.10 per 1M tokens
-            "output": 0.40 / 1_000_000,  # $0.40 per 1M tokens
+            "input": 0.10 / 1_000_000,
+            "output": 0.40 / 1_000_000,
+            "cache": 0.025 / 1_000_000, # 75% discount on processing
         },
         "gemini-2.0-flash-exp": {
-            "input": 0.00 / 1_000_000,   # FREE (experimental)
-            "output": 0.00 / 1_000_000,  # FREE (experimental)
-        },
-        "gemini-2.0-flash-lite": {
-            "input": 0.075 / 1_000_000,  # $0.075 per 1M tokens
-            "output": 0.30 / 1_000_000,  # $0.30 per 1M tokens
+            "input": 0.0,
+            "output": 0.0,
+            "cache": 0.0,
         },
         
-        # Gemini 1.5 Series (Legacy)
+        # Gemini 1.5 Series (Tiered: <128K and >128K)
+        # We store as lists: [tier1_rate, tier2_rate]
         "gemini-1.5-pro": {
-            "input": 1.25 / 1_000_000,   # $1.25 per 1M tokens
-            "output": 5.00 / 1_000_000,  # $5.00 per 1M tokens
+            "input": [1.25 / 1_000_000, 2.50 / 1_000_000],
+            "output": [5.00 / 1_000_000, 10.00 / 1_000_000],
+            "cache": [0.3125 / 1_000_000, 0.625 / 1_000_000], # 75% discount
         },
         "gemini-1.5-flash": {
-            "input": 0.075 / 1_000_000,  # $0.075 per 1M tokens
-            "output": 0.30 / 1_000_000,  # $0.30 per 1M tokens
+            "input": [0.075 / 1_000_000, 0.15 / 1_000_000],
+            "output": [0.30 / 1_000_000, 0.60 / 1_000_000],
+            "cache": [0.01875 / 1_000_000, 0.0375 / 1_000_000], # 75% discount
         },
+        "gemini-1.5-flash-8b": {
+            "input": [0.0375 / 1_000_000, 0.075 / 1_000_000],
+            "output": [0.15 / 1_000_000, 0.30 / 1_000_000],
+            "cache": [0.01 / 1_000_000, 0.02 / 1_000_000],
+        }
     }
 
     # Shared request counter (still useful for monitoring)
@@ -224,8 +231,8 @@ class GeminiProvider(LLMProvider):
                 f"Tokens: {tokens_input}/{tokens_output}, Cached: {cached_tokens}"
             )
 
-            # Calculate cost
-            cost = self.calculate_cost(tokens_input, tokens_output)
+            # Calculate cost (including cached tokens)
+            cost = self.calculate_cost(tokens_input, tokens_output, tokens_cached=cached_tokens)
 
             # Get finish reason safely
             finish_reason = "unknown"
@@ -239,6 +246,26 @@ class GeminiProvider(LLMProvider):
                 tokens_out=tokens_output,
                 cost=cost,
                 duration_ms=total_time * 1000
+            )
+
+            # Persistent DB logging (background)
+            asyncio.create_task(
+                record_usage_to_db(
+                    model_name=self.model_name,
+                    provider="gemini",
+                    operation_type=kwargs.get("operation_type", "generate"),
+                    input_tokens=tokens_input,
+                    output_tokens=tokens_output,
+                    cost_usd=cost,
+                    duration_ms=total_time * 1000,
+                    cache_hit=cached_tokens > 0,
+                    request_metadata={
+                        "request_num": request_num,
+                        "finish_reason": finish_reason,
+                        "temperature": temperature,
+                        "max_tokens": max_tokens
+                    }
+                )
             )
 
             return LLMResponse(
@@ -263,6 +290,23 @@ class GeminiProvider(LLMProvider):
             # Record timeout metrics
             metrics = get_metrics()
             metrics.record_failure(is_timeout=True)
+
+            # Persistent DB logging for timeout (background)
+            elapsed = time.time() - start_time
+            asyncio.create_task(
+                record_usage_to_db(
+                    model_name=self.model_name,
+                    provider="gemini",
+                    operation_type=kwargs.get("operation_type", "generate"),
+                    input_tokens=0,
+                    output_tokens=0,
+                    cost_usd=0,
+                    duration_ms=elapsed * 1000,
+                    error_occurred=True,
+                    error_message=f"Timeout after {timeout}s",
+                    request_metadata={"request_num": request_num}
+                )
+            )
             
             raise RuntimeError(f"Gemini API request timed out after {timeout} seconds")
         
@@ -354,6 +398,23 @@ class GeminiProvider(LLMProvider):
             # Record failure metrics
             metrics = get_metrics()
             metrics.record_failure(is_timeout=False)
+
+            # Persistent DB logging for error (background)
+            elapsed = time.time() - start_time
+            asyncio.create_task(
+                record_usage_to_db(
+                    model_name=self.model_name,
+                    provider="gemini",
+                    operation_type=kwargs.get("operation_type", "generate"),
+                    input_tokens=0,
+                    output_tokens=0,
+                    cost_usd=0,
+                    duration_ms=elapsed * 1000,
+                    error_occurred=True,
+                    error_message=f"Gemini API error [{e.code}]: {e.message}",
+                    request_metadata={"request_num": request_num}
+                )
+            )
             
             raise RuntimeError(f"Gemini API error [{e.code}]: {e.message}")
         
@@ -444,6 +505,21 @@ class GeminiProvider(LLMProvider):
                     total_tokens_input += usage.prompt_token_count
                     total_tokens_output += usage.candidates_token_count
                     print(f"[GeminiProvider] API call: {api_time:.2f}s, Tokens: {usage.prompt_token_count}/{usage.candidates_token_count}")
+                    
+                    # Record individual turn usage to DB (background)
+                    asyncio.create_task(
+                        record_usage_to_db(
+                            model_name=self.model_name,
+                            provider="gemini",
+                            operation_type="tool_call_turn",
+                            input_tokens=usage.prompt_token_count,
+                            output_tokens=usage.candidates_token_count,
+                            cost_usd=self.calculate_cost(usage.prompt_token_count, usage.candidates_token_count),
+                            duration_ms=api_time * 1000,
+                            cache_hit=getattr(usage, "cached_content_token_count", 0) > 0,
+                            request_metadata={"iteration": iteration + 1}
+                        )
+                    )
                 
                 # Check if we have a valid response
                 if not response.candidates or not response.candidates[0].content.parts:
@@ -621,7 +697,7 @@ class GeminiProvider(LLMProvider):
             # Use SDK client with configured retry options
             response = await asyncio.wait_for(
                 self.client.aio.models.generate_content(
-                    model=settings.GEMINI_MODEL,
+                    model=self.model_name,
                     config={
                         "cached_content": cache_name,
                         "temperature": temperature,
@@ -641,7 +717,27 @@ class GeminiProvider(LLMProvider):
             # Calculate tokens and cost
             tokens_input = response.usage_metadata.prompt_token_count if response.usage_metadata else 0
             tokens_output = response.usage_metadata.candidates_token_count if response.usage_metadata else 0
-            cost = self.calculate_cost(tokens_input, tokens_output)
+            tokens_cached = getattr(response.usage_metadata, "cached_content_token_count", 0) if response.usage_metadata else 0
+            
+            cost = self.calculate_cost(tokens_input, tokens_output, tokens_cached=tokens_cached)
+            
+            # Persistent DB logging (background)
+            asyncio.create_task(
+                record_usage_to_db(
+                    model_name=self.model_name,
+                    provider="gemini",
+                    operation_type="generate_with_cache",
+                    input_tokens=tokens_input,
+                    output_tokens=tokens_output,
+                    cost_usd=cost,
+                    duration_ms=elapsed * 1000,
+                    cache_hit=True,
+                    request_metadata={
+                        "request_num": request_num,
+                        "cache_name": cache_name
+                    }
+                )
+            )
             
             print(
                 f"[GeminiProvider] Cache generation completed in {elapsed:.2f}s. "
@@ -673,16 +769,40 @@ class GeminiProvider(LLMProvider):
             print(f"[GeminiProvider] Cache generation ERROR after {elapsed:.2f}s: {type(e).__name__}: {str(e)}")
             raise RuntimeError(f"Cache generation error: {str(e)}")
 
-    def calculate_cost(self, tokens_input: int, tokens_output: int, model: Optional[str] = None) -> float:
-        """Calculate cost based on token usage for the specified model"""
+    def calculate_cost(self, tokens_input: int, tokens_output: int, tokens_cached: int = 0, model: Optional[str] = None) -> float:
+        """
+        Calculate cost based on token usage for the specified model.
+        Handles tiered pricing (threshold: 128k tokens) and context caching processing.
+        """
         model_name = model or self.model_name
         
-        # Get pricing for the specified model (with fallback to base model name)
+        # Get pricing key (strip potential version suffix)
         pricing_key = model_name
         if pricing_key not in self.PRICING:
-            # Try without version suffix (e.g., "gemini-2.5-flash-002" -> "gemini-2.5-flash")
-            base_model = "-".join(pricing_key.split("-")[:-1]) if pricing_key.split("-")[-1].isdigit() else pricing_key
-            pricing_key = base_model if base_model in self.PRICING else "gemini-2.0-flash-exp"
+            parts = pricing_key.split("-")
+            if len(parts) > 1 and parts[-1].isdigit():
+                base_model = "-".join(parts[:-1])
+                if base_model in self.PRICING:
+                    pricing_key = base_model
         
-        pricing = self.PRICING.get(pricing_key, self.PRICING["gemini-2.0-flash-exp"])
-        return (tokens_input * pricing["input"]) + (tokens_output * pricing["output"])
+        pricing = self.PRICING.get(pricing_key, self.PRICING["gemini-1.5-flash"])
+        
+        # Determine tier index (based on total prompt size: input + cached)
+        # Threshold: 128,000 tokens
+        total_prompt = tokens_input + tokens_cached
+        tier_idx = 1 if total_prompt > 128000 else 0
+        
+        # Extract rates
+        input_rate = pricing["input"][tier_idx] if isinstance(pricing["input"], list) else pricing["input"]
+        output_rate = pricing["output"][tier_idx] if isinstance(pricing["output"], list) else pricing["output"]
+        cache_rate = pricing["cache"][tier_idx] if isinstance(pricing.get("cache"), list) else pricing.get("cache", input_rate * 0.25)
+        
+        # Total cost = (Input * Rate) + (Output * Rate) + (Cached * CacheRate)
+        # Note: tokens_input here is the non-cached part of the prompt.
+        total_cost = (tokens_input * input_rate) + (tokens_output * output_rate) + (tokens_cached * cache_rate)
+        
+        # Debug pricing (very useful for the user's specific request)
+        if total_cost > 0:
+            print(f"[GeminiProvider] Pricing: model='{model_name}', tier={tier_idx+1}, cost=${total_cost:.6f}")
+            
+        return total_cost

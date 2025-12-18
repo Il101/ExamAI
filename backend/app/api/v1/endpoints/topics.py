@@ -183,7 +183,7 @@ async def get_topic_quiz(
         llm_provider = get_llm_provider(request)
         quiz_gen = QuizGenerator(llm_provider)
         
-        questions = await quiz_gen.generate_mcq_quiz(
+        questions, usage = await quiz_gen.generate_mcq_quiz(
             content=topic.content,
             num_questions=num_questions
         )
@@ -258,7 +258,7 @@ async def regenerate_topic_quiz(
         llm_provider = get_llm_provider(request)
         quiz_gen = QuizGenerator(llm_provider)
         
-        questions = await quiz_gen.generate_mcq_quiz(
+        questions, usage = await quiz_gen.generate_mcq_quiz(
             content=topic.content,
             num_questions=num_questions
         )

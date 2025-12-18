@@ -327,6 +327,10 @@ async def _generate_exam_content_async(
 
         # Generate sequentially to avoid rate-limit bursts
         ready_count = 0
+        total_in = 0
+        total_out = 0
+        total_cost = 0.0
+        
         for idx, topic in enumerate(topics):
             # Skip already-ready topics to support resume
             if topic.status == "ready" and topic.content:
@@ -343,12 +347,17 @@ async def _generate_exam_content_async(
                 # CRITICAL: Use semaphore to limit concurrent LLM calls
                 # This prevents multiple workers from creating request spikes
                 async with _llm_call_semaphore:
-                    await topic_gen.generate_topic(
+                    topic_result = await topic_gen.generate_topic(
                         topic_id=topic.id,
                         cache_name=exam.cache_name,
                         exam_id=exam.id,
                         output_language=getattr(user, "preferred_language", None),
                     )
+                    
+                # Aggregate usage
+                total_in += topic_result.tokens_input
+                total_out += topic_result.tokens_output
+                total_cost += topic_result.cost_usd
                 # CRITICAL: TopicContentGenerator updates are not guaranteed to
                 # commit automatically. Without an explicit commit here,
                 # generation can appear successful in logs while topics remain
@@ -394,7 +403,7 @@ async def _generate_exam_content_async(
             ready_topics = ready_topics[:20]
 
             summary_gen = ExamSummaryGenerator(llm)
-            tldr = await summary_gen.generate_tldr(
+            tldr, summary_usage = await summary_gen.generate_tldr(
                 subject=exam.subject,
                 exam_type=exam.exam_type,
                 level=exam.level,
@@ -404,6 +413,11 @@ async def _generate_exam_content_async(
                 output_language=getattr(user, "preferred_language", None),
                 cache_name=exam.cache_name,
             )
+            
+            # Aggregate summary usage
+            total_in += summary_usage.get("tokens_input", 0)
+            total_out += summary_usage.get("tokens_output", 0)
+            total_cost += summary_usage.get("cost_usd", 0.0)
             if tldr and len(tldr.strip()) > 0:  # Only use if non-empty
                 summary = tldr
             else:
@@ -413,9 +427,9 @@ async def _generate_exam_content_async(
 
         exam.mark_as_ready(
             ai_summary=summary,
-            token_input=0,
-            token_output=0,
-            cost=0.0,
+            token_input=total_in,
+            token_output=total_out,
+            cost=total_cost,
         )
         await exam_repo.update(exam)
         await session.commit()

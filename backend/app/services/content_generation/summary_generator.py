@@ -77,7 +77,7 @@ class ExamSummaryGenerator:
         ready_count: int,
         output_language: Optional[str] = None,
         cache_name: Optional[str] = None,
-    ) -> str:
+    ) -> tuple[str, dict[str, Any]]:
         prompt = load_prompt(
             "summary/exam_tldr.txt",
             subject=subject,
@@ -100,6 +100,10 @@ class ExamSummaryGenerator:
             ),
             cache_name=cache_name,
         )
+
+        total_tokens_in = response.tokens_input
+        total_tokens_out = response.tokens_output
+        total_cost = response.cost_usd
 
         # Check if response was truncated
         finish_reason = (response.finish_reason or "").lower()
@@ -129,7 +133,23 @@ class ExamSummaryGenerator:
                     f"[SummaryGenerator] ❌ Summary still truncated after retry. "
                     f"Using fallback message."
                 )
-                return f"- Сгенерировано {ready_count}/{total_count} тем по предмету: {subject}"
+                usage = {
+                    "tokens_input": total_tokens_in,
+                    "tokens_output": total_tokens_out,
+                    "cost_usd": total_cost,
+                }
+                return f"- Сгенерировано {ready_count}/{total_count} тем по предмету: {subject}", usage
+            
+            # Update totals if retry was used
+            total_tokens_in += response.tokens_input
+            total_tokens_out += response.tokens_output
+            total_cost += response.cost_usd
+
+        usage = {
+            "tokens_input": total_tokens_in,
+            "tokens_output": total_tokens_out,
+            "cost_usd": total_cost,
+        }
 
         cleaned = clean_ai_content(response.content, content_type="general")
-        return self._normalize_bullets(cleaned)
+        return self._normalize_bullets(cleaned), usage

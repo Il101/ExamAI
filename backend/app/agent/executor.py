@@ -339,6 +339,10 @@ class TopicExecutor:
                     step_id=current_step.id,
                     content=content,
                     success=True,
+                    tokens_used=state.total_tokens_used,
+                    tokens_input=state.total_tokens_input,
+                    tokens_output=state.total_tokens_output,
+                    cost_usd=state.total_cost_usd,
                     timestamp=step_start_time.isoformat(),
                 )
 
@@ -409,6 +413,10 @@ class TopicExecutor:
                     step_id=step_id,
                     content=content,
                     success=True,
+                    tokens_used=state.total_tokens_used,
+                    tokens_input=state.total_tokens_input,
+                    tokens_output=state.total_tokens_output,
+                    cost_usd=state.total_cost_usd,
                     timestamp=datetime.utcnow().isoformat(),
                 )
 

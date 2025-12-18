@@ -98,12 +98,7 @@ export default function TopicDetailPage() {
 
             // Mark topic as viewed
             try {
-                await fetch(`/api/topics/${topicId}/view?exam_id=${topicData.exam_id}`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                    },
-                });
+                await topicsApi.markAsViewed(topicId, topicData.exam_id);
             } catch (err) {
                 console.error('Failed to mark topic as viewed:', err);
             }
@@ -122,12 +117,7 @@ export default function TopicDetailPage() {
         // Mark quiz as completed
         if (topic) {
             try {
-                await fetch(`/api/topics/${topicId}/view?exam_id=${topic.exam_id}&quiz_completed=true`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                    },
-                });
+                await topicsApi.markAsViewed(topicId, topic.exam_id, true);
             } catch (err) {
                 console.error('Failed to mark quiz as completed:', err);
             }

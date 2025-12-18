@@ -4,7 +4,7 @@ Flashcard generation service.
 Single responsibility: Generate and store flashcards for topics.
 Extracted from legacy agent code to eliminate duplication.
 """
-from typing import List, Optional
+from typing import List, Optional, Any, Dict
 from uuid import UUID
 import logging
 
@@ -53,7 +53,7 @@ class FlashcardGenerator:
         content: str,
         cache_name: Optional[str] = None,
         num_cards: int = DEFAULT_CARD_COUNT
-    ) -> List[ReviewItem]:
+    ) -> tuple[List[ReviewItem], dict[str, Any]]:
         """
         Generate and store flashcards for a topic.
         
@@ -65,7 +65,7 @@ class FlashcardGenerator:
             num_cards: Number of flashcards to generate (default: 3)
             
         Returns:
-            List of created ReviewItem objects
+            Tuple of (List of created ReviewItem objects, usage_metadata dict)
             
         Raises:
             ValueError: If content is too short
@@ -93,7 +93,7 @@ class FlashcardGenerator:
                 f"(cache: {cache_name or 'none'})"
             )
             
-            flashcards = await self.quiz_generator.generate_flashcards(
+            flashcards, usage = await self.quiz_generator.generate_flashcards(
                 content=content,
                 num_cards=num_cards
             )
@@ -120,7 +120,7 @@ class FlashcardGenerator:
                 f"for topic {topic_id}"
             )
             
-            return created_items
+            return created_items, usage
             
         except Exception as e:
             # Log error but don't fail topic generation
@@ -139,7 +139,7 @@ class FlashcardGenerator:
         content: str,
         cache_name: Optional[str] = None,
         num_cards: int = DEFAULT_CARD_COUNT
-    ) -> Optional[List[ReviewItem]]:
+    ) -> tuple[Optional[List[ReviewItem]], dict[str, Any]]:
         """
         Safe version that catches all exceptions.
         
@@ -147,7 +147,7 @@ class FlashcardGenerator:
         prevent topic generation from completing.
         
         Returns:
-            List of created items, or None if generation failed
+            Tuple of (List of created items or None, usage_metadata dict)
         """
         try:
             return await self.create_for_topic(
@@ -162,4 +162,4 @@ class FlashcardGenerator:
                 f"Flashcard generation failed for topic {topic_id}, "
                 f"continuing without flashcards: {e}"
             )
-            return None
+            return None, {"tokens_input": 0, "tokens_output": 0, "cost_usd": 0.0}

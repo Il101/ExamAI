@@ -81,4 +81,17 @@ export const topicsApi = {
             questions_total: questionsTotal,
         });
     },
+
+    markAsViewed: async (
+        topicId: string,
+        examId: string,
+        quizCompleted: boolean = false
+    ): Promise<void> => {
+        await api.post(`/topics/${topicId}/view`, null, {
+            params: {
+                exam_id: examId,
+                quiz_completed: quizCompleted,
+            },
+        });
+    },
 };
