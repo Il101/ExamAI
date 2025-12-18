@@ -222,9 +222,9 @@ class GeminiProvider(LLMProvider):
 
             # Extract usage stats
             usage = response.usage_metadata
-            tokens_input = usage.prompt_token_count if usage else 0
-            tokens_output = usage.candidates_token_count if (usage and usage.candidates_token_count is not None) else 0
-            cached_tokens = getattr(usage, "cached_content_token_count", 0) if usage else 0
+            tokens_input = (usage.prompt_token_count or 0) if usage else 0
+            tokens_output = (usage.candidates_token_count or 0) if usage else 0
+            cached_tokens = (getattr(usage, "cached_content_token_count", 0) or 0) if usage else 0
 
             print(
                 f"[GeminiProvider] API call: {api_time:.2f}s, Total: {total_time:.2f}s, "
@@ -502,9 +502,13 @@ class GeminiProvider(LLMProvider):
                 # Track token usage
                 usage = response.usage_metadata
                 if usage:
-                    total_tokens_input += usage.prompt_token_count
-                    total_tokens_output += usage.candidates_token_count
-                    print(f"[GeminiProvider] API call: {api_time:.2f}s, Tokens: {usage.prompt_token_count}/{usage.candidates_token_count}")
+                    turn_input = usage.prompt_token_count or 0
+                    turn_output = usage.candidates_token_count or 0
+                    turn_cached = getattr(usage, "cached_content_token_count", 0) or 0
+                    
+                    total_tokens_input += turn_input
+                    total_tokens_output += turn_output
+                    print(f"[GeminiProvider] API call: {api_time:.2f}s, Tokens: {turn_input}/{turn_output}, Cached: {turn_cached}")
                     
                     # Record individual turn usage to DB (background)
                     asyncio.create_task(
@@ -512,11 +516,11 @@ class GeminiProvider(LLMProvider):
                             model_name=self.model_name,
                             provider="gemini",
                             operation_type="tool_call_turn",
-                            input_tokens=usage.prompt_token_count,
-                            output_tokens=usage.candidates_token_count,
-                            cost_usd=self.calculate_cost(usage.prompt_token_count, usage.candidates_token_count),
+                            input_tokens=turn_input,
+                            output_tokens=turn_output,
+                            cost_usd=self.calculate_cost(turn_input, turn_output, tokens_cached=turn_cached),
                             duration_ms=api_time * 1000,
-                            cache_hit=getattr(usage, "cached_content_token_count", 0) > 0,
+                            cache_hit=turn_cached > 0,
                             request_metadata={"iteration": iteration + 1}
                         )
                     )
@@ -715,9 +719,9 @@ class GeminiProvider(LLMProvider):
                 raise ValueError("Received None response from cached LLM call")
             
             # Calculate tokens and cost
-            tokens_input = response.usage_metadata.prompt_token_count if response.usage_metadata else 0
-            tokens_output = response.usage_metadata.candidates_token_count if response.usage_metadata else 0
-            tokens_cached = getattr(response.usage_metadata, "cached_content_token_count", 0) if response.usage_metadata else 0
+            tokens_input = (response.usage_metadata.prompt_token_count or 0) if response.usage_metadata else 0
+            tokens_output = (response.usage_metadata.candidates_token_count or 0) if response.usage_metadata else 0
+            tokens_cached = (getattr(response.usage_metadata, "cached_content_token_count", 0) or 0) if response.usage_metadata else 0
             
             cost = self.calculate_cost(tokens_input, tokens_output, tokens_cached=tokens_cached)
             
@@ -769,11 +773,16 @@ class GeminiProvider(LLMProvider):
             print(f"[GeminiProvider] Cache generation ERROR after {elapsed:.2f}s: {type(e).__name__}: {str(e)}")
             raise RuntimeError(f"Cache generation error: {str(e)}")
 
-    def calculate_cost(self, tokens_input: int, tokens_output: int, tokens_cached: int = 0, model: Optional[str] = None) -> float:
+    def calculate_cost(self, tokens_input: Optional[int], tokens_output: Optional[int], tokens_cached: Optional[int] = 0, model: Optional[str] = None) -> float:
         """
         Calculate cost based on token usage for the specified model.
         Handles tiered pricing (threshold: 128k tokens) and context caching processing.
         """
+        # Null-safety: default to 0 if any token count is None
+        tokens_input = tokens_input or 0
+        tokens_output = tokens_output or 0
+        tokens_cached = tokens_cached or 0
+        
         model_name = model or self.model_name
         
         # Get pricing key (strip potential version suffix)
