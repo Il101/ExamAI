@@ -8,8 +8,8 @@ class ReviewLogModel(Base):
     __tablename__ = "review_logs"
 
     id = Column(UUID(as_uuid=True), primary_key=True, index=True)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
-    review_item_id = Column(UUID(as_uuid=True), ForeignKey("review_items.id"), nullable=False, index=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    review_item_id = Column(UUID(as_uuid=True), ForeignKey("review_items.id", ondelete="CASCADE"), nullable=False, index=True)
     
     rating = Column(Integer, nullable=False)
     review_time = Column(DateTime(timezone=True), nullable=False, index=True)

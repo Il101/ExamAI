@@ -14,8 +14,8 @@ class QuizResultModel(Base):
     __tablename__ = "quiz_results"
 
     id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid4)
-    user_id = Column(PGUUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    topic_id = Column(PGUUID(as_uuid=True), ForeignKey("topics.id"), nullable=False)
+    user_id = Column(PGUUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    topic_id = Column(PGUUID(as_uuid=True), ForeignKey("topics.id", ondelete="CASCADE"), nullable=False)
     
     questions_total = Column(Integer, nullable=False)
     questions_correct = Column(Integer, nullable=False)
