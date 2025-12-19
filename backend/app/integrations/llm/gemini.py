@@ -6,6 +6,7 @@ from typing import Any, Optional, List, Dict, Callable
 from google import genai
 from google.genai import types, errors
 
+from app.core.config import settings
 from app.integrations.llm.base import LLMProvider, LLMResponse
 from app.integrations.llm.metrics import get_metrics, record_usage_to_db
 
@@ -710,9 +711,6 @@ class GeminiProvider(LLMProvider):
         Returns:
             LLMResponse with generated content
         """
-        from app.core.config import settings
-        import asyncio
-        
         # Track API request
         request_num = await self._increment_request_count()
         
