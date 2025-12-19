@@ -155,14 +155,21 @@ class TopicContentGenerator:
         async def _execute_batch_op(cn: Optional[str]):
             state.cache_name = cn
             content_map = await self.executor.execute_batch(state, state.plan)
-            return content_map, True # Success
+            return content_map
 
-        batch_result_map, updated_cache_name = await self.fallback.execute_with_fallback(
+        raw_result, updated_cache_name = await self.fallback.execute_with_fallback(
             exam_id=exam_id,
             cache_name=effective_cache_name,
             operation=_execute_batch_op
         )
         
+        # Robust unpacking: execute_with_fallback returns (op_result, new_cache)
+        # and op_result is whatever our lambda returns.
+        batch_result_map = raw_result
+        if isinstance(raw_result, tuple) and len(raw_result) == 2 and isinstance(raw_result[1], bool):
+            # Handle legacy/buggy nested tuple if it somehow persists
+            batch_result_map = raw_result[0]
+
         effective_cache_name = updated_cache_name or effective_cache_name
 
         # 4. Process theory results
@@ -173,7 +180,16 @@ class TopicContentGenerator:
             topic_id_str = str(topic.id)
             if topic_id_str in batch_result_map:
                 content = batch_result_map[topic_id_str]
-                topic.start_generation()
+                
+                # State machine transition
+                if topic.status != "generating":
+                    if topic.status in ["pending", "failed"] or (topic.status == "ready" and not topic.content):
+                        # Force back to generating so we can mark as ready
+                        topic.status = "generating"
+                    else:
+                        logger.warning(f"Skipping topic {topic.id}: reached unexpected status {topic.status}")
+                        continue
+                
                 topic.mark_as_ready(content)
                 await self.topic_repo.update(topic)
                 print(f"[PIPELINE] topic_saved topic_id={topic.id} content_len={len(content)}")
