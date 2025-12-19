@@ -394,8 +394,10 @@ class TopicExecutor:
         last_error = None
         for attempt in range(max_retries):
             try:
-                # Dynamic budget for batch
-                max_tokens = min(12000, 4000 + len(steps) * 1500)
+                # Dynamic budget for batch (increased to 20k to accommodate detailed pedagogical content)
+                max_tokens = min(20000, 8000 + len(steps) * 2000)
+                if attempt > 0:
+                    max_tokens = min(25000, int(max_tokens * (1.5 ** attempt)))
                 
                 response = await self.llm.generate(
                     prompt=prompt,
@@ -406,6 +408,13 @@ class TopicExecutor:
                     cache_name=state.cache_name,
                     operation_type="topic_batch_generation"
                 )
+
+                # Check for truncation
+                finish_reason = (response.finish_reason or "").lower()
+                if finish_reason in {"max_tokens", "length", "max_output_tokens"}:
+                    logger.warning(f"Batch generation likely truncated (finish_reason={finish_reason}). Retrying with higher max_tokens...")
+                    if attempt < max_retries - 1:
+                        continue
 
                 # Track usage
                 state.add_token_usage(response.tokens_input, response.tokens_output, response.cost_usd)

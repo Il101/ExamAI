@@ -131,7 +131,8 @@ class QuizGenerator:
                     system_prompt="You are an expert tutor creating study materials.",
                     response_schema=FlashcardSetSchema, # Use schema for stability
                     # Timeout handled by GeminiProvider (180s) or passing explicit
-                    timeout=120.0
+                    timeout=120.0,
+                    max_tokens=4000  # Increased for individual topic search-notes/explanations
                 )
                 
                 # If response_schema is used, llm_response.parsed is the validated object
@@ -281,6 +282,7 @@ class QuizGenerator:
                     system_prompt="You are an expert tutor creating study materials for multiple topics.",
                     response_schema=FlashcardBatchSchema,
                     timeout=120.0,
+                    max_tokens=12000, # Increased for batch generation
                     operation_type="flashcard_batch_generation"
                 )
                 
@@ -339,7 +341,8 @@ class QuizGenerator:
                     temperature=0.4,
                     system_prompt="You are an expert tutor creating educational assessments for multiple topics.",
                     response_schema=MCQBatchSchema,
-                    timeout=150.0,
+                    timeout=120.0,
+                    max_tokens=15000, # Increased for batch generation with detailed explanations
                     operation_type="mcq_batch_generation"
                 )
                 

@@ -93,7 +93,7 @@ class ExamSummaryGenerator:
         response = await self.llm.generate(
             prompt=prompt,
             temperature=0.2,
-            max_tokens=2000,  # Increased from 700 to allow longer summaries
+            max_tokens=4000,  # Increased from 2000 to allow high-quality summaries
             system_prompt=(
                 "You write short, accurate study TL;DRs. "
                 "Never reveal hidden reasoning or meta text."
@@ -117,7 +117,7 @@ class ExamSummaryGenerator:
             response = await self.llm.generate(
                 prompt=prompt,
                 temperature=0.2,
-                max_tokens=4000,  # Double the limit
+                max_tokens=8000,  # Doubled from 4000
                 system_prompt=(
                     "You write short, accurate study TL;DRs. "
                     "Never reveal hidden reasoning or meta text."
