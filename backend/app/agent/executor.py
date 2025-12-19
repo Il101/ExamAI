@@ -122,11 +122,12 @@ class TopicExecutor:
                     topic_data: TopicSchema = response.parsed
                     # Format as markdown for backwards compatibility with the UI
                     content = (
-                        f"# {topic_data.title}\n\n"
+                        f"### {topic_data.title}\n\n"
+                        f"#### Ключевые понятия\n" + "\n".join([f"- {c}" for c in topic_data.key_concepts]) + "\n\n"
+                        f"#### Детальное объяснение\n"
                         f"{topic_data.overview}\n\n"
-                        f"### Key Concepts\n" + "\n".join([f"- {c}" for c in topic_data.key_concepts]) + "\n\n"
                         f"{topic_data.detailed_content}\n\n"
-                        f"### Summary\n{topic_data.summary}"
+                        f"#### Резюме\n{topic_data.summary}"
                     )
                 else:
                     # Fallback to text cleaning
@@ -414,11 +415,12 @@ class TopicExecutor:
                     results_map = {}
                     for t in batch_data.topics:
                         formatted_content = (
-                            f"# {t.title}\n\n"
+                            f"### {t.title}\n\n"
+                            f"#### Ключевые понятия\n" + "\n".join([f"- {c}" for c in t.key_concepts]) + "\n\n"
+                            f"#### Детальное объяснение\n"
                             f"{t.overview}\n\n"
-                            f"### Key Concepts\n" + "\n".join([f"- {c}" for c in t.key_concepts]) + "\n\n"
                             f"{t.detailed_content}\n\n"
-                            f"### Summary\n{t.summary}"
+                            f"#### Резюме\n{t.summary}"
                         )
                         # Normalize returned ID to string for lookup
                         results_map[str(t.id)] = formatted_content

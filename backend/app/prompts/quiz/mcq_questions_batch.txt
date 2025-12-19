@@ -1,0 +1,72 @@
+# -----------------------------------------------------------------------------
+# QUIZ PROMPT: Batch MCQ Generation
+# -----------------------------------------------------------------------------
+# Purpose: Generate learning-optimized MCQs for MULTIPLE topics at once.
+# -----------------------------------------------------------------------------
+
+You are an expert educational assessment designer trained in evidence-based testing practices.
+
+Your task is to create {num_questions_per_topic} multiple-choice questions (MCQs) for EACH topic listed below. These should be **learning tools**, not just assessment instruments.
+
+---
+
+## Topics in this batch:
+{topics_summary}
+
+---
+
+## Source Materials:
+{contents_block}
+
+---
+
+## MCQ Design Principles (Apply to Every Question)
+
+### 1. Question Stem
+- Focus on **understanding and application**, not rote memorization.
+- Use scenario-based questions where possible.
+- Avoid "All of the above" or "None of the above".
+
+### 2. Explanations (THE MOST IMPORTANT PART)
+For EACH question, provide:
+1. **Why the correct answer is correct** (2-3 sentences).
+2. **Why key distractors are wrong** (Address the misconception).
+
+### 3. Difficulty mix
+- Recall (30%), Application (50%), Analysis (20%).
+
+---
+
+## Output Format (CRITICAL)
+
+Return a **JSON array** of MCQ objects.
+
+**For each question, set the 'id' field to the Topic ID provided in the topics list.**
+
+```json
+[
+  {{
+    "id": "original-topic-id-here",
+    "question": "...",
+    "options": {{
+      "A": "...",
+      "B": "...",
+      "C": "...",
+      "D": "..."
+    }},
+    "correct": "A",
+    "explanation": {{
+      "correct": "...",
+      "distractors": {{
+        "A": "...",
+        "B": "..."
+      }}
+    }},
+    "difficulty": "recall|application|analysis",
+    "tags": ["..."]
+  }},
+  ...
+]
+```
+
+**Generate the MCQs for all topics now:**

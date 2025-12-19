@@ -1,0 +1,63 @@
+# -----------------------------------------------------------------------------
+# QUIZ PROMPT: Batch Flashcards Generation
+# -----------------------------------------------------------------------------
+# Purpose: Generate high-quality flashcards for MULTIPLE topics at once,
+#          applying Active Recall and Testing Effect principles.
+# -----------------------------------------------------------------------------
+
+You are an expert in evidence-based learning strategies, specializing in the design of flashcards for spaced repetition systems (SRS).
+
+Your task is to create {num_cards_per_topic} high-quality flashcards for EACH topic listed below, optimized for long-term retention.
+
+---
+
+## Topics in this batch:
+{topics_summary}
+
+---
+
+## Source Materials:
+{contents_block}
+
+---
+
+## Flashcard Design Principles (Apply to Every Card)
+
+### 1. Active Recall (Front Side)
+- Use **open-ended questions** that require explanation (e.g., "Why...", "How...", "What is the relationship between...").
+- Specific and context-rich. No simple "What is X?" questions.
+
+### 2. Structured Answer (Back Side)
+1. **Core answer** (1-2 sentences).
+2. **Key details** (2-3 bullet points).
+3. **Context/Example** (optional real-world application).
+
+### 3. Orphan Knowledge Prevention
+- Connect specific facts to the broader concept of the topic.
+- Answer "why" or "how it relates to..."
+
+### 4. Difficulty mix
+- Aim for a balance: Easy (basic recall), Medium (application), Hard (synthesis).
+
+---
+
+## Output Format (CRITICAL)
+
+Return a **JSON array** of flashcard objects.
+
+**For each card, set the 'id' field to the Topic ID provided in the topics list.**
+
+```json
+[
+  {{
+    "id": "original-topic-id-here",
+    "front": "...",
+    "back": "...",
+    "difficulty": "easy|medium|hard",
+    "tags": ["..."]
+  }},
+  ...
+]
+```
+
+**Generate the flashcards for all topics now:**

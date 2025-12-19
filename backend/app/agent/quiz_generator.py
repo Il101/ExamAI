@@ -264,16 +264,13 @@ class QuizGenerator:
         topics_summary = "\n".join([f"- {t['id']}: {t['title']}" for t in topics_data])
         contents_block = "\n\n".join([f"--- TOPIC {t['id']}: {t['title']} ---\n{t['content']}" for t in topics_data])
 
-        prompt = f"""Generate {num_cards_per_topic} flashcards for EACH of the following topics.
-        
-Topics in this batch:
-{topics_summary}
-
-Source Materials:
-{contents_block}
-
-For each card, set the 'id' field to the Topic ID provided above.
-"""
+        from app.prompts import load_prompt
+        prompt = load_prompt(
+            'quiz/flashcards_batch.txt',
+            num_cards_per_topic=num_cards_per_topic,
+            topics_summary=topics_summary,
+            contents_block=contents_block
+        )
 
         for attempt in range(max_retries):
             try:
@@ -326,16 +323,13 @@ For each card, set the 'id' field to the Topic ID provided above.
         topics_summary = "\n".join([f"- {t['id']}: {t['title']}" for t in topics_data])
         contents_block = "\n\n".join([f"--- TOPIC {t['id']}: {t['title']} ---\n{t['content']}" for t in topics_data])
 
-        prompt = f"""Generate {num_questions_per_topic} MCQ questions for EACH of the following topics.
-        
-Topics in this batch:
-{topics_summary}
-
-Source Materials:
-{contents_block}
-
-For each question, set the 'id' field to the Topic ID provided above.
-"""
+        from app.prompts import load_prompt
+        prompt = load_prompt(
+            'quiz/mcq_questions_batch.txt',
+            num_questions_per_topic=num_questions_per_topic,
+            topics_summary=topics_summary,
+            contents_block=contents_block
+        )
 
         for attempt in range(max_retries):
             try:
