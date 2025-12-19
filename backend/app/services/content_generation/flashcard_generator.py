@@ -168,6 +168,7 @@ class FlashcardGenerator:
                     created_item = await self.review_repo.create(review_item)
                     created_items.append(created_item)
                 batch_results[topic_id] = created_items
+                print(f"[PIPELINE] flashcards_saved topic_id={topic_id} count={len(created_items)}")
 
             logger.info(f"✅ Successfully created flashcard batch for {len(batch_results)} topics")
             return batch_results, usage

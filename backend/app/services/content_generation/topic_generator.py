@@ -170,11 +170,13 @@ class TopicContentGenerator:
         topics_data_for_cards = []
         
         for topic in topics:
-            if topic.id in batch_result_map:
-                content = batch_result_map[topic.id]
+            topic_id_str = str(topic.id)
+            if topic_id_str in batch_result_map:
+                content = batch_result_map[topic_id_str]
                 topic.start_generation()
                 topic.mark_as_ready(content)
                 await self.topic_repo.update(topic)
+                print(f"[PIPELINE] topic_saved topic_id={topic.id} content_len={len(content)}")
                 
                 generation_results[topic.id] = TopicGenerationResult(
                     content=content,
@@ -222,8 +224,9 @@ class TopicContentGenerator:
                 
                 # Save MCQs to database (caching them immediately)
                 for topic in topics:
-                    if topic.id in mcq_map:
-                        questions = mcq_map[topic.id]
+                    topic_id_str = str(topic.id)
+                    if topic_id_str in mcq_map:
+                        questions = mcq_map[topic_id_str]
                         questions_data = [
                             {
                                 "id": idx,
@@ -238,6 +241,7 @@ class TopicContentGenerator:
                         ]
                         topic.quiz_data = {"questions": questions_data}
                         await self.topic_repo.update(topic)
+                        print(f"[PIPELINE] mcqs_saved topic_id={topic.id} count={len(questions)}")
                 
                 total_usage["tokens_input"] += mcq_usage.get("tokens_input", 0)
                 total_usage["tokens_output"] += mcq_usage.get("tokens_output", 0)
