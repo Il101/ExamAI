@@ -1,8 +1,25 @@
 from datetime import datetime
-from typing import Dict
+from typing import Dict, List, Optional
+
+from pydantic import BaseModel, Field
 
 from app.agent.state import AgentState, ExecutionStatus, PlanStep, StepResult
 from app.integrations.llm.base import LLMProvider
+
+
+class TopicSchema(BaseModel):
+    """Schema for a single topic content"""
+    id: Optional[Any] = Field(None, description="The ID of the plan step (if in batch)")
+    title: str = Field(..., description="Topic title")
+    overview: str = Field(..., description="High-level overview (1 paragraph)")
+    key_concepts: List[str] = Field(..., description="List of 3-5 key scientific concepts")
+    detailed_content: str = Field(..., description="Main educational content (markdown formatted)")
+    summary: str = Field(..., description="Final wrap-up summary")
+
+
+class TopicBatchSchema(BaseModel):
+    """Schema for a batch of topics"""
+    topics: List[TopicSchema] = Field(..., description="List of generated topics")
 
 
 class TopicExecutor:
@@ -62,16 +79,18 @@ class TopicExecutor:
                     # On retries, increase output budget to avoid repeated truncation.
                     max_tokens = min(12000, int(max_tokens * (1.6 ** attempt)))
 
-                # Call LLM with cache if available
+                # Call LLM with structured output
                 response = await self.llm.generate(
                     prompt=prompt,
-                    temperature=0.7,  # Higher temperature for creative content
+                    temperature=0.7,
                     max_tokens=max_tokens,
                     system_prompt=(
                         f"You are an expert educator writing study notes in {language_name}. "
-                        "Do not reveal hidden reasoning."
+                        "Always return structured JSON based on the provided schema."
                     ),
-                    cache_name=state.cache_name,  # CRITICAL: Use cache to reduce input tokens
+                    response_schema=TopicSchema,
+                    cache_name=state.cache_name,
+                    operation_type="topic_generation"
                 )
 
                 print(
@@ -93,11 +112,23 @@ class TopicExecutor:
                     response.tokens_input, response.tokens_output, response.cost_usd
                 )
 
-                # Clean content (remove <thinking> tags)
-                from app.utils.content_cleaner import strip_thinking_tags
-                cleaned_content = strip_thinking_tags(response.content)
+                # Use parsed content if available
+                if response.parsed:
+                    topic_data: TopicSchema = response.parsed
+                    # Format as markdown for backwards compatibility with the UI
+                    content = (
+                        f"# {topic_data.title}\n\n"
+                        f"{topic_data.overview}\n\n"
+                        f"### Key Concepts\n" + "\n".join([f"- {c}" for c in topic_data.key_concepts]) + "\n\n"
+                        f"{topic_data.detailed_content}\n\n"
+                        f"### Summary\n{topic_data.summary}"
+                    )
+                else:
+                    # Fallback to text cleaning
+                    from app.utils.content_cleaner import strip_thinking_tags
+                    content = strip_thinking_tags(response.content).strip()
 
-                return cleaned_content.strip()
+                return content
 
             except RuntimeError as e:
                 last_error = e
@@ -312,65 +343,158 @@ class TopicExecutor:
 
         return prompt
 
-    async def execute_all_steps_with_recovery(
-        self, state: AgentState
-    ) -> dict[str, StepResult]:
+    async def execute_batch(self, state: AgentState, steps: List[PlanStep], max_retries: int = 2) -> Dict[int, str]:
         """
-        Execute all steps in plan sequentially with granular error handling.
-        Continues execution even if some steps fail (partial success).
-
-        Returns:
-            Dictionary mapping step IDs to StepResult objects
+        Execute a batch of topics in a single LLM call.
         """
+        if not steps:
+            return {}
 
-        results = {}
-        state.status = ExecutionStatus.EXECUTING
+        topic_ids = [s.id for s in steps]
+        print(f"[Executor] Generating BATCH for topics {topic_ids}: {[s.title for s in steps]}...")
 
-        while not state.is_complete():
-            current_step = state.get_current_step()
-            step_start_time = datetime.utcnow()
+        # Build context from previous results (using the first step's context as base)
+        previous_context = self._build_previous_context(state, steps[0])
 
+        # Form topics list for prompt
+        topics_list = "\n".join([f"- {s.id}: {s.title} ({s.description})" for s in steps])
+
+        # Prepare content section (using cache strategy from execute_step)
+        content_section = ""
+        if state.cache_name:
+            content_section = (
+                "\n**Source Materials:**\n"
+                "The full source content is already loaded in your context cache.\n"
+                "Please refer to the cached documents to answer this request.\n"
+            )
+        else:
+            # For simplicity in batching, if no cache, we'd need a more complex strategy.
+            # But in the optimized flow, cache is almost always present.
+            content_section = "Refer to the provided materials."
+
+        from app.prompts import load_prompt
+        output_language = getattr(state, "output_language", "ru") or "ru"
+        
+        prompt = load_prompt(
+            'executor/topic_batch.txt',
+            output_language=output_language,
+            level=state.level,
+            exam_type=state.exam_type,
+            previous_context=previous_context,
+            topics_list=topics_list,
+            content_section=content_section
+        )
+
+        last_error = None
+        for attempt in range(max_retries):
             try:
-                # Generate content for current step
-                content = await self.execute_step(state)
-
-                # Create successful result
-                result = StepResult(
-                    step_id=current_step.id,
-                    content=content,
-                    success=True,
-                    tokens_used=state.total_tokens_used,
-                    tokens_input=state.total_tokens_input,
-                    tokens_output=state.total_tokens_output,
-                    cost_usd=state.total_cost_usd,
-                    timestamp=step_start_time.isoformat(),
+                # Dynamic budget for batch
+                max_tokens = min(12000, 4000 + len(steps) * 1500)
+                
+                response = await self.llm.generate(
+                    prompt=prompt,
+                    temperature=0.7,
+                    max_tokens=max_tokens,
+                    system_prompt=f"You are an expert educator. Return structured JSON for {len(steps)} topics.",
+                    response_schema=TopicBatchSchema,
+                    cache_name=state.cache_name,
+                    operation_type="topic_batch_generation"
                 )
 
-                # Store result
-                results[current_step.id] = result
-                state.results[current_step.id] = result
+                # Track usage
+                state.add_token_usage(response.tokens_input, response.tokens_output, response.cost_usd)
+
+                if response.parsed:
+                    batch_data: TopicBatchSchema = response.parsed
+                    results_map = {}
+                    for t in batch_data.topics:
+                        formatted_content = (
+                            f"# {t.title}\n\n"
+                            f"{t.overview}\n\n"
+                            f"### Key Concepts\n" + "\n".join([f"- {c}" for c in t.key_concepts]) + "\n\n"
+                            f"{t.detailed_content}\n\n"
+                            f"### Summary\n{t.summary}"
+                        )
+                        results_map[t.id] = formatted_content
+                    
+                    # Check if any topics are missing from response
+                    for step in steps:
+                        if step.id not in results_map:
+                            logger.warning(f"Topic {step.id} missing from batch response, retrying individually later.")
+                    
+                    return results_map
 
             except Exception as e:
-                # Log error but continue with next steps
-                error_msg = f"Failed to generate topic '{current_step.title}': {str(e)}"
-                state.log_error(error_msg)
+                last_error = e
+                logger.warning(f"Batch attempt {attempt+1} failed: {e}")
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(2 * (attempt + 1))
+                    continue
+        
+        raise last_error or RuntimeError("Batch generation failed")
 
-                # Create failed result
-                result = StepResult(
-                    step_id=current_step.id,
-                    content="",
-                    success=False,
-                    error_message=error_msg,
-                    timestamp=step_start_time.isoformat(),
-                )
+    async def execute_all_steps_with_recovery(
+        self, state: AgentState, batch_size: int = 4
+    ) -> dict[str, StepResult]:
+        """
+        Execute all steps in plan using BATCHING to save costs.
+        """
+        results = {}
+        state.status = ExecutionStatus.EXECUTING
+        
+        # Split plan into batches
+        plan_steps = state.plan[state.current_step_index:]
+        batches = [plan_steps[i : i + batch_size] for i in range(0, len(plan_steps), batch_size)]
 
-                results[current_step.id] = result
-                state.results[current_step.id] = result
-                state.failed_steps.append(current_step.id)
+        for batch in batches:
+            batch_start_time = datetime.utcnow()
+            try:
+                # Try batch execution
+                batch_results = await self.execute_batch(state, batch)
+                
+                for step in batch:
+                    if step.id in batch_results:
+                        result = StepResult(
+                            step_id=step.id,
+                            content=batch_results[step.id],
+                            success=True,
+                            tokens_used=0, # Per-step tokens approximated as 0 since tracked in batch
+                            cost_usd=0,
+                            timestamp=batch_start_time.isoformat(),
+                        )
+                        results[step.id] = result
+                        state.results[step.id] = result
+                        state.current_step_index += 1
+                    else:
+                        # If a specific step failed in batch, retry individually
+                        try:
+                            content = await self.execute_step(state) # state.current_step_index points here
+                            result = StepResult(step_id=step.id, content=content, success=True, timestamp=datetime.utcnow().isoformat())
+                            results[step.id] = result
+                            state.results[step.id] = result
+                        except Exception as e:
+                            error_msg = f"Failed individual retry for {step.title}: {e}"
+                            state.log_error(error_msg)
+                            state.results[step.id] = StepResult(step_id=step.id, content="", success=False, error_message=error_msg)
+                            state.failed_steps.append(step.id)
+                        finally:
+                            state.current_step_index += 1
 
-            finally:
-                # Always move to next step
-                state.current_step_index += 1
+            except Exception as e:
+                logger.error(f"Batch execution failed: {e}. Falling back to individual generation.")
+                # Fallback to individual for this whole batch
+                for step in batch:
+                    try:
+                        content = await self.execute_step(state)
+                        results[step.id] = StepResult(step_id=step.id, content=content, success=True, timestamp=datetime.utcnow().isoformat())
+                        state.results[step.id] = results[step.id]
+                    except Exception as ex:
+                        error_msg = f"Individual fallback failed for {step.title}: {ex}"
+                        state.log_error(error_msg)
+                        state.results[step.id] = StepResult(step_id=step.id, content="", success=False, error_message=error_msg)
+                        state.failed_steps.append(step.id)
+                    finally:
+                        state.current_step_index += 1
 
         # Update final status
         if not state.failed_steps:

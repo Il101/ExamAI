@@ -132,6 +132,50 @@ class FlashcardGenerator:
             # Re-raise to let caller decide how to handle
             raise
     
+    async def create_for_batch(
+        self,
+        topics_data: List[Dict[str, Any]],
+        user_id: UUID,
+        cache_name: Optional[str] = None,
+        num_cards_per_topic: int = DEFAULT_CARD_COUNT
+    ) -> tuple[Dict[int, List[ReviewItem]], dict[str, Any]]:
+        """
+        Generate and store flashcards for a batch of topics.
+        topics_data: [{'id': 1, 'title': 'Topic', 'content': '...'}]
+        """
+        if not topics_data:
+            return {}, {"tokens_input": 0, "tokens_output": 0, "cost_usd": 0.0}
+
+        try:
+            logger.info(f"Generating flashcards for batch of {len(topics_data)} topics")
+            
+            # Generate in batch
+            grouped_cards, usage = await self.quiz_generator.generate_flashcards_batch(
+                topics_data=topics_data,
+                num_cards_per_topic=num_cards_per_topic
+            )
+            
+            batch_results = {}
+            for topic_id, cards in grouped_cards.items():
+                created_items = []
+                for card in cards:
+                    review_item = ReviewItem(
+                        topic_id=UUID(topic_id) if isinstance(topic_id, str) else topic_id,
+                        user_id=user_id,
+                        question=card.front,
+                        answer=card.back
+                    )
+                    created_item = await self.review_repo.create(review_item)
+                    created_items.append(created_item)
+                batch_results[topic_id] = created_items
+
+            logger.info(f"✅ Successfully created flashcard batch for {len(batch_results)} topics")
+            return batch_results, usage
+
+        except Exception as e:
+            logger.error(f"Flashcard batch generation failed: {e}", exc_info=True)
+            raise
+
     async def create_for_topic_safe(
         self,
         topic_id: UUID,

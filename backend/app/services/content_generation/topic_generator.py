@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from uuid import UUID
 import logging
 
@@ -79,173 +79,123 @@ class TopicContentGenerator:
         output_language: Optional[str] = None,
     ) -> TopicGenerationResult:
         """
-        Generate content and flashcards for a topic.
-        
-        This method:
-        1. Fetches topic and exam from database
-        2. Builds AgentState and PlanStep
-        3. Executes topic generation with cache fallback
-        4. Cleans generated content
-        5. Updates topic status to 'ready'
-        6. Generates flashcards
-        
-        Args:
-            topic_id: Topic UUID to generate
-            cache_name: Optional Gemini cache name
-            exam_id: Optional exam UUID (fetched from topic if not provided)
-            
-        Returns:
-            TopicGenerationResult containing content and usage metrics
-            
-        Raises:
-            ValueError: If topic not found or generation fails
+        Backward compatible wrapper for a single topic.
         """
-        print("[PIPELINE] marker=TopicContentGenerator.generate_topic.v1")
-
-        # 1. Fetch topic
-        topic = await self.topic_repo.get_by_id(topic_id)
-        if not topic:
-            raise ValueError(f"Topic {topic_id} not found")
-        
-        logger.info(
-            f"Generating content for topic {topic_id}: '{topic.topic_name}' "
-            f"(status: {topic.status})"
+        results = await self.generate_batch(
+            topic_ids=[topic_id],
+            cache_name=cache_name,
+            exam_id=exam_id,
+            output_language=output_language
         )
-        
-        # 2. Fetch exam
+        if topic_id not in results:
+            raise ValueError(f"Generation failed for topic {topic_id}")
+        return results[topic_id]
+
+    async def generate_batch(
+        self,
+        topic_ids: List[UUID],
+        cache_name: Optional[str] = None,
+        exam_id: Optional[UUID] = None,
+        output_language: Optional[str] = None,
+    ) -> Dict[UUID, TopicGenerationResult]:
+        """
+        Generate content and flashcards for a batch of topics.
+        """
+        if not topic_ids:
+            return {}
+
+        # 1. Fetch topics and exam
+        topics = [await self.topic_repo.get_by_id(tid) for tid in topic_ids]
+        topics = [t for t in topics if t]
+        if not topics:
+            return {}
+
         if not exam_id:
-            exam_id = topic.exam_id
+            exam_id = topics[0].exam_id
         exam = await self.exam_repo.get_by_id(exam_id)
         if not exam:
             raise ValueError(f"Exam {exam_id} not found")
-        
-        # Use exam's cache if not provided
-        if not cache_name:
-            cache_name = exam.cache_name
-        
-        # 3. Build plan step from topic
-        plan_step = PlanStep(
-            id=topic.order_index + 1,
-            title=topic.topic_name,
-            description=f"Generate content for {topic.topic_name}",  # Must be >= 10 chars
-            priority=Priority(topic.generation_priority) 
-                if topic.generation_priority in [1, 2, 3] 
-                else Priority.MEDIUM,
-            estimated_paragraphs=5,
-            dependencies=[]
-        )
-        
-        # 4. Build state
+
+        effective_cache_name = cache_name or exam.cache_name
+        lang = output_language or "ru"
+
+        # 2. Build AgentState
         state = AgentState(
-            user_request=f"Generate content for: {topic.topic_name}",
+            user_request=f"Generate content for {len(topics)} topics",
             subject=exam.subject,
             level=exam.level,
             exam_type=exam.exam_type,
-            original_content=exam.original_content or ""
+            original_content=exam.original_content or "",
+            cache_name=effective_cache_name,
+            output_language=lang
         )
+        
+        # Prepare PlanSteps for the batch
+        state.plan = [
+            PlanStep(
+                id=t.id,
+                title=t.topic_name,
+                description=f"Generate content for {t.topic_name}",
+                priority=Priority.MEDIUM,
+                estimated_paragraphs=5
+            ) for t in topics
+        ]
 
-        # Default to Russian if not specified.
-        state.output_language = output_language or "ru"
-        
-        logger.info(
-            f"Executing generation for '{topic.topic_name}' "
-            f"(cache: {cache_name or 'none'})"
-        )
-        
-        # 5. Execute with cache fallback
-        # TopicExecutor.execute_step() only takes AgentState
-        # We need to set up state with the plan_step and execute
-        state.plan = [plan_step]
-        state.current_step_index = 0
-        
-        async def _execute_with_cache(cn: Optional[str]):
-            """Execute generation with given cache name"""
-            # Update cache in state
+        logger.info(f"Executing batch generation for {len(topics)} topics")
+
+        # 3. Execute with fallback
+        async def _execute_batch_op(cn: Optional[str]):
             state.cache_name = cn
-            # Execute step (returns content string)
-            content = await self.executor.execute_step(state)
-            # Build StepResult manually
-            from app.agent.state import StepResult
-            return StepResult(
-                step_id=plan_step.id,
-                content=content,
-                success=True,
-                tokens_used=state.total_tokens_used,
-                tokens_input=state.total_tokens_input,
-                tokens_output=state.total_tokens_output,
-                cost_usd=state.total_cost_usd
-            )
-        
-        # Use fallback service to handle cache expiration
-        result, updated_cache_name = await self.fallback.execute_with_fallback(
+            content_map = await self.executor.execute_batch(state, state.plan)
+            return content_map, True # Success
+
+        batch_result_map, updated_cache_name = await self.fallback.execute_with_fallback(
             exam_id=exam_id,
-            cache_name=cache_name,
-            operation=_execute_with_cache,
+            cache_name=effective_cache_name,
+            operation=_execute_batch_op
         )
+        
+        effective_cache_name = updated_cache_name or effective_cache_name
 
-        # If cache was recreated during fallback, use the new cache name for
-        # any downstream operations (e.g., flashcard generation).
-        effective_cache_name = updated_cache_name or cache_name
+        # 4. Process theory results
+        generation_results = {}
+        topics_data_for_cards = []
         
-        if not result.success:
-            raise ValueError(
-                f"Generation failed for topic {topic_id}: {result.error_message}"
-            )
-        
-        # 6. Clean content
-        content = strip_thinking_tags(result.content)
-        
-        logger.info(
-            f"Generated {len(content)} characters for '{topic.topic_name}'"
-        )
-        
-        # 7. Update topic
-        topic.start_generation()  # CRITICAL: Must transition to 'generating' first
-        topic.mark_as_ready(content)
-        await self.topic_repo.update(topic)
-        
-        logger.info(f"✅ Topic {topic_id} marked as ready")
-        
-        # Topic generation usage (from AgentState)
-        total_tokens_in = state.total_tokens_input
-        total_tokens_out = state.total_tokens_output
-        total_cost = state.total_cost_usd
+        for topic in topics:
+            if topic.id in batch_result_map:
+                content = batch_result_map[topic.id]
+                topic.start_generation()
+                topic.mark_as_ready(content)
+                await self.topic_repo.update(topic)
+                
+                generation_results[topic.id] = TopicGenerationResult(
+                    content=content,
+                    tokens_input=0, # Usage is aggregated in state
+                    tokens_output=0,
+                    cost_usd=0.0
+                )
+                
+                if len(content) >= self.flashcard_gen.MIN_CONTENT_LENGTH:
+                    topics_data_for_cards.append({
+                        "id": topic.id,
+                        "title": topic.topic_name,
+                        "content": content
+                    })
 
-        try:
-            flashcards, cards_usage = await self.flashcard_gen.create_for_topic(
-                topic_id=topic.id,
-                user_id=topic.user_id,
-                content=content,
-                cache_name=effective_cache_name
-            )
-            
-            total_tokens_in += cards_usage.get("tokens_input", 0)
-            total_tokens_out += cards_usage.get("tokens_output", 0)
-            total_cost += cards_usage.get("cost_usd", 0.0)
-            
-            logger.info(
-                f"✅ Created {len(flashcards)} flashcards for topic {topic_id}"
-            )
-        except ValueError as e:
-            # Content too short - expected, not an error
-            logger.info(
-                f"Skipping flashcards for topic {topic_id}: {e}"
-            )
-        except Exception as e:
-            # Unexpected error - log but don't fail topic generation
-            logger.error(
-                f"Failed to create flashcards for topic {topic_id}: {e}",
-                exc_info=True
-            )
-            # Don't raise - topic generation succeeded
-        
-        return TopicGenerationResult(
-            content=content,
-            tokens_input=total_tokens_in,
-            tokens_output=total_tokens_out,
-            cost_usd=total_cost
-        )
-    
+        # 5. Generate flashcards in batch
+        if topics_data_for_cards:
+            try:
+                cards_map, cards_usage = await self.flashcard_gen.create_for_batch(
+                    topics_data=topics_data_for_cards,
+                    user_id=topics[0].user_id,
+                    cache_name=effective_cache_name
+                )
+                # Usage will be added to the final result of the batch if needed
+            except Exception as e:
+                logger.error(f"Flashcard batch generation failed: {e}")
+
+        return generation_results
+
     async def regenerate_topic(
         self,
         topic_id: UUID,

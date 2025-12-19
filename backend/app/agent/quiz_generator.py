@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import List, Any
+from typing import List, Any, Optional, Dict
 
 from pydantic import BaseModel, Field
 
@@ -13,13 +13,20 @@ logger = logging.getLogger(__name__)
 
 
 class FlashcardSchema(BaseModel):
-    """Schema for a single flashcard"""
-    front: str = Field(..., description="Question or concept on the front of the card")
-    back: str = Field(..., description="Answer or explanation on the back of the card")
+    id: Optional[Any] = Field(None, description="ID of the topic (from current batch)")
+    front: str = Field(..., description="The question or front of the card")
+    back: str = Field(..., description="The answer or back of the card")
+    difficulty: int = Field(default=3, ge=1, le=5, description="Difficulty level 1-5")
+    tags: List[str] = Field(default_factory=list, description="Relevant tags")
+
+
+class FlashcardBatchSchema(BaseModel):
+    """Schema for a batch of flashcards for multiple topics"""
+    cards: List[FlashcardSchema] = Field(..., description="List of generated flashcards with topic IDs")
 
 
 class FlashcardSetSchema(BaseModel):
-    """Schema for a set of flashcards"""
+    """Schema for a set of flashcards (for a single topic)"""
     cards: List[FlashcardSchema] = Field(..., description="List of generated flashcards")
 
 
@@ -29,16 +36,30 @@ class MCQOption(BaseModel):
     is_correct: bool = Field(..., description="Whether this is the correct answer")
 
 
+class MCQExplanation(BaseModel):
+    """Deep explanation for MCQ"""
+    correct: str = Field(..., description="Why the correct answer is right (2-3 sentences)")
+    distractors: dict[str, str] = Field(..., description="Map of option letter to why it is wrong")
+
+
 class MCQQuestion(BaseModel):
-    """Multiple choice question schema"""
+    id: Optional[Any] = Field(None, description="ID of the topic (from current batch)")
     question: str = Field(..., description="The question text")
     options: List[MCQOption] = Field(..., description="List of 4 options")
-    explanation: str = Field(..., description="Explanation of the correct answer")
+    correct_answer: str = Field(..., description="The text of the correct option")
+    explanation: MCQExplanation = Field(..., description="Explanation of the correct answer")
+    difficulty: int = Field(default=3, ge=1, le=5, description="Difficulty 1-5")
+    tags: List[str] = Field(default_factory=list, description="Relevant tags")
 
 
 class MCQQuizSchema(BaseModel):
-    """Schema for a set of MCQ questions"""
+    """Schema for a single topic MCQ quiz"""
     questions: List[MCQQuestion] = Field(..., description="List of MCQ questions")
+
+
+class MCQBatchSchema(BaseModel):
+    """Schema for a batch of MCQs for multiple topics"""
+    questions: List[MCQQuestion] = Field(..., description="List of MCQ questions with topic IDs")
 
 
 class QuizGenerator:
@@ -95,7 +116,8 @@ class QuizGenerator:
         # First attempt may hit overloaded servable, retry gets routed to different server
         max_retries = 2  # Reduced from 3 (SDK already retries once)
         last_error = None
-        current_model = settings.GEMINI_MODEL
+        current_model = settings.GEMINI_QUIZ_MODEL
+        fallback_model = settings.GEMINI_QUIZ_FALLBACK_MODEL
         
         for attempt in range(max_retries):
             try:
@@ -104,43 +126,41 @@ class QuizGenerator:
                 # Use GeminiProvider.generate for robust retries + counting
                 llm_response = await self.llm.generate(
                     prompt=prompt,
+                    model=current_model, # Explicitly use quiz model
                     temperature=0.3,
                     system_prompt="You are an expert tutor creating study materials.",
-                    response_mime_type="application/json",
+                    response_schema=FlashcardSetSchema, # Use schema for stability
                     # Timeout handled by GeminiProvider (180s) or passing explicit
                     timeout=120.0
                 )
                 
-                json_text = llm_response.content
+                # If response_schema is used, llm_response.parsed is the validated object
+                flashcard_set = llm_response.parsed
+                
+                # If parsing failed or wasn't used, fallback to manual parse
+                if not flashcard_set:
+                    try:
+                        data = self._parse_json(llm_response.content)
+                        if isinstance(data, dict) and "cards" in data:
+                            flashcard_set = FlashcardSetSchema(cards=data["cards"])
+                        elif isinstance(data, list):
+                            flashcard_set = FlashcardSetSchema(cards=data)
+                    except Exception as parse_error:
+                        logger.error(f"Manual parse failed for flashcards: {parse_error}")
+                
+                if not flashcard_set or not flashcard_set.cards:
+                    raise ValueError("Failed to get valid flashcards from LLM response")
 
-                # Parse response
-                try:
-                    data = self._parse_json(json_text)
-                    
-                    # Handle wrapped response
-                    if isinstance(data, dict) and "cards" in data:
-                        cards_data = data["cards"]
-                    elif isinstance(data, list):
-                        cards_data = data
-                    else:
-                        raise ValueError("Invalid response format: expected list or dict with 'cards'")
-
-                    # Validate and convert
-                    flashcards = [FlashcardSchema(**item) for item in cards_data]
-                    
-                    usage = {
-                        "tokens_input": llm_response.tokens_input,
-                        "tokens_output": llm_response.tokens_output,
-                        "cost_usd": llm_response.cost_usd,
-                    }
-                    
-                    logger.info("Generated %s %s", len(flashcards), "flashcards", extra={"component": "quiz_generator", "count": len(flashcards)})
-                    return flashcards, usage
-
-                except Exception as e:
-                    logger.error("Error parsing %s", "flashcards", extra={"component": "quiz_generator", "error": str(e)})
-                    logger.debug("Raw text preview", extra={"component": "quiz_generator", "preview": json_text[:500]})
-                    raise ValueError(f"Failed to generate flashcards: {str(e)}")
+                flashcards = flashcard_set.cards
+                
+                usage = {
+                    "tokens_input": llm_response.tokens_input,
+                    "tokens_output": llm_response.tokens_output,
+                    "cost_usd": llm_response.cost_usd,
+                }
+                
+                logger.info("Generated %s flashcards using %s", len(flashcards), current_model, extra={"component": "quiz_generator", "count": len(flashcards)})
+                return flashcards, usage
                     
             except (RuntimeError, ValueError) as e:
                 last_error = e
@@ -156,13 +176,12 @@ class QuizGenerator:
                     retry_wait = 2.0 * (attempt + 1)  # Linear backoff for content errors
                     
                     # Switch to fallback model on overload
-                    if ("503" in error_msg or "overloaded" in error_msg) and current_model != settings.GEMINI_FALLBACK_MODEL:
+                    if ("503" in error_msg or "overloaded" in error_msg) and current_model != fallback_model:
                         logger.warning(
-                            f"Flashcard generation overload on {current_model}, switching to fallback {settings.GEMINI_FALLBACK_MODEL}",
+                            f"Flashcard generation overload on {current_model}, switching to fallback {fallback_model}",
                             extra={"component": "quiz_generator"}
                         )
-                        self.llm.model_name = settings.GEMINI_FALLBACK_MODEL
-                        current_model = settings.GEMINI_FALLBACK_MODEL
+                        current_model = fallback_model
                     
                     logger.warning(
                         f"Generation attempt {attempt + 1} failed: {str(e)}. Retrying in {retry_wait}s...",
@@ -228,6 +247,131 @@ class QuizGenerator:
             
             raise e
 
+    async def generate_flashcards_batch(
+        self,
+        topics_data: List[Dict[str, Any]],
+        num_cards_per_topic: int = 3,
+        max_retries: int = 2
+    ) -> tuple[Dict[int, List[FlashcardSchema]], dict[str, Any]]:
+        """
+        Generate flashcards for multiple topics at once.
+        topics_data: [{'id': 1, 'title': 'Topic', 'content': '...'}]
+        """
+        if not topics_data:
+            return {}, {"tokens_input": 0, "tokens_output": 0, "cost_usd": 0.0}
+
+        current_model = settings.GEMINI_QUIZ_MODEL
+        topics_summary = "\n".join([f"- {t['id']}: {t['title']}" for t in topics_data])
+        contents_block = "\n\n".join([f"--- TOPIC {t['id']}: {t['title']} ---\n{t['content']}" for t in topics_data])
+
+        prompt = f"""Generate {num_cards_per_topic} flashcards for EACH of the following topics.
+        
+Topics in this batch:
+{topics_summary}
+
+Source Materials:
+{contents_block}
+
+For each card, set the 'id' field to the Topic ID provided above.
+"""
+
+        for attempt in range(max_retries):
+            try:
+                llm_response = await self.llm.generate(
+                    prompt=prompt,
+                    model=current_model,
+                    temperature=0.3,
+                    system_prompt="You are an expert tutor creating study materials for multiple topics.",
+                    response_schema=FlashcardBatchSchema,
+                    timeout=120.0,
+                    operation_type="flashcard_batch_generation"
+                )
+                
+                batch_result = llm_response.parsed
+                if not batch_result:
+                    raise ValueError("Failed to parse flashcard batch")
+
+                # Group by topic ID
+                grouped_cards = {}
+                for card in batch_result.cards:
+                    if card.id not in grouped_cards:
+                        grouped_cards[card.id] = []
+                    grouped_cards[card.id].append(card)
+
+                usage = {
+                    "tokens_input": llm_response.tokens_input,
+                    "tokens_output": llm_response.tokens_output,
+                    "cost_usd": llm_response.cost_usd,
+                }
+                
+                return grouped_cards, usage
+            except Exception as e:
+                logger.warning(f"Flashcard batch attempt {attempt+1} failed: {e}")
+                if attempt == max_retries - 1:
+                    raise
+
+    async def generate_mcq_batch(
+        self,
+        topics_data: List[Dict[str, Any]],
+        num_questions_per_topic: int = 2,
+        max_retries: int = 2
+    ) -> tuple[Dict[int, List[MCQQuestion]], dict[str, Any]]:
+        """
+        Generate MCQs for multiple topics at once.
+        """
+        if not topics_data:
+            return {}, {"tokens_input": 0, "tokens_output": 0, "cost_usd": 0.0}
+
+        current_model = settings.GEMINI_QUIZ_MODEL
+        topics_summary = "\n".join([f"- {t['id']}: {t['title']}" for t in topics_data])
+        contents_block = "\n\n".join([f"--- TOPIC {t['id']}: {t['title']} ---\n{t['content']}" for t in topics_data])
+
+        prompt = f"""Generate {num_questions_per_topic} MCQ questions for EACH of the following topics.
+        
+Topics in this batch:
+{topics_summary}
+
+Source Materials:
+{contents_block}
+
+For each question, set the 'id' field to the Topic ID provided above.
+"""
+
+        for attempt in range(max_retries):
+            try:
+                llm_response = await self.llm.generate(
+                    prompt=prompt,
+                    model=current_model,
+                    temperature=0.4,
+                    system_prompt="You are an expert tutor creating educational assessments for multiple topics.",
+                    response_schema=MCQBatchSchema,
+                    timeout=150.0,
+                    operation_type="mcq_batch_generation"
+                )
+                
+                batch_result = llm_response.parsed
+                if not batch_result:
+                    raise ValueError("Failed to parse MCQ batch")
+
+                # Group by topic ID
+                grouped_questions = {}
+                for q in batch_result.questions:
+                    if q.id not in grouped_questions:
+                        grouped_questions[q.id] = []
+                    grouped_questions[q.id].append(q)
+
+                usage = {
+                    "tokens_input": llm_response.tokens_input,
+                    "tokens_output": llm_response.tokens_output,
+                    "cost_usd": llm_response.cost_usd,
+                }
+                
+                return grouped_questions, usage
+            except Exception as e:
+                logger.warning(f"MCQ batch attempt {attempt+1} failed: {e}")
+                if attempt == max_retries - 1:
+                    raise
+
     async def generate_mcq_quiz(
         self, 
         content: str, 
@@ -260,7 +404,8 @@ class QuizGenerator:
         # Retry mechanism for transient errors
         max_retries = 3
         last_error = None
-        current_model = settings.GEMINI_MODEL
+        current_model = settings.GEMINI_QUIZ_MODEL
+        fallback_model = settings.GEMINI_QUIZ_FALLBACK_MODEL
         json_text = None
         
         for attempt in range(max_retries):
@@ -272,52 +417,52 @@ class QuizGenerator:
                     content=content
                 )
                 
-                # Generate with structured output
-                config = types.GenerateContentConfig(
+                # Generate with structured output using the standard wrapper
+                llm_response = await self.llm.generate(
+                    prompt=prompt,
+                    model=current_model,
                     temperature=0.4,
-                    response_mime_type="application/json",
+                    system_prompt="You are an expert tutor creating educational assessments.",
                     response_schema=MCQQuizSchema,
-                    system_instruction="You are an expert tutor creating educational assessments.",
+                    timeout=60.0,
+                    operation_type="mcq_generation"
                 )
                 
-                logger.debug("Calling Gemini API for MCQ generation", extra={
-                    "component": "quiz_generator",
-                    "model": current_model,
-                    "num_questions": num_questions
-                })
+                # Get the parsed object
+                mcq_quiz = llm_response.parsed
                 
-                api_start = time.time()
-                response = await asyncio.wait_for(
-                    self.llm.client.aio.models.generate_content(
-                        model=current_model,
-                        contents=prompt,
-                        config=config
-                    ),
-                    timeout=50.0
-                )
-                api_duration = (time.time() - api_start) * 1000
-                
-                logger.info("Received MCQ response from Gemini API", extra={
-                    "component": "quiz_generator",
-                    "api_duration_ms": round(api_duration, 2),
-                    "response_length": len(response.text) if response.text else 0
-                })
-                
-                json_text = response.text
-                
-                # Extract usage from response
-                usage_meta = response.usage_metadata
+                # Fallback to manual parse if needed
+                if not mcq_quiz:
+                    try:
+                        data = self._parse_json(llm_response.content)
+                        if isinstance(data, dict) and "questions" in data:
+                            mcq_quiz = MCQQuizSchema(questions=data["questions"])
+                        elif isinstance(data, list):
+                            mcq_quiz = MCQQuizSchema(questions=data)
+                    except Exception as e:
+                        logger.error(f"Manual MCQ parse failed: {e}")
+
+                if not mcq_quiz or not mcq_quiz.questions:
+                    raise ValueError("Failed to get valid MCQ questions from LLM")
+
+                questions = mcq_quiz.questions
                 usage = {
-                    "tokens_input": usage_meta.prompt_token_count if usage_meta else 0,
-                    "tokens_output": usage_meta.candidates_token_count if (usage_meta and usage_meta.candidates_token_count is not None) else 0,
-                    "cost_usd": self.llm.calculate_cost(
-                        usage_meta.prompt_token_count if usage_meta else 0,
-                        usage_meta.candidates_token_count if (usage_meta and usage_meta.candidates_token_count is not None) else 0
-                    )
+                    "tokens_input": llm_response.tokens_input,
+                    "tokens_output": llm_response.tokens_output,
+                    "cost_usd": llm_response.cost_usd,
                 }
                 
-                # Success - break retry loop
-                break
+                duration = time.time() - start_time
+                logger.info(
+                    f"Successfully generated {len(questions)} MCQ questions with {current_model} in {duration:.2f}s",
+                    extra={
+                        "component": "quiz_generator",
+                        "duration_seconds": round(duration, 2),
+                        "questions_count": len(questions)
+                    }
+                )
+                
+                return questions, usage
                 
             except Exception as e:
                 last_error = e
@@ -335,12 +480,12 @@ class QuizGenerator:
 
                 if is_retryable and attempt < max_retries - 1:
                     # Switch to fallback model on overload
-                    if ("503" in error_msg or "overloaded" in error_msg) and current_model != settings.GEMINI_FALLBACK_MODEL:
+                    if ("503" in error_msg or "overloaded" in error_msg) and current_model != fallback_model:
                         logger.warning(
-                            f"MCQ generation overload on {current_model}, switching to fallback {settings.GEMINI_FALLBACK_MODEL}",
+                            f"MCQ generation overload on {current_model}, switching to fallback {fallback_model}",
                             extra={"component": "quiz_generator"}
                         )
-                        current_model = settings.GEMINI_FALLBACK_MODEL
+                        current_model = fallback_model
 
                     wait_time = 2 * (2 ** attempt)
                     logger.warning(
@@ -361,87 +506,5 @@ class QuizGenerator:
                     if attempt == max_retries - 1:
                         raise last_error
         
-        # Check if we have a response
-        if not json_text:
-            raise RuntimeError("Failed to generate MCQ quiz after all retries")
-        
-        # Parse response
-        try:
-            data = self._parse_json(json_text)
-            
-            # Handle wrapped response
-            if isinstance(data, dict) and "questions" in data:
-                questions_data = data["questions"]
-            elif isinstance(data, list):
-                questions_data = data
-            else:
-                raise ValueError("Invalid response format")
-
-            # Validate and convert
-            questions = []
-            for idx, q_data in enumerate(questions_data):
-                try:
-                    # Handle different formats from LLM
-                    if isinstance(q_data.get("options"), dict):
-                        # Options as {A: text, B: text, ...}
-                        options = [
-                            MCQOption(
-                                text=q_data["options"].get(letter, ""),
-                                is_correct=(letter == q_data["correct"])
-                            )
-                            for letter in ["A", "B", "C", "D"]
-                            if letter in q_data["options"]
-                        ]
-                    elif isinstance(q_data.get("options"), list):
-                        # Options as list of objects
-                        options = [
-                            MCQOption(
-                                text=opt.get("text", opt) if isinstance(opt, dict) else opt,
-                                is_correct=opt.get("is_correct", False) if isinstance(opt, dict) else False
-                            )
-                            for opt in q_data["options"]
-                        ]
-                    else:
-                        raise ValueError(f"Invalid options format in question {idx}")
-                    
-                    # Handle explanation formats
-                    explanation_data = q_data.get("explanation", {})
-                    if isinstance(explanation_data, dict):
-                        explanation = explanation_data.get("correct", "")
-                    elif isinstance(explanation_data, str):
-                        explanation = explanation_data
-                    else:
-                        explanation = ""
-                    
-                    question = MCQQuestion(
-                        question=q_data["question"],
-                        options=options,
-                        explanation=explanation
-                    )
-                    questions.append(question)
-                    
-                except (KeyError, ValueError) as parse_error:
-                    logger.warning(f"Skipping malformed question {idx}: {parse_error}", extra={"component": "quiz_generator"})
-                    continue
-            
-            if not questions:
-                raise ValueError("No valid questions could be parsed from response")
-            
-            duration = time.time() - start_time
-            logger.info(
-                f"Successfully generated {len(questions)} MCQ questions in {duration:.2f}s",
-                extra={
-                    "component": "quiz_generator",
-                    "duration_seconds": round(duration, 2),
-                    "questions_count": len(questions)
-                }
-            )
-            
-            return questions, usage
-            
-        except json.JSONDecodeError as e:
-            logger.error(f"JSON decode error in MCQ response: {e}", extra={"component": "quiz_generator", "json_text": json_text[:500]})
-            raise ValueError(f"Invalid JSON in LLM response: {e}")
-        except Exception as e:
-            logger.error(f"Error parsing MCQ response: {e}", extra={"component": "quiz_generator"})
-            raise
+        # If loop finishes without returning, it means all retries failed
+        raise last_error if last_error else RuntimeError("Failed to generate MCQ quiz after all retries")

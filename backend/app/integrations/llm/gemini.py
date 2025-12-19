@@ -204,13 +204,16 @@ class GeminiProvider(LLMProvider):
 
             config = types.GenerateContentConfig(**config_args)
 
-            print(f"[GeminiProvider] Calling {self.model_name} API with timeout={timeout}s...")
+            # Allow model override
+            model_to_use = kwargs.get("model", self.model_name)
+
+            print(f"[GeminiProvider] Calling {model_to_use} API with timeout={timeout}s...")
             api_start = time.time()
             
             # Wrap in asyncio.wait_for for guaranteed timeout
             response = await asyncio.wait_for(
                 self.client.aio.models.generate_content(
-                    model=self.model_name,
+                    model=model_to_use,
                     contents=contents_payload if contents_payload is not None else full_prompt,
                     config=config
                 ),
@@ -232,7 +235,7 @@ class GeminiProvider(LLMProvider):
             )
 
             # Calculate cost (including cached tokens)
-            cost = self.calculate_cost(tokens_input, tokens_output, tokens_cached=cached_tokens)
+            cost = self.calculate_cost(tokens_input, tokens_output, tokens_cached=cached_tokens, model=model_to_use)
 
             # Get finish reason safely
             finish_reason = "unknown"
@@ -251,7 +254,7 @@ class GeminiProvider(LLMProvider):
             # Persistent DB logging (background)
             asyncio.create_task(
                 record_usage_to_db(
-                    model_name=self.model_name,
+                    model_name=model_to_use,
                     provider="gemini",
                     operation_type=kwargs.get("operation_type", "generate"),
                     input_tokens=tokens_input,
@@ -268,15 +271,35 @@ class GeminiProvider(LLMProvider):
                 )
             )
 
+            # Auto-parse if response_schema is a Pydantic model
+            parsed_obj = None
+            if response_schema and hasattr(response_schema, "model_validate_json"):
+                try:
+                    # Clean up response.text (strip markdown code blocks if any)
+                    clean_text = response.text.strip()
+                    if clean_text.startswith("```json"):
+                        clean_text = clean_text[7:].strip()
+                        if clean_text.endswith("```"):
+                            clean_text = clean_text[:-3].strip()
+                    elif clean_text.startswith("```"):
+                        clean_text = clean_text[3:].strip()
+                        if clean_text.endswith("```"):
+                            clean_text = clean_text[:-3].strip()
+                    
+                    parsed_obj = response_schema.model_validate_json(clean_text)
+                except Exception as parse_error:
+                    logger.warning(f"[GeminiProvider] Failed to parse response into {response_schema.__name__}: {parse_error}")
+
             return LLMResponse(
                 content=response.text,
-                model=self.model_name,
+                model=model_to_use,
                 tokens_input=tokens_input,
                 tokens_output=tokens_output,
                 cost_usd=cost,
                 finish_reason=finish_reason,
+                parsed=parsed_obj,
             )
-
+        
         except asyncio.TimeoutError:
             elapsed = time.time() - start_time
             error_msg = f"[GeminiProvider] ⚠️ TIMEOUT after {elapsed:.2f}s (limit: {timeout}s)"

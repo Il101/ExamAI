@@ -13,6 +13,7 @@ class LLMResponse:
     tokens_output: int
     cost_usd: float
     finish_reason: str  # "stop", "length", "error"
+    parsed: Optional[Any] = None
 
     @property
     def total_tokens(self) -> int:

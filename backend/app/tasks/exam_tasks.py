@@ -325,70 +325,65 @@ async def _generate_exam_content_async(
             await exam_repo.update(exam)
             await session.commit()
 
-        # Generate sequentially to avoid rate-limit bursts
-        ready_count = 0
+        # Generate in batches to save costs and reduce overhead
+        batch_size = 4
+        pending_topics = [t for t in topics if not (t.status == "ready" and t.content)]
+        ready_count = total - len(pending_topics)
+        
+        # Split pending topics into batches
+        batches = [pending_topics[i : i + batch_size] for i in range(0, len(pending_topics), batch_size)]
+        
         total_in = 0
         total_out = 0
         total_cost = 0.0
         
-        for idx, topic in enumerate(topics):
-            # Skip already-ready topics to support resume
-            if topic.status == "ready" and topic.content:
-                ready_count += 1
-                continue
-
-            step_progress = (idx + 1) / total
+        for batch_idx, batch in enumerate(batches):
+            batch_names = ", ".join([t.topic_name for t in batch])
             await progress_callback(
-                f"Generating: {topic.topic_name}",
-                step_progress,
+                f"Generating Batch {batch_idx + 1}/{len(batches)}: {batch_names}",
+                (ready_count) / total,
             )
 
             try:
-                # CRITICAL: Use semaphore to limit concurrent LLM calls
-                # This prevents multiple workers from creating request spikes
+                # Use semaphore to limit concurrent LLM calls
                 async with _llm_call_semaphore:
-                    topic_result = await topic_gen.generate_topic(
-                        topic_id=topic.id,
+                    # Execute batch generation
+                    batch_results = await topic_gen.generate_batch(
+                        topic_ids=[t.id for t in batch],
                         cache_name=exam.cache_name,
                         exam_id=exam.id,
                         output_language=getattr(user, "preferred_language", None),
                     )
-                    
-                # Aggregate usage
-                total_in += topic_result.tokens_input
-                total_out += topic_result.tokens_output
-                total_cost += topic_result.cost_usd
-                # CRITICAL: TopicContentGenerator updates are not guaranteed to
-                # commit automatically. Without an explicit commit here,
-                # generation can appear successful in logs while topics remain
-                # pending/empty in the DB.
+                
+                # Update counts and log
+                for t in batch:
+                    if t.id in batch_results:
+                        ready_count += 1
+                        # Note: usage metrics are currently not returned per-topic in batch_results
+                        # but are accumulated in state. We'll rely on global metrics for logging.
+                
+                # Explicit commit after batch success
                 await session.commit()
-                print(
-                    f"[PIPELINE] topic_done topic_id={topic.id} idx={idx+1}/{total}"
-                )
-                ready_count += 1
+                print(f"[PIPELINE] batch_done idx={batch_idx+1}/{len(batches)} topics={len(batch)}")
+                
             except Exception as e:
                 import sys
                 import traceback
-
-                err = (
-                    f"[PIPELINE] topic_failed topic_id={topic.id} idx={idx+1}/{total} "
-                    f"error_type={type(e).__name__} error={e}\n{traceback.format_exc()}"
-                )
+                err = f"[PIPELINE] batch_failed idx={batch_idx+1}/{len(batches)} error={e}\n{traceback.format_exc()}"
                 print(err)
                 sys.stderr.write(err + "\n")
                 sys.stderr.flush()
-
-                # TopicContentGenerator may fail before topic.start_generation() is called.
-                # Mark failure best-effort without breaking the whole exam.
-                try:
-                    fresh = await topic_repo.get_by_id(topic.id)
-                    if fresh and fresh.status == "generating":
-                        fresh.mark_as_failed(str(e))
-                        await topic_repo.update(fresh)
-                        await session.commit()
-                except Exception:
-                    pass
+                
+                # If batch failing, try to mark them best-effort
+                for t in batch:
+                    try:
+                        fresh = await topic_repo.get_by_id(t.id)
+                        if fresh and fresh.status != "ready":
+                            fresh.mark_as_failed(str(e))
+                            await topic_repo.update(fresh)
+                    except: pass
+                await session.commit()
+                await session.commit()
 
         # Mark exam ready even if some topics failed; summary reflects success ratio.
         summary = f"Generated {ready_count}/{total} topics successfully"

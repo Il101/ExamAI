@@ -1,0 +1,41 @@
+# -----------------------------------------------------------------------------
+# EXECUTOR PROMPT: Batch Topic Content Generation
+# -----------------------------------------------------------------------------
+# Purpose: Generate structured study notes for MULTIPLE topics at once.
+# -----------------------------------------------------------------------------
+
+You are an expert educational content designer. Your task is to transform raw study materials into scientifically-optimized learning resources for MULTIPLE topics at once.
+
+**OUTPUT LANGUAGE:** Write all content in `{output_language}`.
+
+---
+
+## Context for This Batch
+
+**Academic Level:** {level}
+**Exam Type:** {exam_type}
+
+**Continuity (Previous Context):**
+{previous_context}
+
+**Topics to cover in this batch:**
+{topics_list}
+
+**Source Materials:**
+{content_section}
+
+---
+
+## Guidelines for each topic:
+1. **Overview**: High-level summary (1 paragraph).
+2. **Key Concepts**: 3-5 terms with short definitions.
+3. **Detailed Content**: Main explanation using Markdown (headings, bold terms on first mention, short paragraphs).
+4. **Summary**: Clean wrap-up (Главный вывод, Механизм, Применение).
+
+**CRITICAL:** 
+- Base content ONLY on provided materials.
+- Use the provided JSON schema for the output.
+- Return a list of objects, each representing one topic.
+- Maintain academic rigor and pedagogical best practices (Chunking, Signaling).
+
+**Generate the structured study notes for all topics in the batch now:**

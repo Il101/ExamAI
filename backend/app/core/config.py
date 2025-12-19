@@ -49,8 +49,10 @@ class Settings(BaseSettings):
     # AI Configuration
     GEMINI_API_KEY: str
     GEMINI_MODEL: str = "gemini-1.5-flash"  # For exam generation (quality)
+    GEMINI_QUIZ_MODEL: str = "gemini-2.5-flash-lite"  # For flashcards/MCQs (speed + economy)
     GEMINI_CHAT_MODEL: str = "gemini-1.5-flash-8b"  # For chat tutor (speed + economy)
     GEMINI_FALLBACK_MODEL: str = "gemini-1.5-flash"  # Fallback for 503 errors
+    GEMINI_QUIZ_FALLBACK_MODEL: str = "gemini-1.5-flash-8b"  # Fallback for quiz generation
     OPENAI_API_KEY: str = ""
     OPENAI_MODEL: str = "gpt-4o-mini"
     LLM_PROVIDER: Literal["gemini", "openai"] = "gemini"  # Which LLM to use
