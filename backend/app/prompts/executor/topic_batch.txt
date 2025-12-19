@@ -41,7 +41,7 @@ Your task is to transform raw study materials into scientifically-optimized lear
 
 For EACH topic listed above, generate a response following this structure:
 
-### {title} (Use the topic's title)
+### {{title}} (Use the topic's title)
 
 #### Ключевые понятия
 - 3–5 key terms from the source materials for this specific topic.
