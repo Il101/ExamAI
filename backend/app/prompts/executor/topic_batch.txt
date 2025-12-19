@@ -37,5 +37,6 @@ You are an expert educational content designer. Your task is to transform raw st
 - Use the provided JSON schema for the output.
 - Return a list of objects, each representing one topic.
 - Maintain academic rigor and pedagogical best practices (Chunking, Signaling).
+- **PRESERVE IDs:** Use the EXACT ID string (e.g., "6a5bf493-...") provided in the topics list for each topic's `id` field.
 
 **Generate the structured study notes for all topics in the batch now:**

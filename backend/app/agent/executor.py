@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 class TopicSchema(BaseModel):
     """Schema for a single topic content"""
-    id: Optional[Any] = Field(None, description="The ID of the plan step (if in batch)")
+    id: str = Field(..., description="The EXACT ID string from the provided topics list")
     title: str = Field(..., description="Topic title")
     overview: str = Field(..., description="High-level overview (1 paragraph)")
     key_concepts: List[str] = Field(..., description="List of 3-5 key scientific concepts")
@@ -420,12 +420,15 @@ class TopicExecutor:
                             f"{t.detailed_content}\n\n"
                             f"### Summary\n{t.summary}"
                         )
-                        results_map[t.id] = formatted_content
+                        # Normalize returned ID to string for lookup
+                        results_map[str(t.id)] = formatted_content
                     
                     # Check if any topics are missing from response
                     for step in steps:
-                        if step.id not in results_map:
-                            logger.warning(f"Topic {step.id} missing from batch response, retrying individually later.")
+                        # Normalize step ID to string for lookup
+                        step_id_str = str(step.id)
+                        if step_id_str not in results_map:
+                            logger.warning(f"Topic {step_id_str} ({step.title}) missing from batch response (keys returned: {list(results_map.keys())}), retrying individually later.")
                     
                     return results_map
 
@@ -458,16 +461,17 @@ class TopicExecutor:
                 batch_results = await self.execute_batch(state, batch)
                 
                 for step in batch:
-                    if step.id in batch_results:
+                    step_id_str = str(step.id)
+                    if step_id_str in batch_results:
                         result = StepResult(
                             step_id=step.id,
-                            content=batch_results[step.id],
+                            content=batch_results[step_id_str],
                             success=True,
                             tokens_used=0, # Per-step tokens approximated as 0 since tracked in batch
                             cost_usd=0,
                             timestamp=batch_start_time.isoformat(),
                         )
-                        results[step.id] = result
+                        results[step_id_str] = result
                         state.results[step.id] = result
                         state.current_step_index += 1
                     else:
