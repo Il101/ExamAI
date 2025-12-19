@@ -178,6 +178,7 @@ class GeminiProvider(LLMProvider):
             # Combine system prompt with user prompt
             full_prompt = prompt
             
+            # Prepare config
             config_args = {
                 "temperature": temperature,
                 "max_output_tokens": max_tokens,
@@ -199,7 +200,22 @@ class GeminiProvider(LLMProvider):
             # Add response schema if provided
             if response_schema:
                 config_args["response_mime_type"] = "application/json"
-                config_args["response_schema"] = response_schema
+                
+                # Gemini API does NOT support additionalProperties: True in the schema,
+                # which Pydantic/google-genai SDK often adds by default.
+                # We must strip them recursively if they exist.
+                processed_schema = response_schema
+                if hasattr(response_schema, "model_json_schema"):
+                    # It's a Pydantic V2 model
+                    processed_schema = response_schema.model_json_schema()
+                elif hasattr(response_schema, "schema"):
+                    # It's a Pydantic V1 model
+                    processed_schema = response_schema.schema()
+                
+                if isinstance(processed_schema, dict):
+                    processed_schema = self._strip_additional_properties(processed_schema)
+                
+                config_args["response_schema"] = processed_schema
             elif response_mime_type:
                 config_args["response_mime_type"] = response_mime_type
 
@@ -788,11 +804,31 @@ class GeminiProvider(LLMProvider):
             elapsed = time.time() - start_time
             print(f"[GeminiProvider] Cache generation API ERROR after {elapsed:.2f}s: {e.code} - {e.message}")
             raise RuntimeError(f"Gemini API error [{e.code}]: {e.message}")
-        
         except Exception as e:
             elapsed = time.time() - start_time
             print(f"[GeminiProvider] Cache generation ERROR after {elapsed:.2f}s: {type(e).__name__}: {str(e)}")
             raise RuntimeError(f"Cache generation error: {str(e)}")
+
+    def _strip_additional_properties(self, schema: Any) -> Any:
+        """
+        Recursively strip 'additionalProperties' from a JSON schema dictionary.
+        Gemini API fails if this key is present.
+        """
+        if not isinstance(schema, dict):
+            return schema
+            
+        # Create a copy to avoids side effects
+        cleaned = {k: self._strip_additional_properties(v) for k, v in schema.items() if k != "additionalProperties"}
+        
+        # Also clean up any $defs or definitions
+        for key in ["$defs", "definitions"]:
+            if key in cleaned and isinstance(cleaned[key], dict):
+                cleaned[key] = {
+                    def_name: self._strip_additional_properties(def_val)
+                    for def_name, def_val in cleaned[key].items()
+                }
+                
+        return cleaned
 
     def calculate_cost(self, tokens_input: Optional[int], tokens_output: Optional[int], tokens_cached: Optional[int] = 0, model: Optional[str] = None) -> float:
         """

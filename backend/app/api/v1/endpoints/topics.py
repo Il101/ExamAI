@@ -189,8 +189,18 @@ async def get_topic_quiz(
         )
         
         # Convert to dict for JSON response
-        questions_data = [
-            {
+        questions_data = []
+        for idx, q in enumerate(questions):
+            # Map distractors from list to dict for frontend
+            distractors_dict = {}
+            if hasattr(q.explanation, 'distractors'):
+                if isinstance(q.explanation.distractors, list):
+                    for dist in q.explanation.distractors:
+                        distractors_dict[dist.option] = dist.text
+                elif isinstance(q.explanation.distractors, dict):
+                    distractors_dict = q.explanation.distractors
+            
+            questions_data.append({
                 "id": idx,
                 "question": q.question,
                 "options": [
@@ -201,10 +211,11 @@ async def get_topic_quiz(
                     }
                     for opt_idx, opt in enumerate(q.options)
                 ],
-                "explanation": q.explanation
-            }
-            for idx, q in enumerate(questions)
-        ]
+                "explanation": {
+                    "correct": q.explanation.correct,
+                    "distractors": distractors_dict
+                }
+            })
         
         # Cache the quiz in database
         topic.quiz_data = {"questions": questions_data}
@@ -264,8 +275,18 @@ async def regenerate_topic_quiz(
         )
         
         # Convert to dict for JSON response
-        questions_data = [
-            {
+        questions_data = []
+        for idx, q in enumerate(questions):
+            # Map distractors from list to dict for frontend
+            distractors_dict = {}
+            if hasattr(q.explanation, 'distractors'):
+                if isinstance(q.explanation.distractors, list):
+                    for dist in q.explanation.distractors:
+                        distractors_dict[dist.option] = dist.text
+                elif isinstance(q.explanation.distractors, dict):
+                    distractors_dict = q.explanation.distractors
+            
+            questions_data.append({
                 "id": idx,
                 "question": q.question,
                 "options": [
@@ -276,10 +297,11 @@ async def regenerate_topic_quiz(
                     }
                     for opt_idx, opt in enumerate(q.options)
                 ],
-                "explanation": q.explanation
-            }
-            for idx, q in enumerate(questions)
-        ]
+                "explanation": {
+                    "correct": q.explanation.correct,
+                    "distractors": distractors_dict
+                }
+            })
         
         # Update cached quiz in database
         topic.quiz_data = {"questions": questions_data}

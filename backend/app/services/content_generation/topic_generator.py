@@ -243,18 +243,29 @@ class TopicContentGenerator:
                     topic_id_str = str(topic.id)
                     if topic_id_str in mcq_map:
                         questions = mcq_map[topic_id_str]
-                        questions_data = [
-                            {
+                        questions_data = []
+                        for idx, q in enumerate(questions):
+                            # Unify format: convert distractor list to flat dict
+                            distractors_dict = {}
+                            if hasattr(q.explanation, 'distractors') and isinstance(q.explanation.distractors, list):
+                                for dist in q.explanation.distractors:
+                                    distractors_dict[dist.option] = dist.text
+                            elif hasattr(q.explanation, 'distractors') and isinstance(q.explanation.distractors, dict):
+                                distractors_dict = q.explanation.distractors
+
+                            questions_data.append({
                                 "id": idx,
                                 "question": q.question,
                                 "options": [
                                     {"id": opt_idx, "text": opt.text, "is_correct": opt.is_correct}
                                     for opt_idx, opt in enumerate(q.options)
                                 ],
-                                "explanation": q.explanation.dict() if hasattr(q.explanation, "dict") else q.explanation
-                            }
-                            for idx, q in enumerate(questions)
-                        ]
+                                "explanation": {
+                                    "correct": q.explanation.correct,
+                                    "distractors": distractors_dict
+                                }
+                            })
+                        
                         topic.quiz_data = {"questions": questions_data}
                         await self.topic_repo.update(topic)
                         print(f"[PIPELINE] mcqs_saved topic_id={topic.id} count={len(questions)}")

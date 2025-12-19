@@ -36,10 +36,16 @@ class MCQOption(BaseModel):
     is_correct: bool = Field(..., description="Whether this is the correct answer")
 
 
+class DistractorExplanation(BaseModel):
+    """Explanation for why a distractor is wrong"""
+    option: str = Field(..., description="Option letter (A, B, C, or D)")
+    text: str = Field(..., description="Explanation of why this option is incorrect")
+
+
 class MCQExplanation(BaseModel):
     """Deep explanation for MCQ"""
     correct: str = Field(..., description="Why the correct answer is right (2-3 sentences)")
-    distractors: dict[str, str] = Field(..., description="Map of option letter to why it is wrong")
+    distractors: List[DistractorExplanation] = Field(..., description="List of explanations for each incorrect option")
 
 
 class MCQQuestion(BaseModel):
