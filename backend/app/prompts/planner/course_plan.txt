@@ -77,7 +77,7 @@ Before creating blocks/topics, identify **3-6 high-level Learning Outcomes** tha
 **Topics** = Specific concepts within a block (e.g., "Variables and Data Types", "If-Else Statements")
 
 **Criteria:**
-- 2-5 topics per block
+- Add as many topics as necessary to cover the material thoroughly
 - Each topic = one focused concept or skill
 - Base ONLY on content that exists in the materials (no invention)
 - Estimate content size (3-8 paragraphs per topic)
@@ -174,7 +174,7 @@ Before creating blocks/topics, identify **3-6 high-level Learning Outcomes** tha
    - Real-world applications
    - (~2-3 topics)
 
-**Total: 3-6 blocks, 8-15 topics**
+**Total: 3-6 blocks, topics as needed**
 
 ### Logical Flow Within Blocks
 
@@ -217,7 +217,7 @@ Before outputting JSON, verify:
 **Structure:**
 - [ ] 3-6 blocks (chunking for cognitive load)
 - [ ] Blocks have logical progression (basic → advanced)
-- [ ] 2-5 topics per block
+- [ ] As many topics as necessary (no strict limit per block)
 - [ ] `total_topics` and `total_blocks` counts are correct
 
 **Accuracy:**

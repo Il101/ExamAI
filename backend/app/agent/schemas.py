@@ -17,7 +17,7 @@ class BlockPlan(BaseModel):
     """Block of related topics (chapter/module)"""
     block_id: str = Field(description="Block ID, e.g., 'block_01'")
     block_title: str = Field(description="Block theme/chapter name", max_length=100)
-    topics: List[TopicPlan] = Field(min_length=2, max_length=5)
+    topics: List[TopicPlan] = Field(description="Related topics in this block")
 
 
 class ExamPlan(BaseModel):
