@@ -7,6 +7,8 @@ from typing import Any, Optional
 from app.integrations.llm.base import LLMProvider, LLMResponse
 from app.integrations.llm.gemini import GeminiProvider
 
+from app.core.config import settings
+
 logger = logging.getLogger(__name__)
 
 
@@ -15,8 +17,8 @@ class FallbackLLMProvider(LLMProvider):
     Wrapper that automatically falls back to a secondary model on 503/overload errors.
     
     Usage:
-        primary = GeminiProvider(api_key, model="gemini-2.5-flash")
-        fallback = GeminiProvider(api_key, model="gemini-2.0-flash")
+        primary = GeminiProvider(api_key, model=settings.GEMINI_MODEL)
+        fallback = GeminiProvider(api_key, model=settings.GEMINI_FALLBACK_MODEL)
         llm = FallbackLLMProvider(primary, fallback)
     """
     

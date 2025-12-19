@@ -98,6 +98,8 @@ def generate_exam_content(self, exam_id: str, user_id: str):
     """
 
     print(f"[CELERY] Starting generate_exam_content task for exam_id={exam_id}, user_id={user_id}")
+    # Reset LLM request counter for this run to provide accurate per-exam metrics
+    GeminiProvider.reset_request_count()
     print("[PIPELINE] marker=generate_exam_content.v1")
     print(f"[CELERY] Task ID: {self.request.id}")
     
@@ -347,24 +349,30 @@ async def _generate_exam_content_async(
             try:
                 # Use semaphore to limit concurrent LLM calls
                 async with _llm_call_semaphore:
+                    print(f"[PIPELINE] Calling generate_batch for {len(batch)} topics. Model: {settings.GEMINI_MODEL}")
                     # Execute batch generation
-                    batch_results = await topic_gen.generate_batch(
+                    batch_out = await topic_gen.generate_batch(
                         topic_ids=[t.id for t in batch],
                         cache_name=exam.cache_name,
                         exam_id=exam.id,
                         output_language=getattr(user, "preferred_language", None),
                     )
+                    batch_results = batch_out.get("results", {})
+                    batch_usage = batch_out.get("usage", {})
                 
                 # Update counts and log
                 for t in batch:
                     if t.id in batch_results:
                         ready_count += 1
-                        # Note: usage metrics are currently not returned per-topic in batch_results
-                        # but are accumulated in state. We'll rely on global metrics for logging.
+                
+                # Aggregate usage metrics
+                total_in += batch_usage.get("tokens_input", 0)
+                total_out += batch_usage.get("tokens_output", 0)
+                total_cost += batch_usage.get("cost_usd", 0.0)
                 
                 # Explicit commit after batch success
                 await session.commit()
-                print(f"[PIPELINE] batch_done idx={batch_idx+1}/{len(batches)} topics={len(batch)}")
+                print(f"[PIPELINE] batch_done idx={batch_idx+1}/{len(batches)} topics={len(batch)} batch_cost=${batch_usage.get('cost_usd', 0):.4f}")
                 
             except Exception as e:
                 import sys

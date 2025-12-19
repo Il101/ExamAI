@@ -1,10 +1,15 @@
+import asyncio
+import logging
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 
 from pydantic import BaseModel, Field
 
+from app.core.config import settings
 from app.agent.state import AgentState, ExecutionStatus, PlanStep, StepResult
 from app.integrations.llm.base import LLMProvider
+
+logger = logging.getLogger(__name__)
 
 
 class TopicSchema(BaseModel):
@@ -48,7 +53,7 @@ class TopicExecutor:
             raise ValueError("No current step to execute")
 
         print(
-            f"[Executor] Generating content for topic {current_step.id}: '{current_step.title}'..."
+            f"[Executor] Generating content for topic {current_step.id}: '{current_step.title}' using model: {settings.GEMINI_MODEL}..."
         )
 
         # Build context from previous results
@@ -351,7 +356,7 @@ class TopicExecutor:
             return {}
 
         topic_ids = [s.id for s in steps]
-        print(f"[Executor] Generating BATCH for topics {topic_ids}: {[s.title for s in steps]}...")
+        print(f"[Executor] Generating BATCH for topics {topic_ids}: {[s.title for s in steps]} using model: {settings.GEMINI_MODEL}...")
 
         # Build context from previous results (using the first step's context as base)
         previous_context = self._build_previous_context(state, steps[0])

@@ -34,7 +34,7 @@ class SubscriptionService:
                 "price": {"amount": 0, "currency": "EUR", "billing_period": None},
                 "features": {
                     "max_exams": 3,
-                    "ai_model": "gemini-2.0-flash-lite",
+                    "ai_model": settings.GEMINI_QUIZ_MODEL,
                     "advanced_analytics": False,
                     "export": False,
                 },
@@ -46,7 +46,7 @@ class SubscriptionService:
                 "stripe_price_id": settings.STRIPE_PRICE_ID_PRO,
                 "features": {
                     "max_exams": 20,
-                    "ai_model": "gemini-2.0-flash-exp",
+                    "ai_model": settings.GEMINI_MODEL,
                     "advanced_analytics": True,
                     "export": True,
                 },
@@ -63,7 +63,7 @@ class SubscriptionService:
                 "stripe_price_id": settings.STRIPE_PRICE_ID_PREMIUM,
                 "features": {
                     "max_exams": None,  # Unlimited
-                    "ai_model": "gemini-2.0-flash-exp",
+                    "ai_model": settings.GEMINI_MODEL,
                     "advanced_analytics": True,
                     "export": True,
                     "priority_support": True,

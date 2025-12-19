@@ -97,18 +97,26 @@ class TopicContentGenerator:
         cache_name: Optional[str] = None,
         exam_id: Optional[UUID] = None,
         output_language: Optional[str] = None,
-    ) -> Dict[UUID, TopicGenerationResult]:
+        include_quizzes: bool = True,
+    ) -> Dict[str, Any]:
         """
-        Generate content and flashcards for a batch of topics.
+        Generate content, flashcards, and MCQs for a batch of topics.
+        
+        Returns:
+            Dict containing:
+            - results: Dict[UUID, TopicGenerationResult]
+            - usage: Dict[str, Any] (aggregated tokens/cost)
         """
         if not topic_ids:
-            return {}
+            return {"results": {}, "usage": {"tokens_input": 0, "tokens_output": 0, "cost_usd": 0.0}}
+
+        print(f"[PIPELINE] BATCH_START topics={len(topic_ids)}")
 
         # 1. Fetch topics and exam
         topics = [await self.topic_repo.get_by_id(tid) for tid in topic_ids]
         topics = [t for t in topics if t]
         if not topics:
-            return {}
+            return {"results": {}, "usage": {"tokens_input": 0, "tokens_output": 0, "cost_usd": 0.0}}
 
         if not exam_id:
             exam_id = topics[0].exam_id
@@ -143,7 +151,7 @@ class TopicContentGenerator:
 
         logger.info(f"Executing batch generation for {len(topics)} topics")
 
-        # 3. Execute with fallback
+        # 3. Execute theory with fallback
         async def _execute_batch_op(cn: Optional[str]):
             state.cache_name = cn
             content_map = await self.executor.execute_batch(state, state.plan)
@@ -170,7 +178,7 @@ class TopicContentGenerator:
                 
                 generation_results[topic.id] = TopicGenerationResult(
                     content=content,
-                    tokens_input=0, # Usage is aggregated in state
+                    tokens_input=0, # usage is in state
                     tokens_output=0,
                     cost_usd=0.0
                 )
@@ -182,19 +190,63 @@ class TopicContentGenerator:
                         "content": content
                     })
 
-        # 5. Generate flashcards in batch
-        if topics_data_for_cards:
+        # 5. Generate flashcards AND MCQs in batch
+        total_usage = {
+            "tokens_input": state.total_tokens_input,
+            "tokens_output": state.total_tokens_output,
+            "cost_usd": state.total_cost_usd
+        }
+
+        if topics_data_for_cards and include_quizzes:
+            # Generate Flashcards
             try:
+                print(f"[PIPELINE] generating flashcard batch for {len(topics_data_for_cards)} topics")
                 cards_map, cards_usage = await self.flashcard_gen.create_for_batch(
                     topics_data=topics_data_for_cards,
                     user_id=topics[0].user_id,
                     cache_name=effective_cache_name
                 )
-                # Usage will be added to the final result of the batch if needed
+                total_usage["tokens_input"] += cards_usage.get("tokens_input", 0)
+                total_usage["tokens_output"] += cards_usage.get("tokens_output", 0)
+                total_usage["cost_usd"] += cards_usage.get("cost_usd", 0.0)
             except Exception as e:
                 logger.error(f"Flashcard batch generation failed: {e}")
 
-        return generation_results
+            # Generate MCQs (newly added to batch)
+            try:
+                print(f"[PIPELINE] generating MCQ batch for {len(topics_data_for_cards)} topics")
+                mcq_map, mcq_usage = await self.flashcard_gen.quiz_generator.generate_mcq_batch(
+                    topics_data=topics_data_for_cards,
+                    num_questions_per_topic=2
+                )
+                
+                # Save MCQs to database (caching them immediately)
+                for topic in topics:
+                    if topic.id in mcq_map:
+                        questions = mcq_map[topic.id]
+                        questions_data = [
+                            {
+                                "id": idx,
+                                "question": q.question,
+                                "options": [
+                                    {"id": opt_idx, "text": opt.text, "is_correct": opt.is_correct}
+                                    for opt_idx, opt in enumerate(q.options)
+                                ],
+                                "explanation": q.explanation.dict() if hasattr(q.explanation, "dict") else q.explanation
+                            }
+                            for idx, q in enumerate(questions)
+                        ]
+                        topic.quiz_data = {"questions": questions_data}
+                        await self.topic_repo.update(topic)
+                
+                total_usage["tokens_input"] += mcq_usage.get("tokens_input", 0)
+                total_usage["tokens_output"] += mcq_usage.get("tokens_output", 0)
+                total_usage["cost_usd"] += mcq_usage.get("cost_usd", 0.0)
+            except Exception as e:
+                logger.error(f"MCQ batch generation failed: {e}")
+
+        print(f"[PIPELINE] BATCH_DONE cost=${total_usage['cost_usd']:.4f}")
+        return {"results": generation_results, "usage": total_usage}
 
     async def regenerate_topic(
         self,

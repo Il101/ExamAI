@@ -73,17 +73,17 @@ class GeminiProvider(LLMProvider):
     _request_count: int = 0
     _request_count_lock = None  # Will be initialized as asyncio.Lock()
 
-    def __init__(self, api_key: str, model: str = "gemini-2.0-flash-exp", fallback_model: Optional[str] = None):
+    def __init__(self, api_key: str, model: Optional[str] = None, fallback_model: Optional[str] = None):
         """
         Initialize with both a primary model and optional fallback model.
         
         Args:
             api_key: Gemini API key
-            model: Primary model name (e.g. 'gemini-2.5-flash')
-            fallback_model: Optional fallback model (e.g. 'gemini-2.0-flash')
+            model: Primary model name (e.g. from settings)
+            fallback_model: Optional fallback model (e.g. from settings)
         """
-        self.model_name = model
-        self.fallback_model_name = fallback_model
+        self.model_name = model or settings.GEMINI_MODEL
+        self.fallback_model_name = fallback_model or settings.GEMINI_FALLBACK_MODEL
         self.api_key = api_key
         print(f"[GeminiProvider] Initialized with primary_model='{self.model_name}', fallback_model='{self.fallback_model_name}'")
         self.client = self._get_client(api_key)
@@ -817,7 +817,7 @@ class GeminiProvider(LLMProvider):
                 if base_model in self.PRICING:
                     pricing_key = base_model
         
-        pricing = self.PRICING.get(pricing_key, self.PRICING["gemini-1.5-flash"])
+        pricing = self.PRICING.get(pricing_key, self.PRICING.get(settings.GEMINI_MODEL, self.PRICING["gemini-1.5-flash"]))
         
         # Determine tier index (based on total prompt size: input + cached)
         # Threshold: 128,000 tokens
