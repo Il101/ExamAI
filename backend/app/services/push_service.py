@@ -17,6 +17,12 @@ class PushService:
         self.public_key = settings.VAPID_PUBLIC_KEY
         self.private_key = settings.VAPID_PRIVATE_KEY
         self.mailto = settings.VAPID_MAILTO
+        
+        # Debug logging for VAPID key configuration
+        if self.private_key:
+            logger.info(f"VAPID private key configured: length={len(self.private_key)}, starts_with={self.private_key[:20] if len(self.private_key) > 20 else self.private_key}")
+        else:
+            logger.warning("VAPID private key not configured")
 
     def is_configured(self) -> bool:
         """Check if VAPID keys are configured"""
@@ -76,6 +82,8 @@ class PushService:
             return False
         except Exception as e:
             logger.error(f"Unexpected error sending push notification: {e}")
+            logger.error(f"VAPID key type: {type(self.private_key)}, length: {len(self.private_key) if self.private_key else 0}")
+            logger.error(f"Exception type: {type(e).__name__}, details: {str(e)}", exc_info=True)
             return False
 
     async def broadcast_to_user(
