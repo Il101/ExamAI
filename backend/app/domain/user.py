@@ -6,7 +6,7 @@ from typing import Literal, Optional
 from uuid import UUID, uuid4
 
 UserRole = Literal["student", "teacher", "admin"]
-SubscriptionPlan = Literal["free", "pro", "premium"]
+SubscriptionPlan = Literal["free", "pro", "premium", "team"]
 
 
 @dataclass
@@ -64,23 +64,14 @@ class User:
         if not self.is_verified:
             return False
 
-        # Free plan: basic access
-        # Pro/Premium: unlimited
+        # Access is controlled by SubscriptionService/limits_config
         return True
-
-    def get_daily_token_limit(self) -> int:
-        """Get daily LLM token limit based on subscription"""
-        limits = {
-            "free": 50_000,  # ~25 pages
-            "pro": 500_000,  # ~250 pages
-            "premium": 2_000_000,  # ~1000 pages
-        }
-        return limits[self.subscription_plan]
 
     def get_max_exam_count(self) -> int:
         """Maximum concurrent exams"""
-        limits = {"free": 3, "pro": 20, "premium": 100}
-        return limits[self.subscription_plan]
+        from app.core.limits_config import PLAN_LIMITS
+        limit = PLAN_LIMITS.get(self.subscription_plan, PLAN_LIMITS["free"]).get("max_exams")
+        return limit if limit is not None else 999999
 
     def mark_as_verified(self):
         """Verify user account"""
@@ -96,7 +87,7 @@ class User:
         if plan == self.subscription_plan:
             raise ValueError(f"Already on {plan} plan")
 
-        plan_hierarchy = {"free": 0, "pro": 1, "premium": 2}
+        plan_hierarchy = {"free": 0, "pro": 1, "premium": 2, "team": 3}
         if plan_hierarchy[plan] < plan_hierarchy[self.subscription_plan]:
             raise ValueError("Cannot downgrade subscription through this method")
 

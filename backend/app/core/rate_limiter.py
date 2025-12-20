@@ -150,4 +150,5 @@ class SessionTracker:
 
 # Global trackers
 tutor_usage_tracker = UsageTracker("tutor_messages")
+exam_creation_tracker = UsageTracker("exam_creations")
 session_tracker = SessionTracker()

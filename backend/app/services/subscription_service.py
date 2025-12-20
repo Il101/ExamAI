@@ -22,22 +22,24 @@ class SubscriptionService:
 
     def get_available_plans(self) -> List[Dict[str, Any]]:
         """
-        Get available subscription plans.
+        Get available subscription plans using centralized config.
 
         Returns:
             List of plan dictionaries
         """
+        from app.core.limits_config import PLAN_LIMITS, PLAN_PRICING
+        
         return [
             {
                 "id": "free",
                 "name": "Starter",
-                "price": {"amount": 0, "currency": "EUR", "billing_period": None},
-                "limits": {
-                    "max_exams": 2,
-                    "max_topics_per_exam": 8,
-                    "daily_tutor_messages": 15,
-                    "max_simultaneous_sessions": 1,
+                "description": "Get started with AI-powered studying",
+                "price": {
+                    "monthly": {"amount": PLAN_PRICING["free"]["monthly"], "currency": "EUR"},
+                    "yearly": {"amount": PLAN_PRICING["free"]["yearly"], "currency": "EUR"},
+                    "amount": 0, "currency": "EUR", "billing_period": None
                 },
+                "limits": PLAN_LIMITS["free"],
                 "features": {
                     "spaced_repetition": True,
                     "ai_tutor": True,
@@ -50,18 +52,14 @@ class SubscriptionService:
             {
                 "id": "pro",
                 "name": "Pro",
+                "description": "For serious students who want more",
                 "price": {
-                    "monthly": {"amount": 7.99, "currency": "EUR"},
-                    "yearly": {"amount": 59.99, "currency": "EUR"},
+                    "monthly": {"amount": PLAN_PRICING["pro"]["monthly"], "currency": "EUR"},
+                    "yearly": {"amount": PLAN_PRICING["pro"]["yearly"], "currency": "EUR"},
                 },
                 "stripe_price_id_monthly": settings.STRIPE_PRICE_ID_PRO,
-                "stripe_price_id_yearly": getattr(settings, "STRIPE_PRICE_ID_PRO_YEARLY", None),
-                "limits": {
-                    "max_exams": 10,
-                    "max_topics_per_exam": 20,
-                    "daily_tutor_messages": 100,
-                    "max_simultaneous_sessions": 1,
-                },
+                "stripe_price_id_yearly": settings.STRIPE_PRICE_ID_PRO_YEARLY,
+                "limits": PLAN_LIMITS["pro"],
                 "features": {
                     "spaced_repetition": True,
                     "ai_tutor": True,
@@ -75,18 +73,14 @@ class SubscriptionService:
             {
                 "id": "premium",
                 "name": "Premium",
+                "description": "Unlimited power for power users",
                 "price": {
-                    "monthly": {"amount": 14.99, "currency": "EUR"},
-                    "yearly": {"amount": 119.99, "currency": "EUR"},
+                    "monthly": {"amount": PLAN_PRICING["premium"]["monthly"], "currency": "EUR"},
+                    "yearly": {"amount": PLAN_PRICING["premium"]["yearly"], "currency": "EUR"},
                 },
                 "stripe_price_id_monthly": settings.STRIPE_PRICE_ID_PREMIUM,
-                "stripe_price_id_yearly": getattr(settings, "STRIPE_PRICE_ID_PREMIUM_YEARLY", None),
-                "limits": {
-                    "max_exams": None,  # Unlimited
-                    "max_topics_per_exam": None,  # Unlimited
-                    "daily_tutor_messages": None,  # Unlimited
-                    "max_simultaneous_sessions": 2,
-                },
+                "stripe_price_id_yearly": settings.STRIPE_PRICE_ID_PREMIUM_YEARLY,
+                "limits": PLAN_LIMITS["premium"],
                 "features": {
                     "spaced_repetition": True,
                     "ai_tutor": True,
@@ -99,20 +93,14 @@ class SubscriptionService:
             {
                 "id": "team",
                 "name": "Team",
-                "description": "Perfect for study groups",
+                "description": "Perfect for study groups of up to 5",
                 "price": {
-                    "monthly": {"amount": 39.99, "currency": "EUR"},
-                    "yearly": {"amount": 299.99, "currency": "EUR"},
+                    "monthly": {"amount": PLAN_PRICING["team"]["monthly"], "currency": "EUR"},
+                    "yearly": {"amount": PLAN_PRICING["team"]["yearly"], "currency": "EUR"},
                 },
-                "stripe_price_id_monthly": getattr(settings, "STRIPE_PRICE_ID_TEAM", None),
-                "stripe_price_id_yearly": getattr(settings, "STRIPE_PRICE_ID_TEAM_YEARLY", None),
-                "limits": {
-                    "max_exams": None,  # Unlimited
-                    "max_topics_per_exam": None,  # Unlimited
-                    "daily_tutor_messages": None,  # Unlimited
-                    "max_simultaneous_sessions": 5,
-                    "max_team_members": 5,
-                },
+                "stripe_price_id_monthly": settings.STRIPE_PRICE_ID_TEAM,
+                "stripe_price_id_yearly": settings.STRIPE_PRICE_ID_TEAM_YEARLY,
+                "limits": PLAN_LIMITS["team"],
                 "features": {
                     "spaced_repetition": True,
                     "ai_tutor": True,
@@ -158,6 +146,7 @@ class SubscriptionService:
         plan_type: str,
         success_url: str,
         cancel_url: str,
+        billing_period: str = "monthly",
     ) -> Dict[str, Any]:
         """
         Create Stripe checkout session for subscription upgrade.
@@ -182,6 +171,7 @@ class SubscriptionService:
             plan_type=plan_type,
             success_url=success_url,
             cancel_url=cancel_url,
+            billing_period=billing_period,
             stripe_customer_id=subscription.stripe_customer_id,
         )
 

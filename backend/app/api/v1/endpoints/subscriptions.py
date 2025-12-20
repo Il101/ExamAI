@@ -49,6 +49,7 @@ async def create_checkout(
             plan_type=request.plan_id,
             success_url=request.success_url,
             cancel_url=request.cancel_url,
+            billing_period=request.billing_period,
         )
         return CheckoutResponse(checkout_url=result["checkout_url"])
     except Exception as e:

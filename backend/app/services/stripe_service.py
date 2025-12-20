@@ -22,6 +22,7 @@ class StripeService:
         plan_type: str,
         success_url: str,
         cancel_url: str,
+        billing_period: str = "monthly",
         stripe_customer_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
@@ -30,24 +31,37 @@ class StripeService:
         Args:
             user_id: User UUID
             user_email: User email
-            plan_type: 'pro' or 'premium'
+            plan_type: 'pro', 'premium', or 'team'
             success_url: URL to redirect after successful payment
             cancel_url: URL to redirect if user cancels
+            billing_period: 'monthly' or 'yearly'
             stripe_customer_id: Existing Stripe customer ID (if any)
 
         Returns:
             Dict with checkout_url and session_id
         """
-        # Determine price ID based on plan
-        price_id = (
-            settings.STRIPE_PRICE_ID_PRO
-            if plan_type == "pro"
-            else settings.STRIPE_PRICE_ID_PREMIUM
-        )
+        # Determine price ID based on plan and billing period
+        price_id = None
+        
+        if plan_type == "pro":
+            price_id = (
+                settings.STRIPE_PRICE_ID_PRO if billing_period == "monthly"
+                else getattr(settings, "STRIPE_PRICE_ID_PRO_YEARLY", None)
+            )
+        elif plan_type == "premium":
+            price_id = (
+                settings.STRIPE_PRICE_ID_PREMIUM if billing_period == "monthly"
+                else getattr(settings, "STRIPE_PRICE_ID_PREMIUM_YEARLY", None)
+            )
+        elif plan_type == "team":
+            price_id = (
+                getattr(settings, "STRIPE_PRICE_ID_TEAM", None) if billing_period == "monthly"
+                else getattr(settings, "STRIPE_PRICE_ID_TEAM_YEARLY", None)
+            )
 
         if not price_id:
             raise ValidationException(
-                f"Stripe price ID not configured for plan: {plan_type}"
+                f"Stripe price ID ({billing_period}) not configured for plan: {plan_type}"
             )
 
         # Create or use existing customer

@@ -53,14 +53,28 @@ class ExamService:
         Raises:
             ValueError: If validation fails or limits exceeded
         """
-        # Check exam count limit
+        # Check concurrent exam limit (unlimited if None)
         exam_count = await self.exam_repo.count_by_user(user.id, status="ready")
         max_exams = user.get_max_exam_count()
 
-        if exam_count >= max_exams:
+        if max_exams is not None and exam_count >= max_exams:
             raise ValueError(
-                f"Exam limit reached ({max_exams} for {user.subscription_plan} plan)"
+                f"Concurrent exam limit reached ({max_exams} for {user.subscription_plan} plan). "
+                "Please delete old exams to create new ones."
             )
+
+        # Check daily creation limit
+        from app.core.rate_limiter import exam_creation_tracker
+        from app.core.limits_config import PLAN_LIMITS
+        
+        daily_limit = PLAN_LIMITS.get(user.subscription_plan, PLAN_LIMITS["free"]).get("daily_exam_creations")
+        if daily_limit is not None:
+            current_daily = await exam_creation_tracker.get_count(str(user.id))
+            if current_daily >= daily_limit:
+                raise ValueError(
+                    f"Daily exam creation limit reached ({daily_limit} per day). "
+                    "Please try again tomorrow."
+                )
 
         # Clean content: remove null bytes and other invalid UTF-8 characters
         # PostgreSQL TEXT doesn't allow null bytes (0x00)
@@ -112,6 +126,10 @@ class ExamService:
         )
 
         created = await self.exam_repo.create(exam)
+
+        # Track usage
+        from app.core.rate_limiter import exam_creation_tracker
+        await exam_creation_tracker.increment(str(user.id))
 
         return created
 

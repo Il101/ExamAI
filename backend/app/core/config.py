@@ -113,8 +113,12 @@ class Settings(BaseSettings):
     STRIPE_SECRET_KEY: str = ""
     STRIPE_PUBLISHABLE_KEY: str = ""
     STRIPE_WEBHOOK_SECRET: str = ""
-    STRIPE_PRICE_ID_PRO: str = ""  # price_xxx from Stripe Dashboard
-    STRIPE_PRICE_ID_PREMIUM: str = ""  # price_xxx from Stripe Dashboard
+    STRIPE_PRICE_ID_PRO: str = ""
+    STRIPE_PRICE_ID_PRO_YEARLY: str = ""
+    STRIPE_PRICE_ID_PREMIUM: str = ""
+    STRIPE_PRICE_ID_PREMIUM_YEARLY: str = ""
+    STRIPE_PRICE_ID_TEAM: str = ""
+    STRIPE_PRICE_ID_TEAM_YEARLY: str = ""
 
     # Frontend
     FRONTEND_URL: str = "http://localhost:3000"

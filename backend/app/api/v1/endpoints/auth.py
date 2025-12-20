@@ -19,7 +19,7 @@ from app.schemas.password_reset import (
 from app.schemas.user import UserResponse
 from app.services.auth_service import AuthService
 from app.services.subscription_service import SubscriptionService
-from app.dependencies import get_auth_service, get_current_user, get_subscription_service
+from app.dependencies import get_auth_service, get_current_user, get_subscription_service, oauth2_scheme
 
 from app.core.rate_limiter import login_rate_limiter, general_rate_limiter, session_tracker
 import hashlib

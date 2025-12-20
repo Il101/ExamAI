@@ -9,9 +9,13 @@ class PlanResponse(BaseModel):
 
     id: str
     name: str
+    description: Optional[str] = None
     price: Dict[str, Any]
+    limits: Optional[Dict[str, Any]] = None
     features: Dict[str, Any]
     stripe_price_id: Optional[str] = None
+    stripe_price_id_monthly: Optional[str] = None
+    stripe_price_id_yearly: Optional[str] = None
     popular: Optional[bool] = False
 
 
@@ -38,7 +42,8 @@ class SubscriptionResponse(BaseModel):
 class CreateCheckoutRequest(BaseModel):
     """Create checkout session request"""
 
-    plan_id: str  # 'pro' or 'premium'
+    plan_id: str  # 'pro', 'premium', or 'team'
+    billing_period: Optional[str] = "monthly"
     success_url: str
     cancel_url: str
 
