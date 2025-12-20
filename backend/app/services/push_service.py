@@ -15,14 +15,40 @@ class PushService:
 
     def __init__(self):
         self.public_key = settings.VAPID_PUBLIC_KEY
-        self.private_key = settings.VAPID_PRIVATE_KEY
+        self.private_key = self._normalize_vapid_key(settings.VAPID_PRIVATE_KEY)
         self.mailto = settings.VAPID_MAILTO
         
         # Debug logging for VAPID key configuration
         if self.private_key:
-            logger.info(f"VAPID private key configured: length={len(self.private_key)}, starts_with={self.private_key[:20] if len(self.private_key) > 20 else self.private_key}")
+            logger.info(f"VAPID private key configured: length={len(self.private_key)}, starts_with={self.private_key[:30] if len(self.private_key) > 30 else self.private_key}")
         else:
             logger.warning("VAPID private key not configured")
+    
+    def _normalize_vapid_key(self, key: Optional[str]) -> Optional[str]:
+        """
+        Normalize VAPID private key to ensure it's in the correct format.
+        Handles URL-safe base64, removes newlines, and ensures PEM format if needed.
+        """
+        if not key:
+            return None
+        
+        # Remove any whitespace/newlines
+        key = key.strip().replace('\n', '').replace('\r', '')
+        
+        # If it's already a PEM file (starts with -----BEGIN), return as-is
+        if key.startswith('-----BEGIN'):
+            return key
+        
+        # If it's a base64 string, ensure it's in PEM format
+        # pywebpush expects either PEM format or will try to parse as raw base64
+        # Let's try wrapping it in PEM format
+        if not key.startswith('-----BEGIN'):
+            # This might be a raw base64 DER key, wrap it in PEM format
+            pem_key = f"-----BEGIN PRIVATE KEY-----\n{key}\n-----END PRIVATE KEY-----"
+            logger.info(f"Wrapped base64 key in PEM format")
+            return pem_key
+        
+        return key
 
     def is_configured(self) -> bool:
         """Check if VAPID keys are configured"""
