@@ -3,6 +3,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from pywebpush import webpush, WebPushException
+from py_vapid import Vapid01
 
 from app.core.config import settings
 from app.domain.push import PushSubscription
@@ -17,10 +18,19 @@ class PushService:
         self.public_key = settings.VAPID_PUBLIC_KEY
         self.private_key = settings.VAPID_PRIVATE_KEY
         self.mailto = settings.VAPID_MAILTO
+        
+        # Properly load VAPID keys using py_vapid
+        self._vapid_instance = None
+        if self.private_key:
+            try:
+                self._vapid_instance = Vapid01.from_string(self.private_key)
+            except Exception as e:
+                logger.error(f"Failed to load VAPID private key: {e}")
+                self._vapid_instance = None
 
     def is_configured(self) -> bool:
         """Check if VAPID keys are configured"""
-        return bool(self.public_key and self.private_key)
+        return bool(self._vapid_instance)
 
     async def send_notification(
         self, 
@@ -48,6 +58,12 @@ class PushService:
                 "data": data or {}
             }
 
+            # Generate VAPID claims using the py_vapid library
+            vapid_claims = {
+                "sub": self.mailto,
+                "aud": f"{subscription.endpoint.split('/')[0]}//{subscription.endpoint.split('/')[2]}"
+            }
+            
             webpush(
                 subscription_info={
                     "endpoint": subscription.endpoint,
@@ -57,8 +73,8 @@ class PushService:
                     }
                 },
                 data=json.dumps(payload),
-                vapid_private_key=self.private_key,
-                vapid_claims={"sub": self.mailto},
+                vapid_private_key=self._vapid_instance,
+                vapid_claims=vapid_claims,
             )
             return True
         except WebPushException as ex:
