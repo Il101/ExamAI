@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.dependencies import get_db, get_current_active_user
-from app.db.models.user import UserModel
+from app.db.session import get_db
+from app.dependencies import get_current_active_user
+from app.domain.user import User
 from app.domain.push import PushSubscription
 from app.repositories.push_subscription_repository import PushSubscriptionRepository
 from app.schemas.push import PushSubscriptionCreate, PushSubscriptionResponse
@@ -14,7 +15,7 @@ router = APIRouter()
 async def subscribe(
     payload: PushSubscriptionCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: UserModel = Depends(get_current_active_user),
+    current_user: User = Depends(get_current_active_user),
 ):
     """
     Register a browser push subscription for the current user.
@@ -41,7 +42,7 @@ async def subscribe(
 async def unsubscribe(
     payload: PushSubscriptionCreate,  # We only need endpoint, but client sends JSON object
     db: AsyncSession = Depends(get_db),
-    current_user: UserModel = Depends(get_current_active_user),
+    current_user: User = Depends(get_current_active_user),
 ):
     """
     Remove a browser push subscription.
