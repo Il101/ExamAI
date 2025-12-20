@@ -33,8 +33,8 @@ export default function AnalyticsPage() {
                     <div className="grid gap-6 md:grid-cols-4">
                         {[1, 2, 3, 4].map((i) => (
                             <Card key={i} className="p-6">
-                                <div className="h-4 bg-gray-200 rounded mb-2" />
-                                <div className="h-8 bg-gray-200 rounded" />
+                                <div className="h-4 bg-muted rounded mb-2" />
+                                <div className="h-8 bg-muted rounded" />
                             </Card>
                         ))}
                     </div>
@@ -60,7 +60,7 @@ export default function AnalyticsPage() {
             {/* Header */}
             <div>
                 <h1 className="text-3xl font-bold text-foreground">Analytics</h1>
-                <p className="mt-2 text-muted">
+                <p className="mt-2 text-muted-foreground">
                     Track your learning progress and performance
                 </p>
             </div>
@@ -71,7 +71,7 @@ export default function AnalyticsPage() {
                     <div className="flex items-center justify-between mb-4">
                         <Brain className="h-8 w-8 text-blue-600" />
                     </div>
-                    <p className="text-sm text-gray-600 mb-1">Total Cards Learned</p>
+                    <p className="text-sm text-muted-foreground mb-1">Total Cards Learned</p>
                     <p className="text-3xl font-bold">{stats?.total_cards_learned || 0}</p>
                 </Card>
 
@@ -79,10 +79,10 @@ export default function AnalyticsPage() {
                     <div className="flex items-center justify-between mb-4">
                         <Clock className="h-8 w-8 text-green-600" />
                     </div>
-                    <p className="text-sm text-gray-600 mb-1">Study Time</p>
+                    <p className="text-sm text-muted-foreground mb-1">Study Time</p>
                     <div className="flex items-baseline gap-2">
                         <p className="text-3xl font-bold">{stats?.total_minutes_studied || 0}</p>
-                        <p className="text-xs text-gray-500">minutes</p>
+                        <p className="text-xs text-muted-foreground">minutes</p>
                     </div>
                     {(!stats?.total_minutes_studied || stats.total_minutes_studied === 0) && (
                         <TooltipProvider>
@@ -105,18 +105,18 @@ export default function AnalyticsPage() {
                     <div className="flex items-center justify-between mb-4">
                         <TrendingUp className="h-8 w-8 text-orange-600" />
                     </div>
-                    <p className="text-sm text-gray-600 mb-1">Current Streak</p>
+                    <p className="text-sm text-muted-foreground mb-1">Current Streak</p>
                     <p className="text-3xl font-bold">{stats?.current_streak || 0}</p>
-                    <p className="text-xs text-gray-500">days</p>
+                    <p className="text-xs text-muted-foreground">days</p>
                 </Card>
 
                 <Card className="p-6">
                     <div className="flex items-center justify-between mb-4">
                         <Target className="h-8 w-8 text-purple-600" />
                     </div>
-                    <p className="text-sm text-gray-600 mb-1">Longest Streak</p>
+                    <p className="text-sm text-muted-foreground mb-1">Longest Streak</p>
                     <p className="text-3xl font-bold">{stats?.longest_streak || 0}</p>
-                    <p className="text-xs text-gray-500">days</p>
+                    <p className="text-xs text-muted-foreground">days</p>
                 </Card>
             </div>
 
@@ -145,7 +145,7 @@ export default function AnalyticsPage() {
                                                         "h-3 w-3 rounded-full",
                                                         isHighActivity ? "bg-green-500" :
                                                             hasActivity ? "bg-yellow-500" :
-                                                                "bg-gray-300"
+                                                                "bg-muted"
                                                     )} />
                                                     <Calendar className="h-4 w-4 text-muted-foreground" />
                                                     <span className="text-sm font-medium">
@@ -153,10 +153,10 @@ export default function AnalyticsPage() {
                                                     </span>
                                                 </div>
                                                 <div className="flex gap-6 text-sm">
-                                                    <span className="text-muted">
+                                                    <span className="text-muted-foreground">
                                                         {day.cards_reviewed} cards
                                                     </span>
-                                                    <span className="text-muted">
+                                                    <span className="text-muted-foreground">
                                                         {day.minutes_studied} min
                                                     </span>
                                                 </div>
@@ -165,7 +165,7 @@ export default function AnalyticsPage() {
                                     })}
                                 </div>
                             ) : (
-                                <p className="text-gray-500 text-center py-8">
+                                <p className="text-muted-foreground text-center py-8">
                                     No progress data available yet. Start studying to see your progress!
                                 </p>
                             )}
@@ -175,10 +175,10 @@ export default function AnalyticsPage() {
                     <TabsContent value="retention" className="mt-6">
                         <div className="space-y-4">
                             <h3 className="text-lg font-semibold">Forgetting Curve</h3>
-                            <p className="text-sm text-gray-500 mb-4">
+                            <p className="text-sm text-muted-foreground mb-4">
                                 Shows how your memory retention decays over time without review (based on FSRS model).
                             </p>
-                            <div className="bg-white dark:bg-gray-900 p-4 rounded-lg border">
+                            <div className="bg-muted/30 p-4 rounded-lg border">
                                 <RetentionChart data={retentionData} />
                             </div>
                         </div>
@@ -187,10 +187,10 @@ export default function AnalyticsPage() {
                     <TabsContent value="activity" className="mt-6">
                         <div className="space-y-4">
                             <h3 className="text-lg font-semibold">Study Activity</h3>
-                            <p className="text-sm text-gray-500 mb-4">
+                            <p className="text-sm text-muted-foreground mb-4">
                                 Your study consistency over the last 30 days.
                             </p>
-                            <div className="bg-white dark:bg-gray-900 p-4 rounded-lg border overflow-hidden">
+                            <div className="bg-muted/30 p-4 rounded-lg border overflow-hidden">
                                 <ActivityHeatmap data={heatmapData} />
                             </div>
                         </div>

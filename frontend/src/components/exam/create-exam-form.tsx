@@ -189,7 +189,7 @@ export function CreateExamForm({ onSuccess }: { onSuccess?: () => void }) {
                   Clear
                 </Button>
               </div>
-              <ul className="space-y-1 text-sm text-gray-700">
+              <ul className="space-y-1 text-sm text-foreground">
                 {uploadedFiles.map((file, idx) => (
                   <li key={`${file.name}-${idx}`} className="flex items-center justify-between">
                     <span className="truncate">{file.name} · {formatBytes(file.size)}</span>
@@ -204,7 +204,7 @@ export function CreateExamForm({ onSuccess }: { onSuccess?: () => void }) {
                   </li>
                 ))}
               </ul>
-              <p className="text-xs text-gray-500">Total size: {formatBytes(totalSize)} / 50MB</p>
+              <p className="text-xs text-muted-foreground">Total size: {formatBytes(totalSize)} / 50MB</p>
             </div>
           )}
 

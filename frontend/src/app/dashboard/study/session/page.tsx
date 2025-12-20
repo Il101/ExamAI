@@ -113,8 +113,8 @@ export default function StudySessionPage() {
             <div className="container max-w-2xl py-12">
                 <Card className="text-center p-12 animate-in fade-in zoom-in duration-500">
                     <div className="flex justify-center mb-6">
-                        <div className="h-20 w-20 rounded-full bg-green-100 flex items-center justify-center">
-                            <Trophy className="h-10 w-10 text-green-600" />
+                        <div className="h-20 w-20 rounded-full bg-green-500/10 flex items-center justify-center">
+                            <Trophy className="h-10 w-10 text-green-500" />
                         </div>
                     </div>
                     <h2 className="text-3xl font-bold mb-2">Session Complete!</h2>
@@ -128,11 +128,11 @@ export default function StudySessionPage() {
                             <div className="text-xs text-muted-foreground uppercase">Cards</div>
                         </div>
                         <div className="p-4 bg-muted rounded-lg">
-                            <div className="text-2xl font-bold text-green-600">{accuracy}%</div>
+                            <div className="text-2xl font-bold text-green-500">{accuracy}%</div>
                             <div className="text-xs text-muted-foreground uppercase">Accuracy</div>
                         </div>
                         <div className="p-4 bg-muted rounded-lg">
-                            <div className="text-2xl font-bold text-blue-600">1</div>
+                            <div className="text-2xl font-bold text-blue-500">1</div>
                             <div className="text-xs text-muted-foreground uppercase">Day Streak</div>
                         </div>
                     </div>

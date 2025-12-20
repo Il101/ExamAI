@@ -26,8 +26,8 @@ export default function ExamsPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">My Exams</h1>
-                    <p className="mt-2 text-gray-600">
+                    <h1 className="text-3xl font-bold text-foreground">My Exams</h1>
+                    <p className="mt-2 text-muted-foreground">
                         Manage and track all your exam preparations
                     </p>
                 </div>
@@ -41,7 +41,7 @@ export default function ExamsPage() {
 
             {/* Search */}
             <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                     placeholder="Search exams..."
                     className="pl-10"
@@ -55,9 +55,9 @@ export default function ExamsPage() {
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {[1, 2, 3, 4, 5, 6].map((i) => (
                         <Card key={i} className="p-6 animate-pulse">
-                            <div className="h-6 bg-gray-200 rounded mb-4" />
-                            <div className="h-4 bg-gray-200 rounded w-2/3 mb-2" />
-                            <div className="h-4 bg-gray-200 rounded w-1/2" />
+                            <div className="h-6 bg-muted rounded mb-4" />
+                            <div className="h-4 bg-muted rounded w-2/3 mb-2" />
+                            <div className="h-4 bg-muted rounded w-1/2" />
                         </Card>
                     ))}
                 </div>
@@ -86,20 +86,20 @@ export default function ExamsPage() {
                 </div>
             ) : exams && exams.length > 0 ? (
                 <Card className="p-12 text-center">
-                    <Search className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-foreground mb-2">
                         No exams found
                     </h3>
-                    <p className="text-gray-600">
+                    <p className="text-muted-foreground">
                         Try adjusting your search query
                     </p>
                 </Card>
             ) : (
                 <Card className="p-12 text-center">
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    <h3 className="text-lg font-medium text-foreground mb-2">
                         No exams yet
                     </h3>
-                    <p className="text-gray-600 mb-6">
+                    <p className="text-muted-foreground mb-6">
                         Get started by creating your first exam
                     </p>
                     <Link href="/dashboard/exams/new">

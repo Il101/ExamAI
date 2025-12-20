@@ -24,8 +24,8 @@ export default function NewExamPage() {
                         Back to Exams
                     </Button>
                 </Link>
-                <h1 className="text-3xl font-bold text-gray-900">Create New Exam</h1>
-                <p className="mt-2 text-gray-600">
+                <h1 className="text-3xl font-bold text-foreground">Create New Exam</h1>
+                <p className="mt-2 text-muted-foreground">
                     Upload your study materials and let AI generate personalized exam content
                 </p>
             </div>

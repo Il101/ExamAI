@@ -48,8 +48,8 @@ export default function SettingsPage() {
         <div className="max-w-4xl mx-auto space-y-8">
             {/* Header */}
             <div>
-                <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
-                <p className="mt-2 text-gray-600">
+                <h1 className="text-3xl font-bold text-foreground">Settings</h1>
+                <p className="mt-2 text-muted-foreground">
                     Manage your account settings and preferences
                 </p>
             </div>
