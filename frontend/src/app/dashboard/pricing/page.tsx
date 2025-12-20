@@ -80,7 +80,7 @@ export default function PricingPage() {
     }
 
     return (
-        <div className="container max-w-7xl py-12 space-y-16">
+        <div className="space-y-16">
             {/* Hero Section */}
             <div className="text-center space-y-6">
                 <Badge variant="secondary" className="px-4 py-1.5">

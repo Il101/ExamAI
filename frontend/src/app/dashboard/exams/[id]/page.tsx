@@ -261,7 +261,7 @@ export default function ExamDetailPage() {
     };
 
     return (
-        <div className="container max-w-5xl py-8">
+        <div className="space-y-8">
             <div className="mb-8">
                 <ExamHeader
                     examId={exam.id}
