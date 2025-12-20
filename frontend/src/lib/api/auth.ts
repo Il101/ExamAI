@@ -23,8 +23,16 @@ export interface User {
   email: string;
   full_name: string;
   role: string;
-  is_active: boolean;
-  is_superuser: boolean;
+  subscription_plan: string;
+  is_verified: boolean;
+  preferred_language: string;
+  timezone: string;
+  daily_study_goal_minutes: number;
+  notification_exam_ready: boolean;
+  notification_study_reminders: boolean;
+  notification_product_updates: boolean;
+  created_at?: string;
+  last_login?: string;
 }
 
 export const authApi = {

@@ -353,13 +353,6 @@ async def _generate_exam_content_async(
                     # Execute batch generation
                     batch_out = await topic_gen.generate_batch(
                         topic_ids=[t.id for t in batch],
-                        cache_name=exam.cache_name,
-                        exam_id=exam.id,
-                        output_language=getattr(user, "preferred_language", None),
-                    )
-                    batch_results = batch_out.get("results", {})
-                    batch_usage = batch_out.get("usage", {})
-                
                 # Update counts and log
                 for t in batch:
                     if t.id in batch_results:
@@ -436,6 +429,21 @@ async def _generate_exam_content_async(
         )
         await exam_repo.update(exam)
         await session.commit()
+
+        # Trigger email notification if enabled
+        if getattr(user, "notification_exam_ready", True):
+            from app.tasks.email_tasks import send_exam_ready_notification, send_user_push_notification
+
+            send_exam_ready_notification.delay(
+                user_email=user.email, exam_title=exam.title, exam_id=str(exam_id)
+            )
+            
+            send_user_push_notification.delay(
+                user_id=str(user.id),
+                title="Your study notes are ready! 📚",
+                body=f"Study materials for '{exam.title}' have been generated.",
+                url=f"/exams/{exam_id}"
+            )
 
         return {
             "status": "success",

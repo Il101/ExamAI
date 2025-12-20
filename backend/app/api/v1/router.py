@@ -8,6 +8,7 @@ from app.api.v1.endpoints import (
     chat,
     exams,
     health,
+    push,
     quiz_results,
     reviews,
     sessions,
@@ -40,5 +41,6 @@ api_router.include_router(tasks.router, prefix="/tasks", tags=["Tasks"])
 api_router.include_router(analyze.router, prefix="/analyze", tags=["Content Analysis"])
 api_router.include_router(chat.router, prefix="/chat", tags=["AI Tutor Chat"])
 api_router.include_router(quiz_results.router, prefix="/quiz-results", tags=["Quiz Results"])
+api_router.include_router(push.router, prefix="/push", tags=["Push Notifications"])
 
 

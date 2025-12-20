@@ -34,17 +34,21 @@ async def _send_daily_review_reminders_async():
             # Get due reviews count
             due_count = await review_repo.count_due_by_user(user.id)
 
-            if due_count > 0:
+            if due_count > 0 and getattr(user, "notification_study_reminders", True):
                 # Send reminder email
+                from app.tasks.email_tasks import send_email, send_user_push_notification
+                
                 send_email.delay(
                     to_email=user.email,
                     subject=f"You have {due_count} reviews due today",
-                    html_content=f"""
-                    <h2>Study Reminder</h2>
-                    <p>Hi {user.full_name},</p>
-                    <p>You have <strong>{due_count}</strong> flashcards due for review today.</p>
-                    <p><a href="{settings.FRONTEND_URL}/study">Start Reviewing</a></p>
-                    """,
+                    html_content=f"Head over to ExamAI and complete your {due_count} reviews to keep your streak!"
+                )
+                
+                send_user_push_notification.delay(
+                    user_id=str(user.id),
+                    title="Daily Review Reminder 🧠",
+                    body=f"You have {due_count} reviews due today. Keep your streak!",
+                    url="/dashboard"
                 )
                 sent_count += 1
 

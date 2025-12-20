@@ -14,6 +14,8 @@ if TYPE_CHECKING:
     from .topic import TopicModel
     from .review_log import ReviewLogModel
     from .quiz_result import QuizResultModel
+    from .notification import NotificationModel
+    from .push_subscription import PushSubscriptionModel
 
 
 class UserModel(Base):
@@ -85,6 +87,14 @@ class UserModel(Base):
 
     quiz_results: Mapped[list["QuizResultModel"]] = relationship(
         "QuizResultModel", back_populates="user", cascade="all, delete-orphan"
+    )
+
+    notifications: Mapped[list["NotificationModel"]] = relationship(
+        "NotificationModel", back_populates="user", cascade="all, delete-orphan"
+    )
+
+    push_subscriptions: Mapped[list["PushSubscriptionModel"]] = relationship(
+        "PushSubscriptionModel", back_populates="user", cascade="all, delete-orphan"
     )
 
     def __repr__(self) -> str:

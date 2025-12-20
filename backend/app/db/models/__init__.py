@@ -1,5 +1,7 @@
 from .exam import ExamModel  # noqa: F401
 from .llm_usage import LLMUsageLogModel  # noqa: F401
+from .notification import NotificationModel  # noqa: F401
+from .push_subscription import PushSubscriptionModel  # noqa: F401
 from .quiz_result import QuizResultModel  # noqa: F401
 from .review import ReviewItemModel  # noqa: F401
 from .review_log import ReviewLogModel  # noqa: F401

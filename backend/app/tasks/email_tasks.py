@@ -140,3 +140,34 @@ def send_exam_ready_notification(user_email: str, exam_title: str, exam_id: str)
         subject=f"Your study notes for '{exam_title}' are ready!",
         html_content=html_content,
     )
+
+
+@celery_app.task(name="send_user_push_notification")
+def send_user_push_notification(user_id: str, title: str, body: str, url: str = "/"):
+    """
+    Send push notification to all user's devices.
+    Runs asynchronously via Celery.
+    """
+    import asyncio
+    from app.db.session import async_session_factory
+    from app.repositories.push_subscription_repository import PushSubscriptionRepository
+    from app.services.push_service import PushService
+    from uuid import UUID
+
+    async def _send():
+        async with async_session_factory() as session:
+            repo = PushSubscriptionRepository(session)
+            subscriptions = await repo.get_by_user_id(UUID(user_id))
+            
+            if not subscriptions:
+                return 0
+            
+            service = PushService()
+            return await service.broadcast_to_user(
+                subscriptions=subscriptions,
+                title=title,
+                body=body,
+                url=url
+            )
+
+    return asyncio.run(_send())
