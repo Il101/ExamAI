@@ -27,6 +27,12 @@ async def subscribe(
     existing = await repo.get_by_endpoint(payload.endpoint)
     if existing:
         return PushSubscriptionResponse(endpoint=existing.endpoint)
+    
+    # Delete all old subscriptions for this user to prevent duplicates
+    # This ensures only one active subscription per user
+    old_subscriptions = await repo.get_by_user_id(current_user.id)
+    for old_sub in old_subscriptions:
+        await repo.delete_by_endpoint(old_sub.endpoint)
 
     subscription = PushSubscription(
         user_id=current_user.id,

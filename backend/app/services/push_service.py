@@ -110,9 +110,11 @@ class PushService:
         data: Optional[Dict[str, Any]] = None
     ) -> int:
         """Send notification to all user's registered devices"""
+        logger.info(f"Broadcasting notification to {len(subscriptions)} subscription(s)")
         sent_count = 0
         for sub in subscriptions:
             success = await self.send_notification(sub, title, body, url, data)
             if success:
                 sent_count += 1
+        logger.info(f"Successfully sent to {sent_count}/{len(subscriptions)} subscription(s)")
         return sent_count
