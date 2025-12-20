@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { FeedbackButton } from "@/components/feedback/feedback-button";
+import { CookieConsent } from "@/components/layout/cookie-consent";
 // TEMPORARILY DISABLED - Need to test on all pages before re-enabling
 // import { PullToRefresh } from "@/components/layout/pull-to-refresh";
 
@@ -51,6 +52,7 @@ export default function RootLayout({
           {children}
           {/* </PullToRefresh> */}
           <FeedbackButton />
+          <CookieConsent />
         </Providers>
       </body>
     </html>
