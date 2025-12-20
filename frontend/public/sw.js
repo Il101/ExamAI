@@ -22,6 +22,8 @@ self.addEventListener('push', function (event) {
                 ...data
             },
             vibrate: [100, 50, 100],
+            silent: false, // Enable notification sound
+            requireInteraction: true, // Keep notification visible until user interacts
             actions: [
                 {
                     action: 'open',
