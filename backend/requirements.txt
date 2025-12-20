@@ -20,7 +20,7 @@ PyJWT==2.10.1
 python-jose==3.5.0
 bcrypt==5.0.0
 passlib==1.7.4
-cryptography==46.0.3
+cryptography==42.0.8
 
 # Supabase
 supabase==2.24.0
