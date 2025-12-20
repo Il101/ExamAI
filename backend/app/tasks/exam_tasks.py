@@ -353,6 +353,12 @@ async def _generate_exam_content_async(
                     # Execute batch generation
                     batch_out = await topic_gen.generate_batch(
                         topic_ids=[t.id for t in batch],
+                        user_id=user_id,
+                        cache_name=exam.cache_name,
+                    )
+                    batch_results = batch_out.get("results", {})
+                    batch_usage = batch_out.get("usage", {})
+
                 # Update counts and log
                 for t in batch:
                     if t.id in batch_results:
