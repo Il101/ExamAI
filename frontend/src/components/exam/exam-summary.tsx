@@ -43,7 +43,7 @@ export function ExamSummary({ exam }: ExamSummaryProps) {
                     </div>
                 </CardHeader>
                 <CardContent className="pt-8">
-                    <div className="prose prose-slate dark:prose-invert max-w-none">
+                    <div className="prose prose-slate dark:prose-invert max-w-none prose-strong:text-secondary">
                         <h3 className="flex items-center gap-2 text-xl font-semibold mb-4">
                             <FileText className="h-5 w-5 text-primary" />
                             AI Summary

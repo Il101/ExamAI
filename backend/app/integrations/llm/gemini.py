@@ -26,6 +26,11 @@ class GeminiProvider(LLMProvider):
             "output": 3.00 / 1_000_000,
             "cache": 0.05 / 1_000_000,  # 90% discount on processing
         },
+        "gemini-3-flash-preview": {
+            "input": 0.50 / 1_000_000,
+            "output": 3.00 / 1_000_000,
+            "cache": 0.05 / 1_000_000,
+        },
         
         # Gemini 2.5 Series
         "gemini-2.5-flash": {
@@ -842,16 +847,22 @@ class GeminiProvider(LLMProvider):
         
         model_name = model or self.model_name
         
-        # Get pricing key (strip potential version suffix)
+        # Get pricing key (handle versions, previews, experiments)
         pricing_key = model_name
-        if pricing_key not in self.PRICING:
-            parts = pricing_key.split("-")
-            if len(parts) > 1 and parts[-1].isdigit():
-                base_model = "-".join(parts[:-1])
-                if base_model in self.PRICING:
-                    pricing_key = base_model
         
-        pricing = self.PRICING.get(pricing_key, self.PRICING.get(settings.GEMINI_MODEL, self.PRICING["gemini-1.5-flash"]))
+        # Iterative cleaning of the model name to find a pricing match
+        # e.g., gemini-3-flash-preview -> gemini-3-flash
+        # e.g., gemini-2.0-flash-001 -> gemini-2.0-flash
+        while pricing_key not in self.PRICING and "-" in pricing_key:
+            parts = pricing_key.split("-")
+            # Always try stripping the last part (digit version, -preview, -exp, etc.)
+            pricing_key = "-".join(parts[:-1])
+            if pricing_key in self.PRICING:
+                break
+        
+        # Fallback to general settings or hardcoded default
+        default_key = settings.GEMINI_MODEL if settings.GEMINI_MODEL in self.PRICING else "gemini-1.5-flash"
+        pricing = self.PRICING.get(pricing_key, self.PRICING.get(default_key))
         
         # Determine tier index (based on total prompt size: input + cached)
         # Threshold: 128,000 tokens

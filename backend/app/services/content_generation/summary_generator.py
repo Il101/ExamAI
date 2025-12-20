@@ -41,30 +41,37 @@ class ExamSummaryGenerator:
         return "\n".join(lines)
 
     @staticmethod
-    def _normalize_bullets(markdown: str, max_lines: int = 25) -> str:
-        """Extract and normalize bullet points from markdown text."""
+    def _normalize_bullets(markdown: str, max_lines: int = 50) -> str:
+        """
+        Normalize and clean up AI-generated summary markdown.
+        Preserves headings and paragraphs while ensuring consistent bulleting.
+        """
         if not markdown:
             return ""
 
         lines = []
         for raw_line in markdown.splitlines():
-            line = raw_line.rstrip()
-            # Skip empty lines and code fence markers
-            if line.strip() and not line.strip().startswith("```"):
-                lines.append(line.strip())
+            line = raw_line.strip()
+            # Skip empty lines and code fences
+            if not line or line.startswith("```"):
+                continue
+            
+            # Preserve headings
+            if line.startswith("#"):
+                lines.append(line)
+                continue
+            
+            # Normalize bullets (convert * or + to -)
+            if line.startswith("* ") or line.startswith("+ "):
+                lines.append("- " + line[2:].strip())
+            elif line.startswith("- "):
+                lines.append(line)
+            else:
+                # It's a plain line/paragraph - keep it as is
+                lines.append(line)
 
-        bullets: list[str] = []
-        for line in lines:
-            if line.startswith("- "):
-                bullets.append(line)
-            elif line.startswith("* "):
-                bullets.append("- " + line[2:].strip())
-
-        # If no bullets found, convert all lines to bullets
-        if not bullets:
-            bullets = ["- " + line.lstrip("-*").strip() for line in lines if line.strip()]
-
-        return "\n".join(bullets[:max_lines]).strip()
+        # Return joined lines up to max_lines
+        return "\n".join(lines[:max_lines]).strip()
 
     async def generate_tldr(
         self,

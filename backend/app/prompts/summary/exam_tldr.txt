@@ -4,10 +4,11 @@ Task: write a TL;DR summary for a student's exam preparation.
 
 Constraints (MUST follow):
 - Output language: {output_language}
-- Length: 15–25 lines total.
-- Format: Markdown bullet list only (each line starts with "- "). No headings.
+- Length: 15–30 lines total.
+- Format: Use Markdown structure. Use H3/H4 headings (### or ####) for sections.
+- Use bullet points for details. Bold key terms for emphasis.
 - No meta commentary, no "thinking", no plans, no references to prompts.
-- Be faithful to the provided topics and their content; do not invent topics.
+- Be faithful to the provided topics; do not invent new subjects.
 
 Context:
 - Subject: {subject}
