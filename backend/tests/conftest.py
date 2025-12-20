@@ -109,3 +109,81 @@ async def client(test_session, mock_auth_service):
         yield ac
 
     app.dependency_overrides.clear()
+
+
+@pytest_asyncio.fixture
+def mock_topic_generator():
+    """Mock TopicContentGenerator for task tests"""
+    from unittest.mock import AsyncMock
+    
+    mock = AsyncMock()
+    mock.generate_batch.return_value = {
+        "results": {},
+        "usage": {"tokens_input": 1000, "tokens_output": 500, "cost_usd": 0.01}
+    }
+    return mock
+
+
+@pytest_asyncio.fixture
+def mock_gemini_provider():
+    """Mock GeminiProvider for content generation tests"""
+    from unittest.mock import AsyncMock, Mock
+    
+    mock = Mock()
+    mock.generate_content = AsyncMock(return_value="Generated content")
+    mock.calculate_cost = Mock(return_value=0.01)
+    return mock
+
+
+@pytest_asyncio.fixture
+async def sample_exam_with_topics(test_session):
+    """Create exam with topics for testing"""
+    from uuid import uuid4
+    
+    from app.db.models.exam import ExamModel
+    from app.db.models.topic import TopicModel
+    from app.db.models.user import UserModel
+    
+    # Create user
+    user = UserModel(
+        id=uuid4(),
+        email="test@example.com",
+        full_name="Test User",
+        hashed_password="hashed_password",
+        subscription_plan="free"
+    )
+    test_session.add(user)
+    await test_session.flush()
+    
+    # Create exam
+    exam = ExamModel(
+        id=uuid4(),
+        user_id=user.id,
+        title="Test Exam",
+        subject="Physics",
+        exam_type="written",
+        level="bachelor",
+        original_content="Test content " * 20,
+        status="generating",
+        cache_name="test_cache"
+    )
+    test_session.add(exam)
+    await test_session.flush()
+    
+    # Create topics
+    topics = []
+    for i in range(5):
+        topic = TopicModel(
+            id=uuid4(),
+            exam_id=exam.id,
+            user_id=user.id,
+            topic_name=f"Topic {i+1}",
+            order_index=i,
+            status="pending"
+        )
+        test_session.add(topic)
+        topics.append(topic)
+    
+    await test_session.commit()
+    
+    return {"user": user, "exam": exam, "topics": topics}
