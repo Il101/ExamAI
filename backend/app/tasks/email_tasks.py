@@ -149,13 +149,13 @@ def send_user_push_notification(user_id: str, title: str, body: str, url: str = 
     Runs asynchronously via Celery.
     """
     import asyncio
-    from app.db.session import async_session_factory
+    from app.db.session import AsyncSessionLocal
     from app.repositories.push_subscription_repository import PushSubscriptionRepository
     from app.services.push_service import PushService
     from uuid import UUID
 
     async def _send():
-        async with async_session_factory() as session:
+        async with AsyncSessionLocal() as session:
             repo = PushSubscriptionRepository(session)
             subscriptions = await repo.get_by_user_id(UUID(user_id))
             

@@ -30,4 +30,9 @@ export const usersApi = {
     deleteAccount: async (): Promise<void> => {
         await api.delete('/users/me');
     },
+
+    sendTestNotification: async (): Promise<{ message: string; subscription_count: number }> => {
+        const response = await api.post<{ message: string; subscription_count: number }>('/push/test');
+        return response.data;
+    },
 };

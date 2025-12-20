@@ -17,6 +17,7 @@ interface NotificationSettingsProps {
 export function NotificationSettings({ user }: NotificationSettingsProps) {
     const { isSubscribed, subscribe, unsubscribe, isLoading: isPushLoading } = usePushNotifications();
     const [isLoading, setIsLoading] = useState(false);
+    const [isSendingTest, setIsSendingTest] = useState(false);
     const [preferences, setPreferences] = useState({
         notification_exam_ready: user?.notification_exam_ready ?? true,
         notification_study_reminders: user?.notification_study_reminders ?? true,
@@ -44,6 +45,19 @@ export function NotificationSettings({ user }: NotificationSettingsProps) {
             toast.error('Failed to save preferences. Please try again.');
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleSendTest = async () => {
+        try {
+            setIsSendingTest(true);
+            await usersApi.sendTestNotification();
+            toast.success('Test notification sent! Check your notifications.');
+        } catch (error) {
+            console.error('Failed to send test notification:', error);
+            toast.error('Failed to send test notification. Please try again.');
+        } finally {
+            setIsSendingTest(false);
         }
     };
 
@@ -120,6 +134,23 @@ export function NotificationSettings({ user }: NotificationSettingsProps) {
                             disabled={isPushLoading}
                         />
                     </div>
+
+                    {isSubscribed && (
+                        <div className="ml-4 pl-4 border-l-2 border-blue-200 dark:border-blue-700">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleSendTest}
+                                disabled={isSendingTest}
+                                className="text-sm"
+                            >
+                                {isSendingTest ? 'Sending...' : '📬 Send Test Notification'}
+                            </Button>
+                            <p className="text-xs text-muted-foreground mt-2">
+                                Click to verify your browser notifications are working correctly
+                            </p>
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex justify-end pt-2">
