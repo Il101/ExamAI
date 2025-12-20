@@ -39,13 +39,12 @@ class PushService:
         if key.startswith('-----BEGIN'):
             return key
         
-        # If it's a base64 string, ensure it's in PEM format
-        # pywebpush expects either PEM format or will try to parse as raw base64
-        # Let's try wrapping it in PEM format
+        # If it's a base64 string without PEM wrapper, wrap it
+        # VAPID uses EC (Elliptic Curve) keys, so use EC PRIVATE KEY header
         if not key.startswith('-----BEGIN'):
-            # This might be a raw base64 DER key, wrap it in PEM format
-            pem_key = f"-----BEGIN PRIVATE KEY-----\n{key}\n-----END PRIVATE KEY-----"
-            logger.info(f"Wrapped base64 key in PEM format")
+            # This is a raw base64 DER key, wrap it in PEM format for EC keys
+            pem_key = f"-----BEGIN EC PRIVATE KEY-----\n{key}\n-----END EC PRIVATE KEY-----"
+            logger.info(f"Wrapped base64 EC key in PEM format")
             return pem_key
         
         return key
