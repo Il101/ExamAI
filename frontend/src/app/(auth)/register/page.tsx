@@ -60,7 +60,7 @@ export default function RegisterPage() {
   return (
     <Card className="w-full p-8 shadow-2xl border-white/10 bg-card/50 backdrop-blur-xl">
       <div className="mb-8 text-center">
-        <h1 className="text-3xl font-bold mb-2 text-foreground">Create account</h1>
+        <h1 className="text-3xl font-bold mb-2 text-foreground">Sign up</h1>
         <p className="text-muted-foreground">Start your learning journey with ExamAI Pro</p>
       </div>
 
@@ -69,7 +69,7 @@ export default function RegisterPage() {
           <p className="font-medium">{serverError}</p>
           {serverError.toLowerCase().includes('already registered') && (
             <div className="mt-2 flex gap-2">
-              <Link href="/login" className="text-primary hover:underline">Go to login</Link>
+              <Link href="/login" className="text-primary hover:underline">Go to sign in</Link>
               <span className="text-gray-400">•</span>
               <Link href="/forgot-password" className="text-primary hover:underline">Reset password</Link>
             </div>
@@ -155,10 +155,9 @@ export default function RegisterPage() {
         <Button
           type="submit"
           className="w-full"
-          variant="glow"
           disabled={isRegistering}
         >
-          {isRegistering ? 'Creating account...' : 'Create account'}
+          {isRegistering ? 'Signing up...' : 'Sign up'}
         </Button>
       </form>
 

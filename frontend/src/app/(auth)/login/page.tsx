@@ -89,7 +89,6 @@ export default function LoginPage() {
         <Button
           type="submit"
           className="w-full"
-          variant="glow"
           disabled={isLoggingIn}
         >
           {isLoggingIn ? 'Signing in...' : 'Sign in'}

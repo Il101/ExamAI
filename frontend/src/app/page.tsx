@@ -138,13 +138,13 @@ export default function Index() {
               <Link href="/login">
                 <Button variant="ghost" className="gap-2">
                   <LogIn className="w-4 h-4" />
-                  Login
+                  Sign In
                 </Button>
               </Link>
               <Link href="/register">
-                <Button variant="glow" className="gap-2">
+                <Button variant="outline" className="gap-2">
                   <UserPlus className="w-4 h-4" />
-                  Register
+                  Sign Up
                 </Button>
               </Link>
             </div>
@@ -249,8 +249,7 @@ export default function Index() {
                         <Link href="/register">
                           <Button
                             size="lg"
-                            variant="glow"
-                            className="transition-all hover:scale-105"
+                            className="bg-primary hover:bg-primary/90 text-primary-foreground transition-all hover:scale-105"
                           >
                             Start Learning
                             <ArrowRight className="ml-2 w-5 h-5" />
@@ -561,8 +560,7 @@ export default function Index() {
               <Link href="/register">
                 <Button
                   size="lg"
-                  variant="glow"
-                  className="hover:scale-105 transition-all text-lg px-8 py-6"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground hover:scale-105 transition-all text-lg px-8 py-6"
                 >
                   Create first course for free
                   <ArrowRight className="ml-2 w-5 h-5" />
