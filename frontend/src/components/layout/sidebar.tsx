@@ -84,16 +84,16 @@ export function Sidebar({ isAdmin = false }: SidebarProps) {
                                                 href={item.href}
                                                 className={cn(
                                                     isActive
-                                                        ? 'bg-white/10 text-primary'
+                                                        ? 'bg-primary/10 text-primary shadow-[inset_4px_0_0_0_hsl(var(--primary))]'
                                                         : 'text-muted-foreground hover:text-primary hover:bg-white/5',
-                                                    'group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold transition-colors',
+                                                    'group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold transition-all duration-200',
                                                     !isExpanded && 'justify-center'
                                                 )}
                                             >
                                                 <item.icon
                                                     className={cn(
-                                                        isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-primary',
-                                                        'h-6 w-6 shrink-0 border-0 outline-none [&>*]:border-0 [&>*]:outline-none [&_rect]:border-0 [&_rect]:outline-none'
+                                                        isActive ? 'text-primary drop-shadow-[0_0_8px_rgba(124,58,237,0.5)]' : 'text-muted-foreground group-hover:text-primary',
+                                                        'h-6 w-6 shrink-0 border-0 outline-none'
                                                     )}
                                                     style={{ border: 'none', outline: 'none' }}
                                                     aria-hidden="true"

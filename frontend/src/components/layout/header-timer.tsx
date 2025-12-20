@@ -152,7 +152,10 @@ export function HeaderTimer() {
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm" className={cn("h-9 gap-2 font-mono", isActive && "text-blue-500 bg-blue-500/10")}>
+                                <Button variant="ghost" size="sm" className={cn(
+                                    "h-9 gap-2 font-mono transition-all duration-500",
+                                    isActive && "text-blue-500 bg-blue-500/10 shadow-[0_0_15px_rgba(59,130,246,0.2)] animate-pulse"
+                                )}>
                                     {timerState === 'work' ? (
                                         <Brain className="h-4 w-4" />
                                     ) : (

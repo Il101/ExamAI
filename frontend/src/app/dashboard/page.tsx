@@ -4,6 +4,7 @@ import { useAuth } from '@/lib/hooks/use-auth';
 import { useAnalytics } from '@/lib/hooks/use-analytics';
 import { useExams } from '@/lib/hooks/use-exams';
 import { Card } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { BookOpen, Brain, TrendingUp, Clock, Plus, BarChart3 } from 'lucide-react';
 import Link from 'next/link';
@@ -45,9 +46,12 @@ export default function DashboardPage() {
                   <span className="text-muted-foreground">Longest Streak</span>
                   <span className="font-medium text-foreground">{stats?.longest_streak || 0} days</span>
                 </div>
-                <div className="w-full bg-muted rounded-full h-1.5">
+                <div className="w-full bg-muted/40 rounded-full h-2 overflow-hidden border border-border/5">
                   <div
-                    className="bg-primary h-1.5 rounded-full transition-all"
+                    className={cn(
+                      "bg-gradient-to-r from-primary to-accent h-full rounded-full transition-all duration-1000 ease-out",
+                      (stats?.current_streak || 0) > 0 && "animate-pulse shadow-[0_0_10px_rgba(124,58,237,0.3)]"
+                    )}
                     style={{
                       width: `${Math.min(100, ((stats?.current_streak || 0) / (stats?.longest_streak || 1)) * 100)}%`
                     }}

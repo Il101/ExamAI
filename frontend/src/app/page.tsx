@@ -142,7 +142,7 @@ export default function Index() {
                 </Button>
               </Link>
               <Link href="/register">
-                <Button className="bg-gradient-brand hover:opacity-90 gap-2">
+                <Button variant="glow" className="gap-2">
                   <UserPlus className="w-4 h-4" />
                   Register
                 </Button>
@@ -183,9 +183,9 @@ export default function Index() {
               style={{ animationDelay: "0.2s" }}
             >
               <Card
-                className={`border-2 border-dashed transition-all duration-300 ${isDragging
-                  ? "border-primary bg-accent shadow-glow"
-                  : "border-border bg-card hover:border-primary/50 hover:shadow-large"
+                className={`border-2 border-dashed transition-all duration-300 backdrop-blur-xl ${isDragging
+                  ? "border-primary bg-primary/5 shadow-glow"
+                  : "border-border/50 bg-card/50 hover:border-primary/50 hover:shadow-large"
                   }`}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
@@ -249,7 +249,8 @@ export default function Index() {
                         <Link href="/register">
                           <Button
                             size="lg"
-                            className="bg-gradient-brand hover:opacity-90 transition-all hover:scale-105 hover:shadow-glow"
+                            variant="glow"
+                            className="transition-all hover:scale-105"
                           >
                             Start Learning
                             <ArrowRight className="ml-2 w-5 h-5" />
@@ -560,7 +561,8 @@ export default function Index() {
               <Link href="/register">
                 <Button
                   size="lg"
-                  className="bg-gradient-brand hover:opacity-90 hover:scale-105 transition-all text-lg px-8 py-6 shadow-glow"
+                  variant="glow"
+                  className="hover:scale-105 transition-all text-lg px-8 py-6"
                 >
                   Create first course for free
                   <ArrowRight className="ml-2 w-5 h-5" />
