@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 export default function PricingPage() {
     const [plans, setPlans] = useState<Plan[]>([]);
@@ -96,27 +97,40 @@ export default function PricingPage() {
                 </p>
 
                 {/* Billing Toggle */}
-                <div className="flex items-center justify-center gap-4 pt-4">
-                    <Label
-                        htmlFor="billing-toggle"
-                        className={billingPeriod === 'monthly' ? 'font-semibold' : 'text-muted-foreground'}
-                    >
-                        Monthly
-                    </Label>
-                    <Switch
-                        id="billing-toggle"
-                        checked={billingPeriod === 'yearly'}
-                        onCheckedChange={(checked: boolean) => setBillingPeriod(checked ? 'yearly' : 'monthly')}
-                    />
-                    <Label
-                        htmlFor="billing-toggle"
-                        className={billingPeriod === 'yearly' ? 'font-semibold' : 'text-muted-foreground'}
-                    >
-                        Yearly
-                        <Badge variant="secondary" className="ml-2 bg-green-500/10 text-green-600">
-                            Save up to 40%
-                        </Badge>
-                    </Label>
+                <div className="flex items-center justify-center pt-8">
+                    <div className="flex items-center gap-6 bg-muted/50 p-1.5 rounded-full border border-border/50">
+                        <label
+                            onClick={() => setBillingPeriod('monthly')}
+                            className={cn(
+                                "px-4 py-1.5 rounded-full cursor-pointer transition-all duration-200 text-sm font-medium",
+                                billingPeriod === 'monthly'
+                                    ? "bg-white dark:bg-zinc-900 shadow-sm text-primary"
+                                    : "text-muted-foreground hover:text-foreground"
+                            )}
+                        >
+                            Monthly
+                        </label>
+                        <Switch
+                            id="billing-toggle"
+                            checked={billingPeriod === 'yearly'}
+                            onCheckedChange={(checked: boolean) => setBillingPeriod(checked ? 'yearly' : 'monthly')}
+                            className="data-[state=unchecked]:bg-zinc-300 dark:data-[state=unchecked]:bg-zinc-700"
+                        />
+                        <label
+                            onClick={() => setBillingPeriod('yearly')}
+                            className={cn(
+                                "px-4 py-1.5 rounded-full cursor-pointer transition-all duration-200 text-sm font-medium flex items-center gap-2",
+                                billingPeriod === 'yearly'
+                                    ? "bg-white dark:bg-zinc-900 shadow-sm text-primary"
+                                    : "text-muted-foreground hover:text-foreground"
+                            )}
+                        >
+                            Yearly
+                            <Badge variant="secondary" className="bg-green-500/10 text-green-600 border-none px-1.5 py-0 h-5">
+                                -40%
+                            </Badge>
+                        </label>
+                    </div>
                 </div>
             </div>
 

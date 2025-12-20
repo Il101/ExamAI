@@ -124,16 +124,19 @@ export function PricingCard({ plan, currentPlan, onSelect, isLoading, billingPer
                     ) : (
                         <>
                             <div className="flex items-baseline gap-1">
-                                <span className="text-4xl font-bold">€{price}</span>
+                                <span className="text-4xl font-bold text-foreground">
+                                    €{billingPeriod === 'yearly' ? yearlyMonthlyEquivalent : price}
+                                </span>
                                 <span className="text-muted-foreground">
-                                    /{billingPeriod === 'yearly' ? 'year' : 'month'}
+                                    /month
                                 </span>
                             </div>
-                            {billingPeriod === 'yearly' && yearlyMonthlyEquivalent && (
-                                <p className="text-sm text-muted-foreground">
-                                    €{yearlyMonthlyEquivalent}/month billed annually
-                                </p>
-                            )}
+                            <p className="text-sm text-muted-foreground">
+                                {billingPeriod === 'yearly'
+                                    ? `billed annually (€${price}/year)`
+                                    : 'billed monthly'
+                                }
+                            </p>
                             {billingPeriod === 'yearly' && plan.price?.monthly && plan.price?.yearly && (
                                 <Badge variant="secondary" className="mt-2">
                                     Save {Math.round((1 - plan.price.yearly.amount / (plan.price.monthly.amount * 12)) * 100)}%

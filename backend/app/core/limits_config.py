@@ -50,15 +50,15 @@ PLAN_PRICING: Dict[str, Dict[str, Any]] = {
     },
     "pro": {
         "monthly": 7.99,
-        "yearly": 59.99,  # ~37% discount
+        "yearly": 59.88,  # €4.99/mo (billed annually)
     },
     "premium": {
         "monthly": 14.99,
-        "yearly": 119.99,  # ~33% discount
+        "yearly": 119.88,  # €9.99/mo (billed annually)
     },
     "team": {
         "monthly": 39.99,
-        "yearly": 299.99,  # ~37% discount
+        "yearly": 299.88,  # €24.99/mo (billed annually)
     },
 }
 
