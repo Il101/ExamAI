@@ -52,7 +52,7 @@ export function PricingCard({ plan, currentPlan, onSelect, isLoading, billingPer
 
     const price = getPrice();
     const yearlyMonthlyEquivalent = plan.price?.yearly
-        ? (plan.price.yearly.amount / 12).toFixed(2)
+        ? (Math.floor((plan.price.yearly.amount / 12) * 100) / 100).toFixed(2)
         : null;
 
     const features = [
