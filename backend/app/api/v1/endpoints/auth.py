@@ -18,8 +18,11 @@ from app.schemas.password_reset import (
 )
 from app.schemas.user import UserResponse
 from app.services.auth_service import AuthService
+from app.services.subscription_service import SubscriptionService
+from app.dependencies import get_auth_service, get_current_user, get_subscription_service
 
-from app.core.rate_limiter import login_rate_limiter, general_rate_limiter
+from app.core.rate_limiter import login_rate_limiter, general_rate_limiter, session_tracker
+import hashlib
 
 router = APIRouter()
 
@@ -54,7 +57,9 @@ async def register(
 
 @router.post("/login", response_model=TokenResponse, dependencies=[Depends(login_rate_limiter)])
 async def login(
-    request: LoginRequest, auth_service: AuthService = Depends(get_auth_service)
+    request: LoginRequest, 
+    auth_service: AuthService = Depends(get_auth_service),
+    subscription_service: SubscriptionService = Depends(get_subscription_service),
 ):
     """
     Login with email and password.
@@ -66,6 +71,29 @@ async def login(
 
     if not auth_data:
         raise AuthenticationException("Invalid email or password")
+
+    # Session limit enforcement
+    try:
+        access_token = auth_data["access_token"]
+        user_id = str(auth_data["user"].id)
+        session_id = hashlib.sha256(access_token.encode()).hexdigest()
+        
+        # Get plan limits
+        subscription = await subscription_service.get_user_subscription(auth_data["user"].id)
+        limits = subscription.get_limits()
+        max_sessions = limits.get("max_simultaneous_sessions", 1)
+        
+        # Track session in Redis (Kick others if limit reached)
+        await session_tracker.add_session(
+            user_id=user_id,
+            session_id=session_id,
+            limit=max_sessions,
+            ttl=auth_data.get("expires_in", 3600)
+        )
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Failed to track session: {e}")
+        # Fail open - let the user login even if Redis fails
 
     return TokenResponse(
         access_token=auth_data["access_token"],
@@ -122,19 +150,18 @@ async def get_current_user_info(current_user: User = Depends(get_current_user)):
 
 @router.post("/logout", status_code=status.HTTP_200_OK)
 async def logout(
+    token: str = Depends(oauth2_scheme),
     current_user: User = Depends(get_current_user),
     auth_service: AuthService = Depends(get_auth_service),
 ):
     """
     Logout current user.
     """
-
-    # In a real app, we might want to pass the access token to invalidate it on Supabase side if possible,
-    # but Supabase logout is typically client-side or just invalidating the session.
-    # Our AuthService.logout takes an access_token.
-
-    # We need to extract the token from the request headers or context if we want to call Supabase logout.
-    # For now, we'll just return success as the client should discard the token.
+    try:
+        session_id = hashlib.sha256(token.encode()).hexdigest()
+        await session_tracker.remove_session(str(current_user.id), session_id)
+    except Exception:
+        pass
 
     return {"message": "Logged out successfully"}
 

@@ -30,25 +30,45 @@ class SubscriptionService:
         return [
             {
                 "id": "free",
-                "name": "Free",
+                "name": "Starter",
                 "price": {"amount": 0, "currency": "EUR", "billing_period": None},
+                "limits": {
+                    "max_exams": 2,
+                    "max_topics_per_exam": 8,
+                    "daily_tutor_messages": 15,
+                    "max_simultaneous_sessions": 1,
+                },
                 "features": {
-                    "max_exams": 3,
-                    "ai_model": settings.GEMINI_QUIZ_MODEL,
+                    "spaced_repetition": True,
+                    "ai_tutor": True,
                     "advanced_analytics": False,
-                    "export": False,
+                    "export_pdf": False,
+                    "priority_generation": False,
+                    "priority_support": False,
                 },
             },
             {
                 "id": "pro",
                 "name": "Pro",
-                "price": {"amount": 9.99, "currency": "EUR", "billing_period": "month"},
-                "stripe_price_id": settings.STRIPE_PRICE_ID_PRO,
+                "price": {
+                    "monthly": {"amount": 7.99, "currency": "EUR"},
+                    "yearly": {"amount": 59.99, "currency": "EUR"},
+                },
+                "stripe_price_id_monthly": settings.STRIPE_PRICE_ID_PRO,
+                "stripe_price_id_yearly": getattr(settings, "STRIPE_PRICE_ID_PRO_YEARLY", None),
+                "limits": {
+                    "max_exams": 10,
+                    "max_topics_per_exam": 20,
+                    "daily_tutor_messages": 100,
+                    "max_simultaneous_sessions": 1,
+                },
                 "features": {
-                    "max_exams": 20,
-                    "ai_model": settings.GEMINI_MODEL,
+                    "spaced_repetition": True,
+                    "ai_tutor": True,
                     "advanced_analytics": True,
-                    "export": True,
+                    "export_pdf": True,
+                    "priority_generation": False,
+                    "priority_support": False,
                 },
                 "popular": True,
             },
@@ -56,17 +76,51 @@ class SubscriptionService:
                 "id": "premium",
                 "name": "Premium",
                 "price": {
-                    "amount": 19.99,
-                    "currency": "EUR",
-                    "billing_period": "month",
+                    "monthly": {"amount": 14.99, "currency": "EUR"},
+                    "yearly": {"amount": 119.99, "currency": "EUR"},
                 },
-                "stripe_price_id": settings.STRIPE_PRICE_ID_PREMIUM,
-                "features": {
+                "stripe_price_id_monthly": settings.STRIPE_PRICE_ID_PREMIUM,
+                "stripe_price_id_yearly": getattr(settings, "STRIPE_PRICE_ID_PREMIUM_YEARLY", None),
+                "limits": {
                     "max_exams": None,  # Unlimited
-                    "ai_model": settings.GEMINI_MODEL,
+                    "max_topics_per_exam": None,  # Unlimited
+                    "daily_tutor_messages": None,  # Unlimited
+                    "max_simultaneous_sessions": 2,
+                },
+                "features": {
+                    "spaced_repetition": True,
+                    "ai_tutor": True,
                     "advanced_analytics": True,
-                    "export": True,
+                    "export_pdf": True,
+                    "priority_generation": True,
                     "priority_support": True,
+                },
+            },
+            {
+                "id": "team",
+                "name": "Team",
+                "description": "Perfect for study groups",
+                "price": {
+                    "monthly": {"amount": 39.99, "currency": "EUR"},
+                    "yearly": {"amount": 299.99, "currency": "EUR"},
+                },
+                "stripe_price_id_monthly": getattr(settings, "STRIPE_PRICE_ID_TEAM", None),
+                "stripe_price_id_yearly": getattr(settings, "STRIPE_PRICE_ID_TEAM_YEARLY", None),
+                "limits": {
+                    "max_exams": None,  # Unlimited
+                    "max_topics_per_exam": None,  # Unlimited
+                    "daily_tutor_messages": None,  # Unlimited
+                    "max_simultaneous_sessions": 5,
+                    "max_team_members": 5,
+                },
+                "features": {
+                    "spaced_repetition": True,
+                    "ai_tutor": True,
+                    "advanced_analytics": True,
+                    "export_pdf": True,
+                    "priority_generation": True,
+                    "priority_support": True,
+                    "team_management": True,
                 },
             },
         ]

@@ -4,14 +4,18 @@ import { useEffect, useState } from 'react';
 import { Plan, subscriptionsApi } from '@/lib/api/subscriptions';
 import { PricingCard } from '@/components/pricing/pricing-card';
 import { useAuthStore } from '@/lib/stores/auth-store';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Sparkles, Shield, Zap, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 
 export default function PricingPage() {
     const [plans, setPlans] = useState<Plan[]>([]);
     const [currentPlan, setCurrentPlan] = useState<string>('free');
     const [loading, setLoading] = useState(true);
     const [checkoutLoading, setCheckoutLoading] = useState(false);
+    const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('yearly');
     const { user } = useAuthStore();
 
     useEffect(() => {
@@ -25,7 +29,6 @@ export default function PricingPage() {
                         const subscription = await subscriptionsApi.getCurrentSubscription();
                         setCurrentPlan(subscription.plan_type);
                     } catch (err) {
-                        // User might not have a subscription yet
                         console.error('Failed to fetch subscription:', err);
                     }
                 }
@@ -49,16 +52,16 @@ export default function PricingPage() {
         setCheckoutLoading(true);
         try {
             const origin = typeof window !== 'undefined' ? window.location.origin : '';
-            const successUrl = `${origin}/subscription/success`;
-            const cancelUrl = `${origin}/pricing`;
+            const successUrl = `${origin}/dashboard?upgrade=success`;
+            const cancelUrl = `${origin}/dashboard/pricing`;
 
             const { checkout_url } = await subscriptionsApi.createCheckout(
                 planId,
                 successUrl,
-                cancelUrl
+                cancelUrl,
+                billingPeriod
             );
 
-            // Redirect to Stripe Checkout
             window.location.href = checkout_url;
         } catch (err) {
             console.error('Failed to create checkout:', err);
@@ -76,15 +79,49 @@ export default function PricingPage() {
     }
 
     return (
-        <div className="container max-w-7xl py-8 space-y-8">
-            <div className="text-center space-y-4">
-                <h1 className="text-4xl font-bold">Choose Your Plan</h1>
-                <p className="text-xl text-muted-foreground">
-                    Select the plan that best fits your study needs
+        <div className="container max-w-7xl py-12 space-y-16">
+            {/* Hero Section */}
+            <div className="text-center space-y-6">
+                <Badge variant="secondary" className="px-4 py-1.5">
+                    <Sparkles className="mr-2 h-3.5 w-3.5" />
+                    Simple, transparent pricing
+                </Badge>
+                <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
+                    Choose the plan that fits your
+                    <span className="bg-gradient-to-r from-violet-500 to-purple-600 bg-clip-text text-transparent"> study goals</span>
+                </h1>
+                <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+                    Start free, upgrade when you need more. All plans include our core AI features.
+                    Cancel anytime.
                 </p>
+
+                {/* Billing Toggle */}
+                <div className="flex items-center justify-center gap-4 pt-4">
+                    <Label
+                        htmlFor="billing-toggle"
+                        className={billingPeriod === 'monthly' ? 'font-semibold' : 'text-muted-foreground'}
+                    >
+                        Monthly
+                    </Label>
+                    <Switch
+                        id="billing-toggle"
+                        checked={billingPeriod === 'yearly'}
+                        onCheckedChange={(checked: boolean) => setBillingPeriod(checked ? 'yearly' : 'monthly')}
+                    />
+                    <Label
+                        htmlFor="billing-toggle"
+                        className={billingPeriod === 'yearly' ? 'font-semibold' : 'text-muted-foreground'}
+                    >
+                        Yearly
+                        <Badge variant="secondary" className="ml-2 bg-green-500/10 text-green-600">
+                            Save up to 40%
+                        </Badge>
+                    </Label>
+                </div>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-3">
+            {/* Pricing Cards */}
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
                 {plans.map((plan) => (
                     <PricingCard
                         key={plan.id}
@@ -92,12 +129,51 @@ export default function PricingPage() {
                         currentPlan={currentPlan}
                         onSelect={handleSelectPlan}
                         isLoading={checkoutLoading}
+                        billingPeriod={billingPeriod}
                     />
                 ))}
             </div>
 
-            <div className="text-center text-sm text-muted-foreground">
-                <p>All plans include a 14-day money-back guarantee. Cancel anytime.</p>
+            {/* Trust Badges */}
+            <div className="border-t pt-12">
+                <div className="grid gap-8 md:grid-cols-3 text-center">
+                    <div className="space-y-2">
+                        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                            <Shield className="h-6 w-6 text-primary" />
+                        </div>
+                        <h3 className="font-semibold">14-Day Money Back</h3>
+                        <p className="text-sm text-muted-foreground">
+                            Not satisfied? Get a full refund within 14 days, no questions asked.
+                        </p>
+                    </div>
+                    <div className="space-y-2">
+                        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                            <Zap className="h-6 w-6 text-primary" />
+                        </div>
+                        <h3 className="font-semibold">Instant Access</h3>
+                        <p className="text-sm text-muted-foreground">
+                            Get immediate access to all features as soon as you upgrade.
+                        </p>
+                    </div>
+                    <div className="space-y-2">
+                        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                            <MessageCircle className="h-6 w-6 text-primary" />
+                        </div>
+                        <h3 className="font-semibold">Priority Support</h3>
+                        <p className="text-sm text-muted-foreground">
+                            Premium and Team plans get dedicated support within 24 hours.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            {/* FAQ Teaser */}
+            <div className="text-center space-y-4 pb-8">
+                <h2 className="text-2xl font-semibold">Have questions?</h2>
+                <p className="text-muted-foreground">
+                    Check out our <a href="/faq" className="text-primary underline hover:no-underline">FAQ</a> or{' '}
+                    <a href="mailto:support@examai.pro" className="text-primary underline hover:no-underline">contact us</a>.
+                </p>
             </div>
         </div>
     );

@@ -9,6 +9,8 @@ from app.repositories.topic_repository import TopicRepository
 from app.repositories.review_repository import ReviewItemRepository
 from app.repositories.exam_repository import ExamRepository
 from app.utils.content_cleaner import strip_analysis_tags
+from app.core.rate_limiter import tutor_usage_tracker
+from app.services.subscription_service import SubscriptionService
 
 
 class TutorService:
@@ -24,12 +26,14 @@ class TutorService:
         topic_repo: TopicRepository,
         review_repo: ReviewItemRepository,
         exam_repo: ExamRepository,
+        subscription_service: SubscriptionService,
     ):
         self.llm = llm
         self.chat_repo = chat_repo
         self.topic_repo = topic_repo
         self.review_repo = review_repo
         self.exam_repo = exam_repo
+        self.subscription_service = subscription_service
 
     def _get_tool_declarations(self) -> List[Dict[str, Any]]:
         """Define tools available to the AI"""
@@ -153,6 +157,22 @@ class TutorService:
         logger = logging.getLogger(__name__)
         
         logger.info(f"[TutorService] Starting chat for user={user_id}, topic={topic_id}")
+
+        # Check daily limits
+        try:
+            subscription = await self.subscription_service.get_user_subscription(user_id)
+            limits = subscription.get_limits()
+            daily_limit = limits.get("daily_tutor_messages")
+            
+            if daily_limit is not None:
+                current_usage = await tutor_usage_tracker.get_count(str(user_id))
+                if current_usage >= daily_limit:
+                    logger.warning(f"[TutorService] User {user_id} reached daily limit: {current_usage}/{daily_limit}")
+                    raise ValueError(f"Daily tutor message limit reached ({daily_limit}). Upgrade for more!")
+        except ValueError:
+            raise
+        except Exception as e:
+            logger.error(f"[TutorService] Error checking limits (failing open): {e}")
         
         # Save user message
         try:
@@ -243,6 +263,12 @@ class TutorService:
         # Clean response (remove <analysis> tags)
         cleaned_response = strip_analysis_tags(response.content)
         logger.info(f"[TutorService] Response cleaned: {len(cleaned_response)} chars")
+
+        # Increment usage counter after successful response
+        try:
+            await tutor_usage_tracker.increment(str(user_id))
+        except Exception as e:
+            logger.error(f"[TutorService] Failed to increment usage counter: {e}")
 
         # Save assistant response
         try:

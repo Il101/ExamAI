@@ -16,6 +16,8 @@ from app.repositories.review_repository import ReviewItemRepository
 from app.repositories.study_session_repository import StudySessionRepository
 from app.repositories.subscription_repository import SubscriptionRepository
 from app.repositories.topic_repository import TopicRepository
+from app.core.rate_limiter import session_tracker
+import hashlib
 
 # Repositories
 from app.repositories.user_repository import UserRepository
@@ -170,6 +172,7 @@ async def get_tutor_service(
     topic_repo: TopicRepository = Depends(get_topic_repo),
     review_repo: ReviewItemRepository = Depends(get_review_repo),
     exam_repo: ExamRepository = Depends(get_exam_repo),
+    subscription_service: SubscriptionService = Depends(get_subscription_service),
 ) -> TutorService:
     """Get AI tutor service with dedicated chat model"""
     # Use singleton chat LLM provider initialized at startup
@@ -179,7 +182,9 @@ async def get_tutor_service(
             "Check application lifespan in main.py."
         )
     chat_llm = request.app.state.chat_llm_provider
-    return TutorService(chat_llm, chat_repo, topic_repo, review_repo, exam_repo)
+    return TutorService(
+        chat_llm, chat_repo, topic_repo, review_repo, exam_repo, subscription_service
+    )
 
 
 # --- Auth Dependencies ---
@@ -202,6 +207,24 @@ async def get_current_user(
             detail="Could not validate credentials via Supabase",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+    # 1a. Validate session is still active (Anti-abuse session limit)
+    try:
+        session_id = hashlib.sha256(token.encode()).hexdigest()
+        is_active = await session_tracker.is_session_active(str(user.id), session_id)
+        if not is_active:
+             # This session was likely kicked out by a newer login
+             raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Session expired or logged out from another device",
+                headers={"WWW-Authenticate": "Bearer"},
+             )
+    except HTTPException:
+        raise
+    except Exception as e:
+        # Fail open - if Redis is down, allow based on JWT alone
+        import logging
+        logging.getLogger(__name__).warning(f"Session check failed (failing open): {e}")
 
     # 2. Check if user exists in local DB
     local_user = await auth_service.user_repo.get_by_id(user.id)

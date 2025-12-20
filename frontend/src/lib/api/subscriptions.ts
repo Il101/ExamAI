@@ -1,21 +1,43 @@
 import { api } from './client';
 
+export interface PlanPrice {
+    amount: number;
+    currency: string;
+}
+
 export interface Plan {
     id: string;
     name: string;
+    description?: string;
     price: {
-        amount: number;
-        currency: string;
-        billing_period: string | null;
+        amount?: number;
+        currency?: string;
+        billing_period?: string | null;
+        monthly?: PlanPrice;
+        yearly?: PlanPrice;
+    };
+    limits?: {
+        max_exams: number | null;
+        max_topics_per_exam: number | null;
+        daily_tutor_messages: number | null;
+        max_simultaneous_sessions: number;
+        max_team_members?: number;
     };
     features: {
-        max_exams: number | null;
-        ai_model: string;
-        advanced_analytics: boolean;
-        export: boolean;
-        priority_support: boolean;
+        max_exams?: number | null;
+        ai_model?: string;
+        advanced_analytics?: boolean;
+        export?: boolean;
+        export_pdf?: boolean;
+        priority_support?: boolean;
+        priority_generation?: boolean;
+        spaced_repetition?: boolean;
+        ai_tutor?: boolean;
+        team_management?: boolean;
     };
     stripe_price_id?: string;
+    stripe_price_id_monthly?: string;
+    stripe_price_id_yearly?: string;
     popular?: boolean;
 }
 
@@ -56,12 +78,14 @@ export const subscriptionsApi = {
     createCheckout: async (
         planId: string,
         successUrl: string,
-        cancelUrl: string
+        cancelUrl: string,
+        billingPeriod?: 'monthly' | 'yearly'
     ): Promise<CheckoutResponse> => {
         const response = await api.post<CheckoutResponse>('/subscriptions/checkout', {
             plan_id: planId,
             success_url: successUrl,
             cancel_url: cancelUrl,
+            billing_period: billingPeriod || 'monthly',
         });
         return response.data;
     },

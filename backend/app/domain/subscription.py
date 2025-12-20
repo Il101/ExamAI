@@ -17,7 +17,7 @@ class Subscription:
     id: UUID = field(default_factory=uuid4)
     user_id: UUID = field(default_factory=uuid4)
 
-    plan_type: Literal["free", "pro", "premium"] = "free"
+    plan_type: Literal["free", "pro", "premium", "team"] = "free"
     status: SubscriptionStatus = "active"
 
     # Billing cycle
@@ -46,27 +46,82 @@ class Subscription:
     def can_access_feature(self, feature: str) -> bool:
         """Check feature access based on plan"""
         features_by_plan = {
-            "free": ["basic_exams", "3_concurrent_exams"],
+            "free": [
+                "basic_exams",
+                "spaced_repetition",
+                "ai_tutor_basic",
+            ],
             "pro": [
                 "basic_exams",
-                "20_concurrent_exams",
+                "spaced_repetition",
+                "ai_tutor_full",
                 "advanced_analytics",
                 "export_pdf",
             ],
             "premium": [
                 "basic_exams",
-                "unlimited_exams",
+                "spaced_repetition",
+                "ai_tutor_full",
                 "advanced_analytics",
                 "export_pdf",
+                "priority_generation",
                 "priority_support",
+            ],
+            "team": [
+                "basic_exams",
+                "spaced_repetition",
+                "ai_tutor_full",
+                "advanced_analytics",
+                "export_pdf",
+                "priority_generation",
+                "priority_support",
+                "team_management",
             ],
         }
 
         return feature in features_by_plan.get(self.plan_type, [])
 
-    def upgrade(self, new_plan: Literal["pro", "premium"]):
+    def get_limits(self) -> dict:
+        """Get usage limits for the current plan"""
+        limits_by_plan = {
+            "free": {
+                "max_exams": 2,
+                "max_topics_per_exam": 8,
+                "daily_tutor_messages": 15,
+                "max_simultaneous_sessions": 1,
+                "daily_exam_creations": 2,
+                "max_team_members": 1,
+            },
+            "pro": {
+                "max_exams": 10,
+                "max_topics_per_exam": 20,
+                "daily_tutor_messages": 100,
+                "max_simultaneous_sessions": 1,
+                "daily_exam_creations": 3,
+                "max_team_members": 1,
+            },
+            "premium": {
+                "max_exams": None,  # Unlimited
+                "max_topics_per_exam": None,  # Unlimited
+                "daily_tutor_messages": None,  # Unlimited
+                "max_simultaneous_sessions": 2,
+                "daily_exam_creations": None,  # Unlimited
+                "max_team_members": 1,
+            },
+            "team": {
+                "max_exams": None,  # Unlimited
+                "max_topics_per_exam": None,  # Unlimited
+                "daily_tutor_messages": None,  # Unlimited
+                "max_simultaneous_sessions": 5,
+                "daily_exam_creations": None,  # Unlimited
+                "max_team_members": 5,
+            },
+        }
+        return limits_by_plan.get(self.plan_type, limits_by_plan["free"])
+
+    def upgrade(self, new_plan: Literal["pro", "premium", "team"]):
         """Upgrade subscription"""
-        plan_hierarchy = {"free": 0, "pro": 1, "premium": 2}
+        plan_hierarchy = {"free": 0, "pro": 1, "premium": 2, "team": 3}
 
         if plan_hierarchy[new_plan] <= plan_hierarchy[self.plan_type]:
             raise ValueError("Can only upgrade to higher plan")
