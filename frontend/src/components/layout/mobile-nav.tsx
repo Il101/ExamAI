@@ -85,7 +85,10 @@ export function MobileNav({ open, onClose, isAdmin = false }: MobileNavProps) {
                                 </div>
                             </Transition.Child>
 
-                            <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-background/95 backdrop-blur-xl px-6 pb-4 border-r border-white/10">
+                            <div
+                                className="flex grow flex-col gap-y-5 overflow-y-auto bg-background/95 backdrop-blur-xl px-6 pb-4 border-r border-white/10"
+                                style={{ paddingTop: 'env(safe-area-inset-top)' }}
+                            >
                                 <div className="flex h-16 shrink-0 items-center">
                                     <Link href="/dashboard" onClick={onClose}>
                                         <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent cursor-pointer hover:opacity-80 transition-opacity">

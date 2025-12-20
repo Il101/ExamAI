@@ -35,7 +35,10 @@ export function Header({ onMenuClick }: HeaderProps) {
     };
 
     return (
-        <div className="sticky top-0 z-40 flex h-14 sm:h-16 shrink-0 items-center gap-x-2 sm:gap-x-4 border-b border-white/10 bg-background/50 backdrop-blur-xl px-3 sm:px-4 shadow-sm lg:gap-x-6 lg:px-8">
+        <div
+            className="sticky top-0 z-40 flex h-auto min-h-14 sm:min-h-16 shrink-0 items-center gap-x-2 sm:gap-x-4 border-b border-white/10 bg-background/50 backdrop-blur-xl px-3 sm:px-4 shadow-sm lg:gap-x-6 lg:px-8"
+            style={{ paddingTop: 'env(safe-area-inset-top)' }}
+        >
             <Button
                 variant="ghost"
                 size="icon"
