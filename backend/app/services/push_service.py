@@ -26,27 +26,17 @@ class PushService:
     
     def _normalize_vapid_key(self, key: Optional[str]) -> Optional[str]:
         """
-        Normalize VAPID private key to ensure it's in the correct format.
-        Handles URL-safe base64, removes newlines, and ensures PEM format if needed.
+        Normalize VAPID private key by removing whitespace.
+        pywebpush expects raw base64 URL-safe string or PEM file path.
         """
         if not key:
             return None
         
-        # Remove any whitespace/newlines
-        key = key.strip().replace('\n', '').replace('\r', '')
+        # Just remove any whitespace/newlines - don't wrap in PEM
+        # pywebpush will handle the raw base64 string directly
+        key = key.strip().replace('\n', '').replace('\r', '').replace(' ', '')
         
-        # If it's already a PEM file (starts with -----BEGIN), return as-is
-        if key.startswith('-----BEGIN'):
-            return key
-        
-        # If it's a base64 string without PEM wrapper, wrap it
-        # VAPID uses EC (Elliptic Curve) keys, so use EC PRIVATE KEY header
-        if not key.startswith('-----BEGIN'):
-            # This is a raw base64 DER key, wrap it in PEM format for EC keys
-            pem_key = f"-----BEGIN EC PRIVATE KEY-----\n{key}\n-----END EC PRIVATE KEY-----"
-            logger.info(f"Wrapped base64 EC key in PEM format")
-            return pem_key
-        
+        logger.info(f"Normalized VAPID key: length={len(key)}, is_pem={key.startswith('-----BEGIN')}")
         return key
 
     def is_configured(self) -> bool:
