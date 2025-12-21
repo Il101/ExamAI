@@ -23,6 +23,9 @@ class Course:
     semester_start: Optional[date] = None
     semester_end: Optional[date] = None
     
+    # Exam scheduling
+    exam_date: Optional[datetime] = None
+    
     # Status
     is_archived: bool = False
     

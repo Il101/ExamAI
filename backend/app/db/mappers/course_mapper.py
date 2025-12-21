@@ -15,6 +15,7 @@ class CourseMapper:
             description=model.description,
             semester_start=model.semester_start,
             semester_end=model.semester_end,
+            exam_date=model.exam_date,
             is_archived=model.is_archived,
             created_at=model.created_at,
             updated_at=model.updated_at,
@@ -39,6 +40,7 @@ class CourseMapper:
             description=domain.description,
             semester_start=domain.semester_start,
             semester_end=domain.semester_end,
+            exam_date=domain.exam_date,
             is_archived=domain.is_archived,
             created_at=domain.created_at,
             updated_at=domain.updated_at,
@@ -52,6 +54,7 @@ class CourseMapper:
         model.description = domain.description
         model.semester_start = domain.semester_start
         model.semester_end = domain.semester_end
+        model.exam_date = domain.exam_date
         model.is_archived = domain.is_archived
         model.updated_at = domain.updated_at
 

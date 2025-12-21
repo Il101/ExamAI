@@ -1,13 +1,18 @@
 from datetime import date
 from typing import List, Optional, Any
 from uuid import UUID
+import logging
 
 from app.core.limits_config import PLAN_LIMITS
 from app.domain.course import Course
 from app.domain.exam import Exam
+from app.domain.topic import Topic
 from app.domain.user import User
 from app.repositories.course_repository import CourseRepository
 from app.repositories.exam_repository import ExamRepository
+from app.repositories.topic_repository import TopicRepository
+from app.repositories.user_repository import UserRepository
+from app.services.study_planner_service import StudyPlannerService
 
 class CourseService:
     """
@@ -122,3 +127,64 @@ class CourseService:
     async def get_course_exams(self, user_id: UUID, course_id: UUID) -> List[Exam]:
         """List all exams in a course"""
         return await self.exam_repo.list_by_course(user_id, course_id)
+
+    async def reschedule_course_topics(self, user_id: UUID, course_id: UUID):
+        """
+        Reschedule all incomplete topics in a course based on course.exam_date.
+        
+        Collects ALL topics from ALL exams in the course and schedules them
+        sequentially based on the course's exam_date.
+        """
+        
+        logger = logging.getLogger(__name__)
+        
+        # Get course
+        course = await self.course_repo.get_by_user_and_id(user_id, course_id)
+        if not course:
+            raise ValueError("Course not found")
+        
+        logger.info(f"RESCHEDULE COURSE TRIGGERED: course_id={course_id}, exam_date={course.exam_date}")
+        
+        if not course.exam_date:
+            logger.warning(f"RESCHEDULE SKIPPED: course {course_id} has no exam_date set")
+            return []
+        
+        # Get all exams in course
+        exams = await self.exam_repo.list_by_course(user_id, course_id)
+        if not exams:
+            logger.info(f"No exams found in course {course_id}")
+            return []
+        
+        # Collect all incomplete topics from all exams
+        topic_repo = TopicRepository(self.exam_repo.session)
+        all_incomplete_topics = []
+        
+        for exam in exams:
+            topics = await topic_repo.get_by_exam_id(exam.id)
+            incomplete = [t for t in topics if not t.quiz_completed]
+            all_incomplete_topics.extend(incomplete)
+        
+        if not all_incomplete_topics:
+            logger.info(f"No incomplete topics found in course {course_id}")
+            return []
+        
+        logger.info(f"SCHEDULING {len(all_incomplete_topics)} topics for course {course_id}")
+        
+        # Get user's study days
+        user_repo = UserRepository(self.exam_repo.session)
+        user = await user_repo.get_by_id(user_id)
+        study_days = user.study_days if user else [0, 1, 2, 3, 4, 5, 6]
+        
+        # Use StudyPlannerService to schedule all topics
+        planner = StudyPlannerService()
+        logger.info(f"Calling planner with study_days={study_days}, course.exam_date={course.exam_date}")
+        updated_topics = planner.schedule_exam(course, all_incomplete_topics, study_days=study_days)
+        
+        logger.info(f"Planner returned {len(updated_topics)} topics, updating database...")
+        for topic in updated_topics:
+            logger.info(f"Topic {topic.topic_name}: scheduled_date={topic.scheduled_date}")
+            await topic_repo.update(topic)
+        
+        await self.exam_repo.session.flush()
+        
+        return updated_topics

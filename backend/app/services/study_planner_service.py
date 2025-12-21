@@ -13,22 +13,23 @@ class StudyPlannerService:
 
     def schedule_exam(
         self, 
-        exam: Exam, 
+        course, # Course entity
         topics: List[Topic], 
         revision_buffer_days: int = 2,
         study_days: List[int] = None # 0-6 = Mon-Sun
     ) -> List[Topic]:
         """
         Distribute topics across the available study window, respecting chosen study days.
+        Uses course.exam_date as the deadline.
         """
-        if not exam.exam_date:
+        if not course.exam_date:
             return topics
 
         if study_days is None:
             study_days = [0, 1, 2, 3, 4, 5, 6] # Default to all days
 
         now = datetime.now(timezone.utc)
-        exam_date = exam.exam_date
+        exam_date = course.exam_date
         
         if exam_date.tzinfo is None:
             exam_date = exam_date.replace(tzinfo=timezone.utc)

@@ -35,6 +35,9 @@ class CourseModel(Base):
     semester_start: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     semester_end: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     
+    # Exam scheduling
+    exam_date: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    
     # Status
     is_archived: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     
