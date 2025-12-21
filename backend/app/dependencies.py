@@ -162,9 +162,12 @@ async def get_subscription_service(
     subscription_repo: SubscriptionRepository = Depends(get_subscription_repo),
     user_repo: UserRepository = Depends(get_user_repo),
     lemonsqueezy_service: LemonSqueezyService = Depends(get_lemonsqueezy_service),
+    exam_repo: ExamRepository = Depends(get_exam_repo),
 ) -> SubscriptionService:
     """Get subscription service"""
-    return SubscriptionService(subscription_repo, user_repo, lemonsqueezy_service)
+    return SubscriptionService(
+        subscription_repo, user_repo, lemonsqueezy_service, exam_repo
+    )
 
 
 async def get_tutor_service(

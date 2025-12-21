@@ -18,11 +18,13 @@ class SubscriptionService:
         self,
         subscription_repo: SubscriptionRepository,
         user_repo: Any,  # Use Any to avoid circular import/lazy import if needed, or proper type
-        lemonsqueezy_service: LemonSqueezyService
+        lemonsqueezy_service: LemonSqueezyService,
+        exam_repo: Any # Use Any to avoid circular imports
     ):
         self.subscription_repo = subscription_repo
         self.user_repo = user_repo
         self.lemonsqueezy_service = lemonsqueezy_service
+        self.exam_repo = exam_repo
 
     def get_available_plans(self) -> List[Dict[str, Any]]:
         """
