@@ -7,8 +7,6 @@ import { CookieConsent } from "@/components/layout/cookie-consent";
 // TEMPORARILY DISABLED - Need to test on all pages before re-enabling
 // import { PullToRefresh } from "@/components/layout/pull-to-refresh";
 
-import { LemonSqueezyScript } from "@/components/layout/lemon-squeezy-script";
-
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
