@@ -18,7 +18,7 @@ export function LemonSqueezyScript() {
             src="https://app.lemonsqueezy.com/js/lemon.js"
             strategy="afterInteractive"
             onLoad={() => {
-                console.log("Lemon Squeezy script loaded (v4)");
+                console.log("Lemon Squeezy script loaded (v5)");
                 // @ts-ignore
                 if (window.createLemonSqueezy) {
                     // @ts-ignore

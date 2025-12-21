@@ -63,32 +63,50 @@ export default function PricingPage() {
                 billingPeriod
             );
 
-            // Use Lemon Squeezy Overlay
-            console.log('Attempting overlay with URL (v4):', checkout_url);
+            // Use Lemon Squeezy Overlay (Hidden Link Method)
+            console.log('Attempting overlay with Hidden Link Method (v5):', checkout_url);
 
             // Helper to check for LemonSqueezy with retries
-            const openOverlay = async (retries = 5) => {
+            const openWithLink = async (retries = 5) => {
                 // @ts-ignore
                 if (window.LemonSqueezy) {
-                    console.log('LemonSqueezy object found (v4), opening overlay...');
+                    console.log('LemonSqueezy object detected, triggering hidden link (v5)...');
+
+                    // Create a hidden anchor tag
+                    const link = document.createElement('a');
+                    link.href = checkout_url;
+                    link.className = 'lemonsqueezy-button';
+                    link.style.display = 'none';
+                    document.body.appendChild(link);
+
+                    // Refresh LS to ensure it sees the new link
                     // @ts-ignore
-                    window.LemonSqueezy.Url.Open(checkout_url);
+                    window.LemonSqueezy.Refresh();
+
+                    // Small timeout to let LS attach listeners
+                    await new Promise(resolve => setTimeout(resolve, 100));
+
+                    // Programmatically click the link
+                    link.click();
+
+                    // Cleanup
+                    setTimeout(() => document.body.removeChild(link), 1000);
                     return true;
                 }
 
                 if (retries > 0) {
                     console.log(`LemonSqueezy not found, retrying in 500ms... (${retries} retries left)`);
                     await new Promise(resolve => setTimeout(resolve, 500));
-                    return openOverlay(retries - 1);
+                    return openWithLink(retries - 1);
                 }
 
                 return false;
             };
 
-            const success = await openOverlay();
+            const success = await openWithLink();
 
             if (!success) {
-                console.warn('LemonSqueezy object NOT found after retries (v4), falling back to redirect');
+                console.warn('LemonSqueezy object NOT found after retries (v5), falling back to redirect');
                 window.location.href = checkout_url;
             }
         } catch (err) {
