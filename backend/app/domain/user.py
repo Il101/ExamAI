@@ -32,6 +32,7 @@ class User:
     preferred_language: str = "ru"
     timezone: str = "UTC"
     daily_study_goal_minutes: int = 60
+    study_days: list[int] = field(default_factory=lambda: [0, 1, 2, 3, 4, 5, 6]) # 0-6 = Mon-Sun
 
     # Notification Settings
     notification_exam_ready: bool = True

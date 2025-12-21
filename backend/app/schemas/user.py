@@ -26,6 +26,7 @@ class UserResponse(BaseModel):
     notification_exam_ready: bool
     notification_study_reminders: bool
     notification_product_updates: bool
+    study_days: list[int] = Field(default_factory=lambda: [0, 1, 2, 3, 4, 5, 6])
 
     class Config:
         from_attributes = True
@@ -41,6 +42,7 @@ class UserUpdateRequest(BaseModel):
     notification_exam_ready: Optional[bool] = None
     notification_study_reminders: Optional[bool] = None
     notification_product_updates: Optional[bool] = None
+    study_days: Optional[list[int]] = None
 
 
 class ChangePasswordRequest(BaseModel):

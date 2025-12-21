@@ -26,6 +26,7 @@ class UserMapper:
             notification_exam_ready=model.notification_exam_ready if model.notification_exam_ready is not None else True,
             notification_study_reminders=model.notification_study_reminders if model.notification_study_reminders is not None else True,
             notification_product_updates=model.notification_product_updates if model.notification_product_updates is not None else True,
+            study_days=[int(d) for d in model.study_days.split(",")] if hasattr(model, "study_days") and model.study_days else [0, 1, 2, 3, 4, 5, 6],
         )
 
     @staticmethod
@@ -47,6 +48,7 @@ class UserMapper:
             notification_exam_ready=domain.notification_exam_ready,
             notification_study_reminders=domain.notification_study_reminders,
             notification_product_updates=domain.notification_product_updates,
+            study_days=",".join(map(str, domain.study_days)) if domain.study_days is not None else "0,1,2,3,4,5,6",
         )
 
     @staticmethod
@@ -65,5 +67,6 @@ class UserMapper:
         model.notification_exam_ready = domain.notification_exam_ready
         model.notification_study_reminders = domain.notification_study_reminders
         model.notification_product_updates = domain.notification_product_updates
+        model.study_days = ",".join(map(str, domain.study_days)) if domain.study_days is not None else "0,1,2,3,4,5,6"
 
         return model

@@ -15,21 +15,17 @@ class StudyPlannerService:
         self, 
         exam: Exam, 
         topics: List[Topic], 
-        revision_buffer_days: int = 2
+        revision_buffer_days: int = 2,
+        study_days: List[int] = None # 0-6 = Mon-Sun
     ) -> List[Topic]:
         """
-        Distribute topics across the available study window.
-        
-        Args:
-            exam: The exam entity (must have exam_date)
-            topics: List of topics to schedule
-            revision_buffer_days: Days to leave for final revision before exam
-            
-        Returns:
-            Updated topics with scheduled_date set
+        Distribute topics across the available study window, respecting chosen study days.
         """
         if not exam.exam_date:
             return topics
+
+        if study_days is None:
+            study_days = [0, 1, 2, 3, 4, 5, 6] # Default to all days
 
         now = datetime.now(timezone.utc)
         exam_date = exam.exam_date
@@ -40,32 +36,43 @@ class StudyPlannerService:
         # Calculate study end date (exam_date - buffer)
         study_end_date = exam_date - timedelta(days=revision_buffer_days)
         
-        # If exam is too soon, adjust buffer or just use today
         if study_end_date <= now:
             study_end_date = exam_date
             
-        available_days = (study_end_date - now).days + 1
+        # Filter available dates between now and study_end_date
+        available_dates = []
+        current_date = now
+        while current_date <= study_end_date:
+            if current_date.weekday() in study_days:
+                available_dates.append(current_date)
+            current_date += timedelta(days=1)
+
         num_topics = len(topics)
-        
         if num_topics == 0:
             return topics
 
-        # Sort topics by order_index just in case
+        # Sort topics by order_index
         sorted_topics = sorted(topics, key=lambda t: t.order_index)
 
-        if available_days >= num_topics:
-            # More days than topics: spread them out (one or fewer per day)
-            # For simplicity, we'll aim for 1 topic per day starting today
+        num_available_days = len(available_dates)
+        if num_available_days == 0:
+            # If no days are selected, just schedule everything for today
+            for topic in sorted_topics:
+                topic.scheduled_date = now
+            return sorted_topics
+
+        if num_available_days >= num_topics:
+            # Spread them out across available dates
             for i, topic in enumerate(sorted_topics):
-                day_offset = i
-                if day_offset >= available_days:
-                    day_offset = available_days - 1
-                topic.scheduled_date = now + timedelta(days=day_offset)
+                date_idx = i if i < num_available_days else num_available_days - 1
+                topic.scheduled_date = available_dates[date_idx]
         else:
-            # More topics than days: stack them (multiple topics per day)
-            topics_per_day = num_topics / available_days
+            # More topics than days: stack them
+            topics_per_day = num_topics / num_available_days
             for i, topic in enumerate(sorted_topics):
-                day_offset = int(i / topics_per_day)
-                topic.scheduled_date = now + timedelta(days=day_offset)
+                date_idx = int(i / topics_per_day)
+                if date_idx >= num_available_days:
+                    date_idx = num_available_days - 1
+                topic.scheduled_date = available_dates[date_idx]
 
         return sorted_topics

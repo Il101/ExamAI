@@ -17,7 +17,6 @@ interface TopicListProps {
 
 export function TopicList({ exam }: TopicListProps) {
     const router = useRouter();
-    const [isRescheduling, setIsRescheduling] = useState(false);
 
     // Find first topic with incomplete quiz
     const firstIncomplete = exam.topics.find(
@@ -43,20 +42,6 @@ export function TopicList({ exam }: TopicListProps) {
         }
     };
 
-    const handleReschedule = async () => {
-        try {
-            setIsRescheduling(true);
-            const { examsApi } = await import('@/lib/api/exams');
-            await examsApi.reschedule(exam.id);
-            toast.success('Study plan updated based on your progress!');
-            router.refresh();
-        } catch (error) {
-            console.error('Failed to reschedule:', error);
-            toast.error('Failed to refresh schedule. Please try again.');
-        } finally {
-            setIsRescheduling(false);
-        }
-    };
 
     return (
         <div className="space-y-6 max-w-4xl mx-auto">
@@ -67,18 +52,6 @@ export function TopicList({ exam }: TopicListProps) {
                         <p className="text-muted-foreground">
                             {exam.topics.length} topics generated from your summary
                         </p>
-                        {exam.exam_date && (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={handleReschedule}
-                                disabled={isRescheduling}
-                                className="h-7 px-2 text-xs font-medium text-primary hover:text-primary hover:bg-primary/10"
-                            >
-                                <Calendar className={`mr-2 h-3 w-3 ${isRescheduling ? 'animate-spin' : ''}`} />
-                                {isRescheduling ? 'Refreshing...' : 'Refresh Schedule'}
-                            </Button>
-                        )}
                     </div>
                 </div>
                 <Button size="lg" onClick={handleStartReview} className="shadow-lg hover:shadow-xl transition-all">

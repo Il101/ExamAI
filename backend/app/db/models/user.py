@@ -50,6 +50,12 @@ class UserModel(Base):
     daily_study_goal_minutes: Mapped[int] = mapped_column(
         Integer, default=60, nullable=False
     )
+    study_days: Mapped[list[int]] = mapped_column(
+        "study_days",
+        String(100), # Using string mapping if ARRAY not directly supported by current mapper/alembic setup
+        default="0,1,2,3,4,5,6", 
+        nullable=False
+    )
     
     # Notification Settings
     notification_exam_ready: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)

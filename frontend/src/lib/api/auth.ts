@@ -31,6 +31,7 @@ export interface User {
   notification_exam_ready: boolean;
   notification_study_reminders: boolean;
   notification_product_updates: boolean;
+  study_days: number[];
   created_at?: string;
   last_login?: string;
 }

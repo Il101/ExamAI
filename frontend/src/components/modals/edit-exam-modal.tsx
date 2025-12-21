@@ -12,8 +12,12 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Settings, Loader2, Trash2 } from 'lucide-react';
-import { Exam } from '@/lib/api/exams';
+import { Settings, Loader2, Trash2, Calendar, RefreshCw } from 'lucide-react';
+import { Exam, examsApi } from '@/lib/api/exams';
+import { useAuth } from '@/lib/hooks/use-auth';
+import { usersApi } from '@/lib/api/users';
+import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 interface EditExamModalProps {
     isOpen: boolean;
@@ -21,13 +25,29 @@ interface EditExamModalProps {
     exam: Exam;
 }
 
+const DAYS = [
+    { label: 'M', value: 0 },
+    { label: 'T', value: 1 },
+    { label: 'W', value: 2 },
+    { label: 'T', value: 3 },
+    { label: 'F', value: 4 },
+    { label: 'S', value: 5 },
+    { label: 'S', value: 6 },
+];
+
 export function EditExamModal({ isOpen, onClose, exam }: EditExamModalProps) {
+    const router = useRouter();
+    const { user } = useAuth();
     const { updateExam, deleteExam, isUpdating, isDeleting } = useExams();
+    const [isRescheduling, setIsRescheduling] = useState(false);
+
     const [formData, setFormData] = useState({
         title: exam.title,
         subject: exam.subject || '',
         exam_date: exam.exam_date ? exam.exam_date.split('T')[0] : '',
     });
+
+    const [studyDays, setStudyDays] = useState<number[]>([]);
 
     useEffect(() => {
         setFormData({
@@ -35,13 +55,44 @@ export function EditExamModal({ isOpen, onClose, exam }: EditExamModalProps) {
             subject: exam.subject || '',
             exam_date: exam.exam_date ? exam.exam_date.split('T')[0] : '',
         });
-    }, [exam]);
+
+        if (user?.study_days) {
+            setStudyDays(user.study_days);
+        } else {
+            setStudyDays([0, 1, 2, 3, 4, 5, 6]);
+        }
+    }, [exam, user]);
+
+    const toggleDay = (day: number) => {
+        setStudyDays(prev =>
+            prev.includes(day)
+                ? prev.filter(d => d !== day)
+                : [...prev, day].sort()
+        );
+    };
+
+    const handleReschedule = async () => {
+        try {
+            setIsRescheduling(true);
+            // Save study days first to ensure the planner uses latest prefs
+            await usersApi.updateProfile({ study_days: studyDays });
+            await examsApi.reschedule(exam.id);
+            toast.success('Study plan updated based on your availability!');
+            router.refresh();
+        } catch (error) {
+            console.error('Failed to reschedule:', error);
+            toast.error('Failed to refresh schedule. Please try again.');
+        } finally {
+            setIsRescheduling(false);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.title) return;
 
         try {
+            // Update exam
             updateExam({
                 examId: exam.id,
                 data: {
@@ -49,6 +100,10 @@ export function EditExamModal({ isOpen, onClose, exam }: EditExamModalProps) {
                     exam_date: formData.exam_date || null,
                 }
             });
+
+            // Update user study days
+            await usersApi.updateProfile({ study_days: studyDays });
+
             onClose();
         } catch (error) {
             // Error handled by hook
@@ -76,7 +131,7 @@ export function EditExamModal({ isOpen, onClose, exam }: EditExamModalProps) {
                     </div>
                     <DialogTitle className="text-2xl font-bold">Exam Settings</DialogTitle>
                     <DialogDescription className="text-muted-foreground">
-                        Update exam details or delete it.
+                        Configure your study schedule and exam details.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -96,18 +151,6 @@ export function EditExamModal({ isOpen, onClose, exam }: EditExamModalProps) {
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="subject" className="text-sm font-bold">
-                                Subject
-                            </Label>
-                            <Input
-                                id="subject"
-                                value={formData.subject}
-                                onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                                className="bg-muted/30 border-border/40"
-                            />
-                        </div>
-
-                        <div className="space-y-2">
                             <Label htmlFor="exam_date" className="text-sm font-bold">
                                 Exam Date
                             </Label>
@@ -119,23 +162,67 @@ export function EditExamModal({ isOpen, onClose, exam }: EditExamModalProps) {
                                 className="bg-muted/30 border-border/40 [color-scheme:dark]"
                             />
                         </div>
+
+                        <div className="space-y-3 pt-2">
+                            <Label className="text-sm font-bold flex items-center gap-2">
+                                <Calendar className="h-4 w-4" />
+                                Study Days
+                            </Label>
+                            <div className="flex justify-between gap-1">
+                                {DAYS.map((day) => (
+                                    <button
+                                        key={day.value}
+                                        type="button"
+                                        onClick={() => toggleDay(day.value)}
+                                        className={`h-9 w-9 rounded-full text-xs font-bold transition-all border ${studyDays.includes(day.value)
+                                                ? 'bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20'
+                                                : 'bg-muted/30 text-muted-foreground border-border/40 hover:bg-muted/50'
+                                            }`}
+                                    >
+                                        {day.label}
+                                    </button>
+                                ))}
+                            </div>
+                            <p className="text-[10px] text-muted-foreground italic">
+                                Topics will only be scheduled for these days.
+                            </p>
+                        </div>
+
+                        {exam.exam_date && (
+                            <div className="pt-2">
+                                <Button
+                                    type="button"
+                                    variant="secondary"
+                                    className="w-full bg-primary/10 hover:bg-primary/20 text-primary border-primary/20 h-10 font-bold"
+                                    onClick={handleReschedule}
+                                    disabled={isRescheduling}
+                                >
+                                    {isRescheduling ? (
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <RefreshCw className="mr-2 h-4 w-4" />
+                                    )}
+                                    Refresh Study Schedule
+                                </Button>
+                            </div>
+                        )}
                     </div>
 
-                    <div className="flex flex-col gap-3 pt-2">
+                    <div className="flex flex-col gap-3 pt-4 border-t border-border/40">
                         <div className="flex gap-3">
                             <Button
                                 type="button"
                                 variant="outline"
                                 className="flex-1 font-bold"
                                 onClick={onClose}
-                                disabled={isUpdating || isDeleting}
+                                disabled={isUpdating || isDeleting || isRescheduling}
                             >
                                 Cancel
                             </Button>
                             <Button
                                 type="submit"
                                 className="flex-1 font-bold"
-                                disabled={isUpdating || isDeleting || !formData.title}
+                                disabled={isUpdating || isDeleting || isRescheduling || !formData.title}
                             >
                                 {isUpdating ? (
                                     <>
@@ -153,7 +240,7 @@ export function EditExamModal({ isOpen, onClose, exam }: EditExamModalProps) {
                             variant="ghost"
                             className="w-full text-destructive hover:text-destructive hover:bg-destructive/10 font-bold"
                             onClick={handleDelete}
-                            disabled={isUpdating || isDeleting}
+                            disabled={isUpdating || isDeleting || isRescheduling}
                         >
                             <Trash2 className="h-4 w-4 mr-2" />
                             Delete Exam

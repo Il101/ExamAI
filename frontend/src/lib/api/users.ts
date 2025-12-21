@@ -9,6 +9,7 @@ export interface UserUpdateRequest {
     notification_exam_ready?: boolean;
     notification_study_reminders?: boolean;
     notification_product_updates?: boolean;
+    study_days?: number[];
 }
 
 export interface ChangePasswordRequest {

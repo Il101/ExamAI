@@ -147,14 +147,11 @@ async def create_exam_with_plan(
         updates=updates
     )
     
-    # 4. Prefetch disabled - Celery task will handle all generation
-    # This avoids race conditions between prefetch and Celery task
-    # The Celery task (generate_exam_content) will generate ALL topics sequentially
-    # if cache_name:
-    #     await generation_service.prefetch_initial_topics(
-    #         exam_id=exam.id,
-    #         plan=plan,
-    #         cache_name=cache_name
-    #     )
-    
+    # 5. Fix "TBD" issue: trigger initial scheduling if exam_date is set
+    if exam_date:
+        try:
+            await exam_service.reschedule_exam_topics(user.id, exam.id)
+        except Exception as e:
+            logger.error(f"Failed to set initial schedule for topics: {e}")
+            
     return exam, plan
