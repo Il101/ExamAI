@@ -56,23 +56,22 @@ class ExamGenerationTask(Task):
             self._db_session = AsyncSessionLocal()
         return self._db_session
 
+    async def _close_session(self):
+        if self._db_session:
+            await self._db_session.close()
+            self._db_session = None
+
     def after_return(self, *args, **kwargs):
         """Close database session after task completes"""
         if self._db_session is not None:
             try:
-                # Try to get existing event loop
                 loop = asyncio.get_event_loop()
                 if loop.is_running():
-                    # If loop is running, schedule coroutine
-                    loop.create_task(self._db_session.close())
+                    loop.create_task(self._close_session())
                 else:
-                    # If loop is not running, use asyncio.run
-                    asyncio.run(self._db_session.close())
-            except RuntimeError:
-                # Event loop is closed, ignore
+                    loop.run_until_complete(self._close_session())
+            except Exception:
                 pass
-            finally:
-                self._db_session = None
 
 
 @celery_app.task(

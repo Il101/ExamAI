@@ -156,18 +156,21 @@ def send_user_push_notification(user_id: str, title: str, body: str, url: str = 
 
     async def _send():
         async with AsyncSessionLocal() as session:
-            repo = PushSubscriptionRepository(session)
-            subscriptions = await repo.get_by_user_id(UUID(user_id))
-            
-            if not subscriptions:
-                return 0
-            
-            service = PushService()
-            return await service.broadcast_to_user(
-                subscriptions=subscriptions,
-                title=title,
-                body=body,
-                url=url
-            )
+            try:
+                repo = PushSubscriptionRepository(session)
+                subscriptions = await repo.get_by_user_id(UUID(user_id))
+                
+                if not subscriptions:
+                    return 0
+                
+                service = PushService()
+                return await service.broadcast_to_user(
+                    subscriptions=subscriptions,
+                    title=title,
+                    body=body,
+                    url=url
+                )
+            finally:
+                await session.close()
 
     return asyncio.run(_send())
