@@ -15,9 +15,13 @@ class SubscriptionService:
     """
 
     def __init__(
-        self, subscription_repo: SubscriptionRepository, lemonsqueezy_service: LemonSqueezyService
+        self,
+        subscription_repo: SubscriptionRepository,
+        user_repo: Any,  # Use Any to avoid circular import/lazy import if needed, or proper type
+        lemonsqueezy_service: LemonSqueezyService
     ):
         self.subscription_repo = subscription_repo
+        self.user_repo = user_repo
         self.lemonsqueezy_service = lemonsqueezy_service
 
     def get_available_plans(self) -> List[Dict[str, Any]]:
@@ -133,6 +137,19 @@ class SubscriptionService:
 
         return subscription
 
+    async def _get_plan_from_variant(self, variant_id: str) -> str:
+        """
+        Map Lemon Squeezy variant ID to internal plan type.
+        """
+        variant_id = str(variant_id)
+        if variant_id in [settings.LEMON_SQUEEZY_VARIANT_ID_PRO, settings.LEMON_SQUEEZY_VARIANT_ID_PRO_YEARLY]:
+            return "pro"
+        if variant_id in [settings.LEMON_SQUEEZY_VARIANT_ID_PREMIUM, settings.LEMON_SQUEEZY_VARIANT_ID_PREMIUM_YEARLY]:
+            return "premium"
+        if variant_id in [settings.LEMON_SQUEEZY_VARIANT_ID_TEAM, settings.LEMON_SQUEEZY_VARIANT_ID_TEAM_YEARLY]:
+            return "team"
+        return "pro"  # Default fallback
+
     async def create_checkout_session(
         self,
         user_id: UUID,
@@ -178,6 +195,11 @@ class SubscriptionService:
         subscription = await self.subscription_repo.get_by_user_id(user_id)
 
         if subscription:
+            # Use plan_type from custom_data or resolve from variant_id
+            if not plan_type:
+                variant_id = str(attributes.get("variant_id", ""))
+                plan_type = await self._get_plan_from_variant(variant_id)
+                
             subscription.plan_type = plan_type
             subscription.status = attributes["status"]
             subscription.external_subscription_id = str(payload["data"]["id"])
@@ -192,6 +214,12 @@ class SubscriptionService:
             subscription.updated_at = datetime.now(timezone.utc)
             await self.subscription_repo.update(subscription)
 
+            # Sync to User model
+            user = await self.user_repo.get_by_id(user_id)
+            if user:
+                user.subscription_plan = plan_type
+                await self.user_repo.update(user)
+
     async def handle_subscription_updated(self, payload: Dict[str, Any]):
         """
         Handle Lemon Squeezy subscription.updated webhook event.
@@ -202,6 +230,11 @@ class SubscriptionService:
         )
 
         if subscription:
+            # Update plan_type based on variant_id (important for upgrades/downgrades)
+            variant_id = str(attributes.get("variant_id", ""))
+            if variant_id:
+                subscription.plan_type = await self._get_plan_from_variant(variant_id)
+
             subscription.status = attributes["status"]
             if attributes.get("renews_at"):
                 subscription.current_period_end = datetime.fromisoformat(
@@ -212,6 +245,12 @@ class SubscriptionService:
             subscription.updated_at = datetime.now(timezone.utc)
 
             await self.subscription_repo.update(subscription)
+
+            # Sync to User model
+            user = await self.user_repo.get_by_id(subscription.user_id)
+            if user:
+                user.subscription_plan = subscription.plan_type
+                await self.user_repo.update(user)
 
     async def handle_subscription_cancelled(self, payload: Dict[str, Any]):
         """
@@ -230,6 +269,12 @@ class SubscriptionService:
             subscription.updated_at = datetime.now(timezone.utc)
 
             await self.subscription_repo.update(subscription)
+
+            # Sync to User model (downgrade to free tier upon expiry)
+            user = await self.user_repo.get_by_id(subscription.user_id)
+            if user:
+                user.subscription_plan = "free"
+                await self.user_repo.update(user)
 
     async def cancel_subscription(self, user_id: UUID) -> Subscription:
         """
