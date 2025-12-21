@@ -42,6 +42,7 @@ async def update_user_profile(
             notification_exam_ready=request.notification_exam_ready,
             notification_study_reminders=request.notification_study_reminders,
             notification_product_updates=request.notification_product_updates,
+            study_days=request.study_days,
         )
         return UserResponse.from_orm(updated_user)
     except ValueError as e:

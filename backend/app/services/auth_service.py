@@ -229,6 +229,7 @@ class AuthService:
         notification_exam_ready: Optional[bool] = None,
         notification_study_reminders: Optional[bool] = None,
         notification_product_updates: Optional[bool] = None,
+        study_days: Optional[list[int]] = None,
     ) -> User:
         """
         Update user profile in DB and Supabase.
@@ -266,6 +267,9 @@ class AuthService:
             
         if notification_product_updates is not None:
             user.notification_product_updates = notification_product_updates
+            
+        if study_days is not None:
+            user.study_days = study_days
 
         updated_user = await self.user_repo.update(user)
         return updated_user
