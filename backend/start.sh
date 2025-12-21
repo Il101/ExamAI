@@ -27,9 +27,7 @@ run_migrations() {
 }
 
 # Run the migration function
-# TEMPORARILY DISABLED - migrations applied manually via Supabase
-echo "Skipping migrations (already applied manually)"
-# run_migrations
+run_migrations
 
 # Start Celery worker with threads pool for parallel execution
 # Using threads pool to support asyncio.run() in tasks while enabling concurrency
