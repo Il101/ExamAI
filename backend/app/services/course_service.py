@@ -1,7 +1,8 @@
 from datetime import date
-from typing import List, Optional
+from typing import List, Optional, Any
 from uuid import UUID
 
+from app.core.limits_config import PLAN_LIMITS
 from app.domain.course import Course
 from app.domain.exam import Exam
 from app.domain.user import User
@@ -32,7 +33,6 @@ class CourseService:
         semester_end: Optional[date] = None,
     ) -> Course:
         """Create a new course/folder"""
-        from app.core.limits_config import PLAN_LIMITS
         
         # Check course limit
         course_count = await self.course_repo.count_by_user(user.id)
@@ -69,7 +69,7 @@ class CourseService:
         return await self.course_repo.list_by_user(user_id, limit, offset)
 
     async def update_course(
-        self, user_id: UUID, course_id: UUID, updates: dict
+        self, user_id: UUID, course_id: UUID, updates: dict[str, Any]
     ) -> Optional[Course]:
         """Update course metadata"""
         course = await self.course_repo.get_by_user_and_id(user_id, course_id)

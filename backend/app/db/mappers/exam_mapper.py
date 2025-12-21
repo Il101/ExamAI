@@ -30,7 +30,7 @@ class ExamMapper:
             token_count_input=model.token_count_input,
             token_count_output=model.token_count_output,
             generation_cost_usd=model.generation_cost_usd,
-            topic_count=model.topic_count,
+            topic_count=getattr(model, "topic_count", 0),
             completed_topics=getattr(model, "completed_topics", 0),
             due_flashcards_count=getattr(model, "due_flashcards_count", 0),
             total_actual_study_minutes=getattr(model, "total_actual_study_minutes", 0),

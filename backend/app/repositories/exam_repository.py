@@ -1,11 +1,11 @@
 from typing import List, Optional
 from uuid import UUID
-
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.mappers.exam_mapper import ExamMapper
 from app.db.models.exam import ExamModel
+from app.repositories.utils.stats_utils import get_exam_stats_subqueries
 from app.domain.exam import Exam, ExamStatus
 from app.repositories.base import BaseRepository
 
@@ -25,54 +25,14 @@ class ExamRepository(BaseRepository[Exam, ExamModel]):
         offset: int = 0,
     ) -> List[Exam]:
         """List exams by user with optional status filter and progress counts"""
-        from datetime import datetime, timezone
-        from app.db.models.topic import TopicModel
-        from app.db.models.review import ReviewItemModel
-        from app.db.models.study_session import StudySessionModel
-        from sqlalchemy import cast, extract, Integer
-
-        # Subquery for completed topics (quiz_completed = True)
-        completed_topics_sub = (
-            select(func.count(TopicModel.id))
-            .where(TopicModel.exam_id == ExamModel.id)
-            .where(TopicModel.quiz_completed == True)
-            .label("completed_topics")
-        )
-
-        # Subquery for due flashcards (next_review_date <= now)
-        due_flashcards_sub = (
-            select(func.count(ReviewItemModel.id))
-            .join(TopicModel, TopicModel.id == ReviewItemModel.topic_id)
-            .where(TopicModel.exam_id == ExamModel.id)
-            .label("due_flashcards_count")
-        )
-
-        # Subquery for actual study time (sum from study_sessions)
-        actual_study_time_sub = (
-            select(func.sum(
-                cast(
-                    extract('epoch', StudySessionModel.ended_at - StudySessionModel.started_at) / 60,
-                    Integer
-                )
-            ))
-            .where(StudySessionModel.exam_id == ExamModel.id)
-            .where(StudySessionModel.ended_at.is_not(None))
-            .label("total_actual_study_minutes")
-        )
-
-        # Subquery for planned study time
-        planned_study_time_sub = (
-            select(func.sum(TopicModel.estimated_study_minutes))
-            .where(TopicModel.exam_id == ExamModel.id)
-            .label("total_planned_study_minutes")
-        )
-        
-        # Subquery for average difficulty level
-        avg_difficulty_sub = (
-            select(func.avg(TopicModel.difficulty_level))
-            .where(TopicModel.exam_id == ExamModel.id)
-            .label("average_difficulty")
-        )
+        # Get shared subqueries
+        (
+            completed_topics_sub,
+            due_flashcards_sub,
+            actual_study_time_sub,
+            planned_study_time_sub,
+            avg_difficulty_sub
+        ) = get_exam_stats_subqueries()
 
         from app.db.models.course import CourseModel
 
@@ -100,7 +60,6 @@ class ExamRepository(BaseRepository[Exam, ExamModel]):
         rows = result.all()
 
         exams = []
-        exams = []
         for model, completed_count, due_count, actual_minutes, planned_minutes, avg_diff, course_title in rows:
             setattr(model, "completed_topics", completed_count)
             setattr(model, "due_flashcards_count", due_count)
@@ -118,55 +77,14 @@ class ExamRepository(BaseRepository[Exam, ExamModel]):
         course_id: UUID,
     ) -> List[Exam]:
         """List all exams belonging to a specific course"""
-        from datetime import datetime, timezone
-        from app.db.models.topic import TopicModel
-        from app.db.models.review import ReviewItemModel
-        from app.db.models.study_session import StudySessionModel
-        from sqlalchemy import cast, extract, Integer
-
-        # Subquery for completed topics
-        completed_topics_sub = (
-            select(func.count(TopicModel.id))
-            .where(TopicModel.exam_id == ExamModel.id)
-            .where(TopicModel.quiz_completed == True)
-            .label("completed_topics")
-        )
-
-        # Subquery for due flashcards
-        due_flashcards_sub = (
-            select(func.count(ReviewItemModel.id))
-            .join(TopicModel, TopicModel.id == ReviewItemModel.topic_id)
-            .where(TopicModel.exam_id == ExamModel.id)
-            .where(ReviewItemModel.next_review_date <= datetime.now(timezone.utc))
-            .label("due_flashcards_count")
-        )
-
-        # Subquery for actual study time
-        actual_study_time_sub = (
-            select(func.sum(
-                cast(
-                    extract('epoch', StudySessionModel.ended_at - StudySessionModel.started_at) / 60,
-                    Integer
-                )
-            ))
-            .where(StudySessionModel.exam_id == ExamModel.id)
-            .where(StudySessionModel.ended_at.is_not(None))
-            .label("total_actual_study_minutes")
-        )
-
-        # Subquery for planned study time
-        planned_study_time_sub = (
-            select(func.sum(TopicModel.estimated_study_minutes))
-            .where(TopicModel.exam_id == ExamModel.id)
-            .label("total_planned_study_minutes")
-        )
-
-        # Subquery for average difficulty level
-        avg_difficulty_sub = (
-            select(func.avg(TopicModel.difficulty_level))
-            .where(TopicModel.exam_id == ExamModel.id)
-            .label("average_difficulty")
-        )
+        # Get shared subqueries
+        (
+            completed_topics_sub,
+            due_flashcards_sub,
+            actual_study_time_sub,
+            planned_study_time_sub,
+            avg_difficulty_sub
+        ) = get_exam_stats_subqueries()
 
         from app.db.models.course import CourseModel
 
@@ -224,55 +142,14 @@ class ExamRepository(BaseRepository[Exam, ExamModel]):
 
     async def get_by_user_and_id(self, user_id: UUID, exam_id: UUID) -> Optional[Exam]:
         """Get exam by user and ID with progress counts"""
-        from datetime import datetime, timezone
-        from app.db.models.topic import TopicModel
-        from app.db.models.review import ReviewItemModel
-        from app.db.models.study_session import StudySessionModel
-        from sqlalchemy import cast, extract, Integer
-
-        # Subquery for completed topics
-        completed_topics_sub = (
-            select(func.count(TopicModel.id))
-            .where(TopicModel.exam_id == ExamModel.id)
-            .where(TopicModel.quiz_completed == True)
-            .label("completed_topics")
-        )
-
-        # Subquery for due flashcards
-        due_flashcards_sub = (
-            select(func.count(ReviewItemModel.id))
-            .join(TopicModel, TopicModel.id == ReviewItemModel.topic_id)
-            .where(TopicModel.exam_id == ExamModel.id)
-            .where(ReviewItemModel.next_review_date <= datetime.now(timezone.utc))
-            .label("due_flashcards_count")
-        )
-
-        # Subquery for actual study time
-        actual_study_time_sub = (
-            select(func.sum(
-                cast(
-                    extract('epoch', StudySessionModel.ended_at - StudySessionModel.started_at) / 60,
-                    Integer
-                )
-            ))
-            .where(StudySessionModel.exam_id == ExamModel.id)
-            .where(StudySessionModel.ended_at.is_not(None))
-            .label("total_actual_study_minutes")
-        )
-
-        # Subquery for planned study time
-        planned_study_time_sub = (
-            select(func.sum(TopicModel.estimated_study_minutes))
-            .where(TopicModel.exam_id == ExamModel.id)
-            .label("total_planned_study_minutes")
-        )
-
-        # Subquery for average difficulty level
-        avg_difficulty_sub = (
-            select(func.avg(TopicModel.difficulty_level))
-            .where(TopicModel.exam_id == ExamModel.id)
-            .label("average_difficulty")
-        )
+        # Get shared subqueries
+        (
+            completed_topics_sub,
+            due_flashcards_sub,
+            actual_study_time_sub,
+            planned_study_time_sub,
+            avg_difficulty_sub
+        ) = get_exam_stats_subqueries()
 
         from app.db.models.course import CourseModel
 
