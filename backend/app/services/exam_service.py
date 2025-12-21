@@ -193,24 +193,47 @@ class ExamService:
         # If exam_date changed, trigger rescheduling of topics
         if "exam_date" in updates and updates["exam_date"]:
             try:
-                from app.repositories.topic_repository import TopicRepository
-                from app.services.study_planner_service import StudyPlannerService
-                
-                topic_repo = TopicRepository(self.exam_repo.session)
-                topics = await topic_repo.get_by_exam_id(exam_id)
-                
-                if topics:
-                    planner = StudyPlannerService()
-                    updated_topics = planner.schedule_exam(updated, topics)
-                    for topic in updated_topics:
-                        await topic_repo.update(topic)
-                    await self.exam_repo.session.flush()
+                await self.reschedule_exam_topics(user_id, exam_id)
             except Exception as e:
                 # Log but don't fail the primary update
                 import logging
                 logging.getLogger(__name__).error(f"FAILED TO RESCHEDULE TOPICS after date update: {e}")
 
         return updated
+
+    async def reschedule_exam_topics(self, user_id: UUID, exam_id: UUID) -> List[Topic]:
+        """
+        Reschedule incomplete topics for an exam.
+        
+        Logic:
+        1. Fetch all topics
+        2. Filter for those with quiz_completed=False
+        3. Use StudyPlannerService to redistribute them
+        """
+        exam = await self.exam_repo.get_by_user_and_id(user_id, exam_id)
+        if not exam:
+            raise ValueError("Exam not found")
+
+        from app.repositories.topic_repository import TopicRepository
+        from app.services.study_planner_service import StudyPlannerService
+        
+        topic_repo = TopicRepository(self.exam_repo.session)
+        all_topics = await topic_repo.get_by_exam_id(exam_id)
+        
+        if not all_topics:
+            return []
+
+        # Only reschedule incomplete topics
+        incomplete_topics = [t for t in all_topics if not t.quiz_completed]
+        
+        if incomplete_topics:
+            planner = StudyPlannerService()
+            updated_topics = planner.schedule_exam(exam, incomplete_topics)
+            for topic in updated_topics:
+                await topic_repo.update(topic)
+            await self.exam_repo.session.flush()
+            
+        return all_topics
 
     async def delete_exam(self, user_id: UUID, exam_id: UUID) -> bool:
         """

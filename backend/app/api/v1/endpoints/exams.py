@@ -333,24 +333,50 @@ async def start_exam_generation(
         generate_exam_content.delay(str(exam.id), str(current_user.id))
         logger.info(f"✅ Started content generation for exam {exam.id}")
         
-        return {
+    return {
             "message": "Content generation started",
             "exam_id": str(exam.id),
             "status": "generating"
         }
-    except Exception as e:
-        logger.error(f"Failed to start generation task: {e}", exc_info=True)
-        # Revert status
-        exam.status = "planned"
-        exam.progress = None
-        exam.current_step = None
-        await exam_service.exam_repo.update(exam)
+
+
+@router.post("/{exam_id}/reschedule", response_model=List[TopicResponse])
+async def reschedule_exam(
+    exam_id: UUID,
+    current_user: User = Depends(get_current_active_user),
+    exam_service: ExamService = Depends(get_exam_service),
+):
+    """
+    Reschedule incomplete topics for an exam.
+    
+    This endpoint redistributes non-completed topics across the remaining
+    time until the exam date.
+    """
+    try:
+        updated_topics = await exam_service.reschedule_exam_topics(current_user.id, exam_id)
         await exam_service.exam_repo.session.commit()
         
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to start content generation. Please try again."
-        )
+        return [
+            TopicResponse(
+                id=t.id,
+                exam_id=t.exam_id,
+                topic_name=t.topic_name,
+                content=t.content,
+                flashcard_count=t.flashcard_count,
+                order_index=t.order_index,
+                difficulty_level=t.difficulty_level,
+                estimated_study_minutes=t.estimated_study_minutes,
+                created_at=t.created_at,
+                updated_at=t.updated_at,
+                scheduled_date=t.scheduled_date.isoformat() if t.scheduled_date else None,
+            )
+            for t in updated_topics
+        ]
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Failed to reschedule topics: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error during rescheduling")
 
 
 @router.get("/", response_model=ExamListResponse)

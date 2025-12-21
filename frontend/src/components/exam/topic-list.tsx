@@ -8,6 +8,8 @@ import { Play, Clock, Brain, CheckCircle2, BookOpen, ExternalLink, Calendar } fr
 import { format, isToday, isTomorrow, parseISO } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useState } from 'react';
+import { toast } from 'sonner';
 
 interface TopicListProps {
     exam: ExamWithTopics;
@@ -15,6 +17,7 @@ interface TopicListProps {
 
 export function TopicList({ exam }: TopicListProps) {
     const router = useRouter();
+    const [isRescheduling, setIsRescheduling] = useState(false);
 
     // Find first topic with incomplete quiz
     const firstIncomplete = exam.topics.find(
@@ -40,14 +43,43 @@ export function TopicList({ exam }: TopicListProps) {
         }
     };
 
+    const handleReschedule = async () => {
+        try {
+            setIsRescheduling(true);
+            const { examsApi } = await import('@/lib/api/exams');
+            await examsApi.reschedule(exam.id);
+            toast.success('Study plan updated based on your progress!');
+            router.refresh();
+        } catch (error) {
+            console.error('Failed to reschedule:', error);
+            toast.error('Failed to refresh schedule. Please try again.');
+        } finally {
+            setIsRescheduling(false);
+        }
+    };
+
     return (
         <div className="space-y-6 max-w-4xl mx-auto">
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-2xl font-bold tracking-tight">Your Study Topics</h2>
-                    <p className="text-muted-foreground">
-                        {exam.topics.length} topics generated from your summary
-                    </p>
+                    <div className="flex items-center gap-4 mt-1">
+                        <p className="text-muted-foreground">
+                            {exam.topics.length} topics generated from your summary
+                        </p>
+                        {exam.exam_date && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleReschedule}
+                                disabled={isRescheduling}
+                                className="h-7 px-2 text-xs font-medium text-primary hover:text-primary hover:bg-primary/10"
+                            >
+                                <Calendar className={`mr-2 h-3 w-3 ${isRescheduling ? 'animate-spin' : ''}`} />
+                                {isRescheduling ? 'Refreshing...' : 'Refresh Schedule'}
+                            </Button>
+                        )}
+                    </div>
                 </div>
                 <Button size="lg" onClick={handleStartReview} className="shadow-lg hover:shadow-xl transition-all">
                     <Play className="mr-2 h-5 w-5" />

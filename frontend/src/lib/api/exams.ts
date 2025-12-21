@@ -113,6 +113,11 @@ export const examsApi = {
     const response = await api.put(`/exams/${examId}`, data);
     return response.data;
   },
+
+  reschedule: async (examId: string) => {
+    const response = await api.post(`/exams/${examId}/reschedule`);
+    return response.data;
+  },
 };
 
 export interface GenerationStatusResponse {
