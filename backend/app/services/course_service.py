@@ -3,6 +3,7 @@ from typing import List, Optional
 from uuid import UUID
 
 from app.domain.course import Course
+from app.domain.exam import Exam
 from app.domain.user import User
 from app.repositories.course_repository import CourseRepository
 from app.repositories.exam_repository import ExamRepository
