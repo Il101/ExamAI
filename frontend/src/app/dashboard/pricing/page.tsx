@@ -74,6 +74,19 @@ export default function PricingPage() {
         }
     };
 
+    const handleManageSubscription = async () => {
+        setCheckoutLoading(true);
+        try {
+            const { portal_url } = await subscriptionsApi.getPortalLink();
+            window.location.href = portal_url;
+        } catch (err) {
+            console.error('Failed to get portal link:', err);
+            toast.error('Failed to open billing portal');
+        } finally {
+            setCheckoutLoading(false);
+        }
+    };
+
     if (loading) {
         return (
             <div className="flex h-[50vh] items-center justify-center">
@@ -145,6 +158,7 @@ export default function PricingPage() {
                         plan={plan}
                         currentPlan={currentPlan}
                         onSelect={handleSelectPlan}
+                        onManage={handleManageSubscription}
                         isLoading={checkoutLoading}
                         billingPeriod={billingPeriod}
                     />

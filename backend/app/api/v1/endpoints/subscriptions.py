@@ -10,6 +10,7 @@ from app.schemas.subscription import (
     CreateCheckoutRequest,
     CheckoutResponse,
     PortalResponse,
+    UsageResponse,
 )
 from app.core.config import settings
 
@@ -106,3 +107,12 @@ async def get_portal(
         raise
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.get("/usage", response_model=UsageResponse)
+async def get_usage_metrics(
+    current_user: User = Depends(get_current_active_user),
+    subscription_service: SubscriptionService = Depends(get_subscription_service),
+):
+    """Get summarized usage metrics for the current user's plan"""
+    return await subscription_service.get_usage_metrics(current_user.id)

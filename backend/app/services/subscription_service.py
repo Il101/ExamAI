@@ -195,8 +195,15 @@ class SubscriptionService:
             
         user_id = UUID(user_id_str)
         plan_type = custom_data.get("plan_type", "pro")
+        event_id = str(payload.get("meta", {}).get("event_id", ""))
 
         subscription = await self.subscription_repo.get_by_user_id(user_id)
+
+        # Idempotency check
+        if subscription and subscription.last_webhook_event_id == event_id:
+            import logging
+            logging.getLogger(__name__).info(f"Skipping already processed webhook: {event_id}")
+            return
 
         if subscription:
             # Use plan_type from custom_data or resolve from variant_id
@@ -216,6 +223,13 @@ class SubscriptionService:
                 )
             
             subscription.updated_at = datetime.now(timezone.utc)
+            subscription.last_webhook_event_id = str(payload.get("meta", {}).get("event_id", ""))
+            
+            # Save customer portal URL if available
+            urls = attributes.get("urls", {})
+            if urls.get("customer_portal"):
+                subscription.customer_portal_url = urls["customer_portal"]
+
             await self.subscription_repo.update(subscription)
 
             # Sync to User model
@@ -229,11 +243,31 @@ class SubscriptionService:
         Handle Lemon Squeezy subscription.updated webhook event.
         """
         attributes = payload["data"]["attributes"]
-        subscription = await self.subscription_repo.get_by_external_subscription_id(
-            str(payload["data"]["id"])
-        )
+        external_id = str(payload["data"]["id"])
+        event_id = str(payload.get("meta", {}).get("event_id", ""))
+        
+        # Try to find by external ID first
+        subscription = await self.subscription_repo.get_by_external_subscription_id(external_id)
+        
+        # Idempotency check
+        if subscription and subscription.last_webhook_event_id == event_id:
+            import logging
+            logging.getLogger(__name__).info(f"Skipping already processed webhook: {event_id}")
+            return
+        
+        # Fallback: find by user_id from custom_data if external ID not yet linked
+        if not subscription:
+            meta = payload.get("meta", {})
+            custom_data = meta.get("custom_data", {}) or attributes.get("custom_data", {})
+            user_id_str = custom_data.get("user_id")
+            if user_id_str:
+                subscription = await self.subscription_repo.get_by_user_id(UUID(user_id_str))
 
         if subscription:
+            # Update external ID if it was missing
+            if not subscription.external_subscription_id:
+                subscription.external_subscription_id = external_id
+                subscription.external_customer_id = str(attributes.get("customer_id", ""))
             # Update plan_type based on variant_id (important for upgrades/downgrades)
             variant_id = str(attributes.get("variant_id", ""))
             if variant_id:
@@ -247,6 +281,12 @@ class SubscriptionService:
             
             subscription.cancel_at_period_end = attributes.get("cancelled", False)
             subscription.updated_at = datetime.now(timezone.utc)
+            subscription.last_webhook_event_id = str(payload.get("meta", {}).get("event_id", ""))
+
+            # Save customer portal URL if available
+            urls = attributes.get("urls", {})
+            if urls.get("customer_portal"):
+                subscription.customer_portal_url = urls["customer_portal"]
 
             await self.subscription_repo.update(subscription)
 
@@ -300,3 +340,31 @@ class SubscriptionService:
             await self.subscription_repo.update(subscription)
 
         return subscription
+
+    async def get_usage_metrics(self, user_id: UUID) -> Dict[str, Any]:
+        """
+        Get aggregated usage statistics for a user compared to their plan limits.
+        """
+        subscription = await self.get_user_subscription(user_id)
+        limits = subscription.get_limits()
+        
+        # Get actual usage
+        exam_count = await self.exam_repo.count_by_user(user_id, status="ready")
+        
+        from app.core.rate_limiter import tutor_usage_tracker
+        tutor_messages = await tutor_usage_tracker.get_count(str(user_id))
+        
+        return {
+            "exams": {
+                "current": exam_count,
+                "limit": limits.get("max_exams"),
+            },
+            "tutor_messages": {
+                "current": tutor_messages,
+                "limit": limits.get("daily_tutor_messages"),
+            },
+            "plan_id": subscription.plan_type,
+            "status": subscription.status,
+            "current_period_end": subscription.current_period_end,
+            "customer_portal_url": subscription.customer_portal_url,
+        }

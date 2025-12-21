@@ -11,6 +11,7 @@ interface PricingCardProps {
     plan: Plan;
     currentPlan?: string;
     onSelect: (planId: string) => void;
+    onManage?: () => void;
     isLoading?: boolean;
     billingPeriod: 'monthly' | 'yearly';
 }
@@ -36,7 +37,7 @@ const planDescriptions: Record<string, string> = {
     team: 'Perfect for study groups of up to 5',
 };
 
-export function PricingCard({ plan, currentPlan, onSelect, isLoading, billingPeriod }: PricingCardProps) {
+export function PricingCard({ plan, currentPlan, onSelect, onManage, isLoading, billingPeriod }: PricingCardProps) {
     const isCurrent = currentPlan === plan.id;
     const isPaid = (plan.price?.monthly?.amount ?? 0) > 0 || (plan.price?.amount ?? 0) > 0;
 
@@ -169,11 +170,12 @@ export function PricingCard({ plan, currentPlan, onSelect, isLoading, billingPer
             <CardFooter className="pt-4">
                 {isCurrent ? (
                     <Button
-                        variant="outline"
+                        variant={plan.id === 'free' ? "outline" : "secondary"}
                         className="w-full"
-                        disabled
+                        onClick={plan.id !== 'free' ? onManage : undefined}
+                        disabled={plan.id === 'free' || isLoading}
                     >
-                        Current Plan
+                        {plan.id === 'free' ? 'Current Plan' : 'Manage Subscription'}
                     </Button>
                 ) : isPaid ? (
                     <Button

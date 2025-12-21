@@ -48,11 +48,25 @@ export interface Subscription {
     current_period_start: string;
     current_period_end: string;
     external_subscription_id: string | null;
-    external_customer_id: string | null;
+    customer_portal_url: string | null;
     cancel_at_period_end: boolean;
     canceled_at: string | null;
     created_at: string;
     updated_at: string;
+}
+
+export interface UsageMetric {
+    current: number;
+    limit: number | null;
+}
+
+export interface UsageResponse {
+    exams: UsageMetric;
+    tutor_messages: UsageMetric;
+    plan_id: string;
+    status: string;
+    current_period_end: string;
+    customer_portal_url: string | null;
 }
 
 export interface CheckoutResponse {
@@ -101,6 +115,11 @@ export const subscriptionsApi = {
 
     getPortalLink: async (): Promise<PortalResponse> => {
         const response = await api.post<PortalResponse>('/subscriptions/portal');
+        return response.data;
+    },
+
+    getUsage: async (): Promise<UsageResponse> => {
+        const response = await api.get<UsageResponse>('/subscriptions/usage');
         return response.data;
     },
 };

@@ -44,6 +44,14 @@ class SubscriptionModel(Base):
     external_customer_id: Mapped[Optional[str]] = mapped_column(
         String(255), nullable=True
     )
+    customer_portal_url: Mapped[Optional[str]] = mapped_column(
+        String(512), nullable=True
+    )
+
+    # Webhook tracking
+    last_webhook_event_id: Mapped[Optional[str]] = mapped_column(
+        String(255), nullable=True
+    )
 
     # Cancel info
     cancel_at_period_end: Mapped[bool] = mapped_column(

@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { User, Lock, Bell, Trash2 } from 'lucide-react';
+import { User, Lock, Bell, Trash2, CreditCard } from 'lucide-react';
 import { ProfileForm } from '@/components/settings/profile-form';
 import { PasswordForm } from '@/components/settings/password-form';
 import { NotificationSettings } from '@/components/settings/notification-settings';
+import { BillingSettings } from '@/components/settings/billing-settings';
 import {
     Dialog,
     DialogContent,
@@ -57,10 +58,14 @@ export default function SettingsPage() {
             {/* Settings Tabs */}
             <Tabs defaultValue="profile" className="w-full space-y-6">
                 <Card className="p-1">
-                    <TabsList className="grid w-full grid-cols-3">
+                    <TabsList className="grid w-full grid-cols-4">
                         <TabsTrigger value="profile">
                             <User className="h-4 w-4 mr-2" />
                             Profile
+                        </TabsTrigger>
+                        <TabsTrigger value="billing">
+                            <CreditCard className="h-4 w-4 mr-2" />
+                            Billing
                         </TabsTrigger>
                         <TabsTrigger value="security">
                             <Lock className="h-4 w-4 mr-2" />
@@ -76,6 +81,11 @@ export default function SettingsPage() {
                 {/* Profile Tab */}
                 <TabsContent value="profile">
                     <ProfileForm />
+                </TabsContent>
+
+                {/* Billing Tab */}
+                <TabsContent value="billing">
+                    <BillingSettings />
                 </TabsContent>
 
                 {/* Security Tab */}

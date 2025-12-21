@@ -19,6 +19,8 @@ class SubscriptionMapper:
             current_period_end=model.current_period_end,
             external_subscription_id=model.external_subscription_id,
             external_customer_id=model.external_customer_id,
+            customer_portal_url=model.customer_portal_url,
+            last_webhook_event_id=model.last_webhook_event_id,
             cancel_at_period_end=model.cancel_at_period_end,
             canceled_at=model.canceled_at,
             created_at=model.created_at,
@@ -37,6 +39,8 @@ class SubscriptionMapper:
             current_period_end=domain.current_period_end,
             external_subscription_id=domain.external_subscription_id,
             external_customer_id=domain.external_customer_id,
+            customer_portal_url=domain.customer_portal_url,
+            last_webhook_event_id=domain.last_webhook_event_id,
             cancel_at_period_end=domain.cancel_at_period_end,
             canceled_at=domain.canceled_at,
             created_at=domain.created_at,
@@ -54,6 +58,8 @@ class SubscriptionMapper:
         model.current_period_end = domain.current_period_end
         model.external_subscription_id = domain.external_subscription_id
         model.external_customer_id = domain.external_customer_id
+        model.customer_portal_url = domain.customer_portal_url
+        model.last_webhook_event_id = domain.last_webhook_event_id
         model.cancel_at_period_end = domain.cancel_at_period_end
         model.canceled_at = domain.canceled_at
         model.updated_at = domain.updated_at

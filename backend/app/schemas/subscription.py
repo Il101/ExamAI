@@ -29,6 +29,7 @@ class SubscriptionResponse(BaseModel):
     current_period_end: datetime
     external_subscription_id: Optional[str] = None
     external_customer_id: Optional[str] = None
+    customer_portal_url: Optional[str] = None
     cancel_at_period_end: bool
     canceled_at: Optional[datetime] = None
     created_at: datetime
@@ -57,3 +58,17 @@ class PortalResponse(BaseModel):
     """Customer portal response"""
 
     portal_url: str
+
+
+class UsageMetric(BaseModel):
+    current: int
+    limit: Optional[int]
+
+
+class UsageResponse(BaseModel):
+    exams: UsageMetric
+    tutor_messages: UsageMetric
+    plan_id: str
+    status: str
+    current_period_end: datetime
+    customer_portal_url: Optional[str] = None

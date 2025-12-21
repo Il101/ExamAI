@@ -29,6 +29,10 @@ class Subscription:
     # External billing IDs
     external_subscription_id: Optional[str] = None
     external_customer_id: Optional[str] = None
+    customer_portal_url: Optional[str] = None
+
+    # Webhook tracking
+    last_webhook_event_id: Optional[str] = None
 
     # Cancel info
     cancel_at_period_end: bool = False
