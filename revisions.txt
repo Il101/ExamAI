@@ -1,2 +1,0 @@
-down_revision = 06f9376bd0b9'  # add_chat_messages_table
-revision = add_progressive_gen'
