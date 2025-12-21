@@ -46,14 +46,16 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             )
 
         # Content Security Policy
+        # Relaxed for Lemon Squeezy, Stripe, and PayPal
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
-            "style-src 'self' 'unsafe-inline'; "
-            "img-src 'self' data: https:; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://app.lemonsqueezy.com https://assets.lemonsqueezy.com https://js.stripe.com; "
+            "style-src 'self' 'unsafe-inline' https://assets.lemonsqueezy.com; "
+            "img-src 'self' data: https: https://assets.lemonsqueezy.com; "
             "font-src 'self' data:; "
-            "connect-src 'self'; "
-            "frame-ancestors 'none';"
+            "connect-src 'self' https://app.lemonsqueezy.com https://api.lemonsqueezy.com https://assets.lemonsqueezy.com https://api.stripe.com; "
+            "frame-src 'self' https://app.lemonsqueezy.com https://js.stripe.com https://www.paypal.com; "
+            "frame-ancestors 'self';"
         )
 
         # Referrer policy
