@@ -64,21 +64,21 @@ export default function PricingPage() {
             );
 
             // Use Lemon Squeezy Overlay
-            console.log('Attempting overlay with URL:', checkout_url);
+            console.log('Attempting overlay with URL (v4):', checkout_url);
 
             // Helper to check for LemonSqueezy with retries
-            const openOverlay = async (retries = 3) => {
+            const openOverlay = async (retries = 5) => {
                 // @ts-ignore
                 if (window.LemonSqueezy) {
-                    console.log('LemonSqueezy object found, opening overlay...');
+                    console.log('LemonSqueezy object found (v4), opening overlay...');
                     // @ts-ignore
                     window.LemonSqueezy.Url.Open(checkout_url);
                     return true;
                 }
 
                 if (retries > 0) {
-                    console.log(`LemonSqueezy not found, retrying in 300ms... (${retries} retries left)`);
-                    await new Promise(resolve => setTimeout(resolve, 300));
+                    console.log(`LemonSqueezy not found, retrying in 500ms... (${retries} retries left)`);
+                    await new Promise(resolve => setTimeout(resolve, 500));
                     return openOverlay(retries - 1);
                 }
 
@@ -88,7 +88,7 @@ export default function PricingPage() {
             const success = await openOverlay();
 
             if (!success) {
-                console.warn('LemonSqueezy object NOT found after retries, falling back to redirect');
+                console.warn('LemonSqueezy object NOT found after retries (v4), falling back to redirect');
                 window.location.href = checkout_url;
             }
         } catch (err) {

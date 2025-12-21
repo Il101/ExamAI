@@ -15,10 +15,16 @@ export function LemonSqueezyScript() {
 
     return (
         <Script
-            src="https://assets.lemonsqueezy.com/lemon.js"
+            src="https://app.lemonsqueezy.com/js/lemon.js"
             strategy="afterInteractive"
             onLoad={() => {
-                console.log("Lemon Squeezy script loaded");
+                console.log("Lemon Squeezy script loaded (v4)");
+                // @ts-ignore
+                if (window.createLemonSqueezy) {
+                    // @ts-ignore
+                    window.createLemonSqueezy();
+                }
+
                 // @ts-ignore
                 if (window.LemonSqueezy) {
                     // @ts-ignore
