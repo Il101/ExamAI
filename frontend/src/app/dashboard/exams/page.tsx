@@ -2,7 +2,7 @@
 
 import { useExams } from '@/lib/hooks/use-exams';
 import { Button } from '@/components/ui/button';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Folder } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -34,12 +34,20 @@ export default function ExamsPage() {
                         Manage and track all your exam preparations
                     </p>
                 </div>
-                <Link href="/dashboard/exams/new">
-                    <Button>
-                        <Plus className="mr-2 h-4 w-4" />
-                        New Exam
-                    </Button>
-                </Link>
+                <div className="flex items-center gap-3">
+                    <Link href="/dashboard/courses">
+                        <Button variant="outline" className="border-white/10 hover:bg-white/5">
+                            <Folder className="mr-2 h-4 w-4" />
+                            Folders
+                        </Button>
+                    </Link>
+                    <Link href="/dashboard/exams/new">
+                        <Button>
+                            <Plus className="mr-2 h-4 w-4" />
+                            New Exam
+                        </Button>
+                    </Link>
+                </div>
             </div>
 
             {/* Search */}

@@ -11,6 +11,7 @@ export interface CreateExamRequest {
 export interface Exam {
   id: string;
   course_id?: string;
+  course_title?: string;
   title: string;
   description: string;
   subject?: string;

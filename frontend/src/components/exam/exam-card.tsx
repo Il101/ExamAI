@@ -61,7 +61,7 @@ export function ExamCard({
             </h3>
             {exam.subject && (
               <p className="text-sm text-muted-foreground mt-0.5 font-medium line-clamp-1">
-                {exam.subject}
+                {exam.subject} {exam.course_title && <span className="text-primary/70 ml-1">• {exam.course_title}</span>}
               </p>
             )}
           </div>

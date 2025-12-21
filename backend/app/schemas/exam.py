@@ -43,6 +43,7 @@ class ExamResponse(BaseModel):
     id: UUID
     user_id: UUID
     course_id: Optional[UUID] = None
+    course_title: Optional[str] = None
     title: str
     subject: str
     exam_type: str

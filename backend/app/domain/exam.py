@@ -19,6 +19,7 @@ class Exam:
     id: UUID = field(default_factory=uuid4)
     user_id: UUID = field(default_factory=uuid4)
     course_id: Optional[UUID] = None
+    course_title: Optional[str] = None
 
     # Basic info
     title: str = ""

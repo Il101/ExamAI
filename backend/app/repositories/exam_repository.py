@@ -74,14 +74,17 @@ class ExamRepository(BaseRepository[Exam, ExamModel]):
             .label("average_difficulty")
         )
 
+        from app.db.models.course import CourseModel
+
         stmt = select(
             ExamModel, 
             completed_topics_sub, 
             due_flashcards_sub, 
             actual_study_time_sub,
             planned_study_time_sub,
-            avg_difficulty_sub
-        ).where(ExamModel.user_id == user_id)
+            avg_difficulty_sub,
+            CourseModel.title.label("course_title")
+        ).outerjoin(CourseModel, CourseModel.id == ExamModel.course_id).where(ExamModel.user_id == user_id)
 
         if status:
             stmt = stmt.where(ExamModel.status == status)
@@ -98,12 +101,13 @@ class ExamRepository(BaseRepository[Exam, ExamModel]):
 
         exams = []
         exams = []
-        for model, completed_count, due_count, actual_minutes, planned_minutes, avg_diff in rows:
+        for model, completed_count, due_count, actual_minutes, planned_minutes, avg_diff, course_title in rows:
             setattr(model, "completed_topics", completed_count)
             setattr(model, "due_flashcards_count", due_count)
             setattr(model, "total_actual_study_minutes", actual_minutes or 0)
             setattr(model, "total_planned_study_minutes", planned_minutes or 0)
             setattr(model, "average_difficulty", float(avg_diff or 0.0))
+            setattr(model, "course_title", course_title)
             exams.append(self.mapper.to_domain(model))
 
         return exams
@@ -164,14 +168,17 @@ class ExamRepository(BaseRepository[Exam, ExamModel]):
             .label("average_difficulty")
         )
 
+        from app.db.models.course import CourseModel
+
         stmt = select(
             ExamModel, 
             completed_topics_sub, 
             due_flashcards_sub, 
             actual_study_time_sub,
             planned_study_time_sub,
-            avg_difficulty_sub
-        ).where(
+            avg_difficulty_sub,
+            CourseModel.title.label("course_title")
+        ).outerjoin(CourseModel, CourseModel.id == ExamModel.course_id).where(
             ExamModel.user_id == user_id,
             ExamModel.course_id == course_id
         ).order_by(ExamModel.created_at.desc())
@@ -180,12 +187,13 @@ class ExamRepository(BaseRepository[Exam, ExamModel]):
         rows = result.all()
 
         exams = []
-        for model, completed_count, due_count, actual_minutes, planned_minutes, avg_diff in rows:
+        for model, completed_count, due_count, actual_minutes, planned_minutes, avg_diff, course_title in rows:
             setattr(model, "completed_topics", completed_count or 0)
             setattr(model, "due_flashcards_count", due_count or 0)
             setattr(model, "total_actual_study_minutes", actual_minutes or 0)
             setattr(model, "total_planned_study_minutes", planned_minutes or 0)
             setattr(model, "average_difficulty", float(avg_diff or 0.0))
+            setattr(model, "course_title", course_title)
             exams.append(self.mapper.to_domain(model))
 
         return exams
@@ -266,14 +274,17 @@ class ExamRepository(BaseRepository[Exam, ExamModel]):
             .label("average_difficulty")
         )
 
+        from app.db.models.course import CourseModel
+
         stmt = select(
             ExamModel, 
             completed_topics_sub, 
             due_flashcards_sub, 
             actual_study_time_sub,
             planned_study_time_sub,
-            avg_difficulty_sub
-        ).where(
+            avg_difficulty_sub,
+            CourseModel.title.label("course_title")
+        ).outerjoin(CourseModel, CourseModel.id == ExamModel.course_id).where(
             ExamModel.id == exam_id, ExamModel.user_id == user_id
         )
         result = await self.session.execute(stmt)
@@ -282,11 +293,12 @@ class ExamRepository(BaseRepository[Exam, ExamModel]):
         if row is None:
             return None
 
-        model, completed_count, due_count, actual_minutes, planned_minutes, avg_diff = row
+        model, completed_count, due_count, actual_minutes, planned_minutes, avg_diff, course_title = row
         setattr(model, "completed_topics", completed_count)
         setattr(model, "due_flashcards_count", due_count)
         setattr(model, "total_actual_study_minutes", actual_minutes or 0)
         setattr(model, "total_planned_study_minutes", planned_minutes or 0)
         setattr(model, "average_difficulty", float(avg_diff or 0.0))
+        setattr(model, "course_title", course_title)
         
         return self.mapper.to_domain(model)
