@@ -44,8 +44,8 @@ async def list_courses(
     """List all user's courses with aggregated stats"""
     courses = await course_service.list_user_courses(current_user.id, limit, offset)
     return {
-        "items": [CourseResponse.from_orm(c) for c in courses],
-        "total": len(courses), # For simplicity, actual total might need a separate count call
+        "items": [CourseResponse.from_domain(c) for c in courses],
+        "total": len(courses),
     }
 
 
