@@ -28,6 +28,8 @@ export function EditCourseModal({ isOpen, onClose, course }: EditCourseModalProp
         title: course.title,
         subject: course.subject,
         description: course.description || '',
+        semester_start: course.semester_start || '',
+        semester_end: course.semester_end || '',
     });
 
     useEffect(() => {
@@ -35,6 +37,8 @@ export function EditCourseModal({ isOpen, onClose, course }: EditCourseModalProp
             title: course.title,
             subject: course.subject,
             description: course.description || '',
+            semester_start: course.semester_start || '',
+            semester_end: course.semester_end || '',
         });
     }, [course]);
 
@@ -43,7 +47,14 @@ export function EditCourseModal({ isOpen, onClose, course }: EditCourseModalProp
         if (!formData.title || !formData.subject) return;
 
         try {
-            await updateCourse({ id: course.id, data: formData });
+            await updateCourse({
+                id: course.id,
+                data: {
+                    ...formData,
+                    semester_start: formData.semester_start || null,
+                    semester_end: formData.semester_end || null,
+                }
+            });
             onClose();
         } catch (error) {
             // Error handled by hook
@@ -113,6 +124,33 @@ export function EditCourseModal({ isOpen, onClose, course }: EditCourseModalProp
                                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                 className="bg-muted/30 border-border/40 min-h-[100px] resize-none"
                             />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="semester_start" className="text-sm font-bold">
+                                    Semester Start
+                                </Label>
+                                <Input
+                                    id="semester_start"
+                                    type="date"
+                                    value={formData.semester_start}
+                                    onChange={(e) => setFormData({ ...formData, semester_start: e.target.value })}
+                                    className="bg-muted/30 border-border/40 [color-scheme:dark]"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="semester_end" className="text-sm font-bold">
+                                    Semester End
+                                </Label>
+                                <Input
+                                    id="semester_end"
+                                    type="date"
+                                    value={formData.semester_end}
+                                    onChange={(e) => setFormData({ ...formData, semester_end: e.target.value })}
+                                    className="bg-muted/30 border-border/40 [color-scheme:dark]"
+                                />
+                            </div>
                         </div>
                     </div>
 
