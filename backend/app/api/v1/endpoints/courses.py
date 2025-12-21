@@ -29,7 +29,7 @@ async def create_course(
             semester_start=course_in.semester_start,
             semester_end=course_in.semester_end,
         )
-        return CourseResponse.from_orm(course)
+        return CourseResponse.from_domain(course)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
@@ -61,7 +61,7 @@ async def get_course(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Course not found"
         )
-    return CourseResponse.from_orm(course)
+    return CourseResponse.from_domain(course)
 
 
 @router.patch("/{course_id}", response_model=CourseResponse)
@@ -80,7 +80,7 @@ async def update_course(
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Course not found"
             )
-        return CourseResponse.from_orm(course)
+        return CourseResponse.from_domain(course)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
