@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useCourses } from '@/lib/hooks/use-courses';
 import {
     Dialog,
@@ -13,14 +13,28 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { FolderPlus, Loader2 } from 'lucide-react';
+import { FolderPlus, Loader2, Calendar } from 'lucide-react';
+import { useAuth } from '@/lib/hooks/use-auth';
+import { usersApi } from '@/lib/api/users';
+import { toast } from 'sonner';
 
 interface CreateCourseModalProps {
     isOpen: boolean;
     onClose: () => void;
 }
 
+const DAYS = [
+    { label: 'M', value: 0 },
+    { label: 'T', value: 1 },
+    { label: 'W', value: 2 },
+    { label: 'T', value: 3 },
+    { label: 'F', value: 4 },
+    { label: 'S', value: 5 },
+    { label: 'S', value: 6 },
+];
+
 export function CreateCourseModal({ isOpen, onClose }: CreateCourseModalProps) {
+    const { user } = useAuth();
     const { createCourse, isCreating } = useCourses();
     const [formData, setFormData] = useState({
         title: '',
@@ -29,6 +43,23 @@ export function CreateCourseModal({ isOpen, onClose }: CreateCourseModalProps) {
         semester_start: '',
         semester_end: '',
     });
+    const [studyDays, setStudyDays] = useState<number[]>([]);
+
+    useEffect(() => {
+        if (user?.study_days) {
+            setStudyDays(user.study_days);
+        } else {
+            setStudyDays([0, 1, 2, 3, 4, 5, 6]);
+        }
+    }, [user]);
+
+    const toggleDay = (day: number) => {
+        setStudyDays(prev =>
+            prev.includes(day)
+                ? prev.filter(d => d !== day)
+                : [...prev, day].sort()
+        );
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -40,6 +71,9 @@ export function CreateCourseModal({ isOpen, onClose }: CreateCourseModalProps) {
                 semester_start: formData.semester_start || undefined,
                 semester_end: formData.semester_end || undefined,
             });
+            // Update user study days
+            await usersApi.updateProfile({ study_days: studyDays });
+            toast.success('Course folder created!');
             setFormData({ title: '', subject: '', description: '', semester_start: '', semester_end: '' });
             onClose();
         } catch (error) {
@@ -56,7 +90,7 @@ export function CreateCourseModal({ isOpen, onClose }: CreateCourseModalProps) {
                     </div>
                     <DialogTitle className="text-2xl font-bold">Create Course Folder</DialogTitle>
                     <DialogDescription className="text-muted-foreground">
-                        Organize your exams into a semester-long course folder.
+                        Organize your exams into a semester-long course folder with custom study schedule.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -128,6 +162,31 @@ export function CreateCourseModal({ isOpen, onClose }: CreateCourseModalProps) {
                                     className="bg-muted/30 border-border/40 [color-scheme:dark]"
                                 />
                             </div>
+                        </div>
+
+                        <div className="space-y-3 pt-2">
+                            <Label className="text-sm font-bold flex items-center gap-2">
+                                <Calendar className="h-4 w-4" />
+                                Study Days
+                            </Label>
+                            <div className="flex justify-between gap-1">
+                                {DAYS.map((day) => (
+                                    <button
+                                        key={day.value}
+                                        type="button"
+                                        onClick={() => toggleDay(day.value)}
+                                        className={`h-9 w-9 rounded-full text-xs font-bold transition-all border ${studyDays.includes(day.value)
+                                            ? 'bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20'
+                                            : 'bg-muted/30 text-muted-foreground border-border/40 hover:bg-muted/50'
+                                            }`}
+                                    >
+                                        {day.label}
+                                    </button>
+                                ))}
+                            </div>
+                            <p className="text-[10px] text-muted-foreground italic">
+                                Topics in this course will only be scheduled for these days.
+                            </p>
                         </div>
                     </div>
 

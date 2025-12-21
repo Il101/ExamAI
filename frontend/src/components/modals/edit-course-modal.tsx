@@ -13,8 +13,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Settings, Loader2, Trash2 } from 'lucide-react';
+import { Settings, Loader2, Trash2, Calendar } from 'lucide-react';
 import { Course } from '@/lib/api/courses';
+import { useAuth } from '@/lib/hooks/use-auth';
+import { usersApi } from '@/lib/api/users';
+import { toast } from 'sonner';
 
 interface EditCourseModalProps {
     isOpen: boolean;
@@ -22,7 +25,18 @@ interface EditCourseModalProps {
     course: Course;
 }
 
+const DAYS = [
+    { label: 'M', value: 0 },
+    { label: 'T', value: 1 },
+    { label: 'W', value: 2 },
+    { label: 'T', value: 3 },
+    { label: 'F', value: 4 },
+    { label: 'S', value: 5 },
+    { label: 'S', value: 6 },
+];
+
 export function EditCourseModal({ isOpen, onClose, course }: EditCourseModalProps) {
+    const { user } = useAuth();
     const { updateCourse, deleteCourse, isUpdating, isDeleting } = useCourses();
     const [formData, setFormData] = useState({
         title: course.title,
@@ -31,6 +45,7 @@ export function EditCourseModal({ isOpen, onClose, course }: EditCourseModalProp
         semester_start: course.semester_start || '',
         semester_end: course.semester_end || '',
     });
+    const [studyDays, setStudyDays] = useState<number[]>([]);
 
     useEffect(() => {
         setFormData({
@@ -40,13 +55,27 @@ export function EditCourseModal({ isOpen, onClose, course }: EditCourseModalProp
             semester_start: course.semester_start || '',
             semester_end: course.semester_end || '',
         });
-    }, [course]);
+        if (user?.study_days) {
+            setStudyDays(user.study_days);
+        } else {
+            setStudyDays([0, 1, 2, 3, 4, 5, 6]);
+        }
+    }, [course, user]);
+
+    const toggleDay = (day: number) => {
+        setStudyDays(prev =>
+            prev.includes(day)
+                ? prev.filter(d => d !== day)
+                : [...prev, day].sort()
+        );
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.title || !formData.subject) return;
 
         try {
+            // Update course
             await updateCourse({
                 id: course.id,
                 data: {
@@ -55,6 +84,9 @@ export function EditCourseModal({ isOpen, onClose, course }: EditCourseModalProp
                     semester_end: formData.semester_end || undefined,
                 }
             });
+            // Update user study days
+            await usersApi.updateProfile({ study_days: studyDays });
+            toast.success('Folder settings saved!');
             onClose();
         } catch (error) {
             // Error handled by hook
@@ -82,7 +114,7 @@ export function EditCourseModal({ isOpen, onClose, course }: EditCourseModalProp
                     </div>
                     <DialogTitle className="text-2xl font-bold">Folder Settings</DialogTitle>
                     <DialogDescription className="text-muted-foreground">
-                        Update your course folder details or delete the folder.
+                        Update your course folder details, study schedule, or delete the folder.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -151,6 +183,31 @@ export function EditCourseModal({ isOpen, onClose, course }: EditCourseModalProp
                                     className="bg-muted/30 border-border/40 [color-scheme:dark]"
                                 />
                             </div>
+                        </div>
+
+                        <div className="space-y-3 pt-2">
+                            <Label className="text-sm font-bold flex items-center gap-2">
+                                <Calendar className="h-4 w-4" />
+                                Study Days
+                            </Label>
+                            <div className="flex justify-between gap-1">
+                                {DAYS.map((day) => (
+                                    <button
+                                        key={day.value}
+                                        type="button"
+                                        onClick={() => toggleDay(day.value)}
+                                        className={`h-9 w-9 rounded-full text-xs font-bold transition-all border ${studyDays.includes(day.value)
+                                            ? 'bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20'
+                                            : 'bg-muted/30 text-muted-foreground border-border/40 hover:bg-muted/50'
+                                            }`}
+                                    >
+                                        {day.label}
+                                    </button>
+                                ))}
+                            </div>
+                            <p className="text-[10px] text-muted-foreground italic">
+                                Topics in this course will only be scheduled for these days.
+                            </p>
                         </div>
                     </div>
 

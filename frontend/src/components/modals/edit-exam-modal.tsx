@@ -12,10 +12,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Settings, Loader2, Trash2, Calendar, RefreshCw } from 'lucide-react';
+import { Settings, Loader2, Trash2, RefreshCw } from 'lucide-react';
 import { Exam, examsApi } from '@/lib/api/exams';
-import { useAuth } from '@/lib/hooks/use-auth';
-import { usersApi } from '@/lib/api/users';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 
@@ -25,19 +23,8 @@ interface EditExamModalProps {
     exam: Exam;
 }
 
-const DAYS = [
-    { label: 'M', value: 0 },
-    { label: 'T', value: 1 },
-    { label: 'W', value: 2 },
-    { label: 'T', value: 3 },
-    { label: 'F', value: 4 },
-    { label: 'S', value: 5 },
-    { label: 'S', value: 6 },
-];
-
 export function EditExamModal({ isOpen, onClose, exam }: EditExamModalProps) {
     const router = useRouter();
-    const { user } = useAuth();
     const { updateExam, deleteExam, isUpdating, isDeleting } = useExams();
     const [isRescheduling, setIsRescheduling] = useState(false);
 
@@ -47,37 +34,19 @@ export function EditExamModal({ isOpen, onClose, exam }: EditExamModalProps) {
         exam_date: exam.exam_date ? exam.exam_date.split('T')[0] : '',
     });
 
-    const [studyDays, setStudyDays] = useState<number[]>([]);
-
     useEffect(() => {
         setFormData({
             title: exam.title,
             subject: exam.subject || '',
             exam_date: exam.exam_date ? exam.exam_date.split('T')[0] : '',
         });
-
-        if (user?.study_days) {
-            setStudyDays(user.study_days);
-        } else {
-            setStudyDays([0, 1, 2, 3, 4, 5, 6]);
-        }
-    }, [exam, user]);
-
-    const toggleDay = (day: number) => {
-        setStudyDays(prev =>
-            prev.includes(day)
-                ? prev.filter(d => d !== day)
-                : [...prev, day].sort()
-        );
-    };
+    }, [exam]);
 
     const handleReschedule = async () => {
         try {
             setIsRescheduling(true);
-            // Save study days first to ensure the planner uses latest prefs
-            await usersApi.updateProfile({ study_days: studyDays });
             await examsApi.reschedule(exam.id);
-            toast.success('Study plan updated based on your availability!');
+            toast.success('Study plan refreshed!');
             router.refresh();
         } catch (error) {
             console.error('Failed to reschedule:', error);
@@ -92,7 +61,6 @@ export function EditExamModal({ isOpen, onClose, exam }: EditExamModalProps) {
         if (!formData.title) return;
 
         try {
-            // Update exam
             updateExam({
                 examId: exam.id,
                 data: {
@@ -100,10 +68,6 @@ export function EditExamModal({ isOpen, onClose, exam }: EditExamModalProps) {
                     exam_date: formData.exam_date || null,
                 }
             });
-
-            // Update user study days
-            await usersApi.updateProfile({ study_days: studyDays });
-
             onClose();
         } catch (error) {
             // Error handled by hook
@@ -131,7 +95,7 @@ export function EditExamModal({ isOpen, onClose, exam }: EditExamModalProps) {
                     </div>
                     <DialogTitle className="text-2xl font-bold">Exam Settings</DialogTitle>
                     <DialogDescription className="text-muted-foreground">
-                        Configure your study schedule and exam details.
+                        Update your exam title and date.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -161,31 +125,6 @@ export function EditExamModal({ isOpen, onClose, exam }: EditExamModalProps) {
                                 onChange={(e) => setFormData({ ...formData, exam_date: e.target.value })}
                                 className="bg-muted/30 border-border/40 [color-scheme:dark]"
                             />
-                        </div>
-
-                        <div className="space-y-3 pt-2">
-                            <Label className="text-sm font-bold flex items-center gap-2">
-                                <Calendar className="h-4 w-4" />
-                                Study Days
-                            </Label>
-                            <div className="flex justify-between gap-1">
-                                {DAYS.map((day) => (
-                                    <button
-                                        key={day.value}
-                                        type="button"
-                                        onClick={() => toggleDay(day.value)}
-                                        className={`h-9 w-9 rounded-full text-xs font-bold transition-all border ${studyDays.includes(day.value)
-                                                ? 'bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20'
-                                                : 'bg-muted/30 text-muted-foreground border-border/40 hover:bg-muted/50'
-                                            }`}
-                                    >
-                                        {day.label}
-                                    </button>
-                                ))}
-                            </div>
-                            <p className="text-[10px] text-muted-foreground italic">
-                                Topics will only be scheduled for these days.
-                            </p>
                         </div>
 
                         {exam.exam_date && (
