@@ -332,12 +332,16 @@ async def start_exam_generation(
     try:
         generate_exam_content.delay(str(exam.id), str(current_user.id))
         logger.info(f"✅ Started content generation for exam {exam.id}")
+    except Exception as e:
+        logger.error(f"Failed to trigger Celery task: {e}")
+        # Consider whether to fail here or just log. Since status is already 'generating', 
+        # failure here might leave it in a weird state.
         
     return {
-            "message": "Content generation started",
-            "exam_id": str(exam.id),
-            "status": "generating"
-        }
+        "message": "Content generation started",
+        "exam_id": str(exam.id),
+        "status": "generating"
+    }
 
 
 @router.post("/{exam_id}/reschedule", response_model=List[TopicResponse])
