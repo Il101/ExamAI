@@ -14,7 +14,7 @@ class ExamMapper:
             id=model.id,
             user_id=model.user_id,
             course_id=model.course_id,
-            course_title=getattr(model, "course_title", getattr(model.course, "title", None)) if hasattr(model, "course") and model.course else getattr(model, "course_title", None),
+            course_title=getattr(model, "course_title", None),
             title=model.title,
             subject=model.subject,
             exam_type=cast(ExamType, model.exam_type),

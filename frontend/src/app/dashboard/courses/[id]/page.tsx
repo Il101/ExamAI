@@ -16,14 +16,17 @@ import {
     Settings,
     Calendar
 } from 'lucide-react';
-import { ExamCard } from '@/components/exam/exam-card';
 import { format } from 'date-fns';
+import { EditCourseModal } from '@/components/modals/edit-course-modal';
+import { useState } from 'react';
+import { ExamCard } from '@/components/exam/exam-card';
 
 export default function CourseDetailPage() {
     const { id } = useParams();
     const router = useRouter();
     const { data: course, isLoading: isLoadingCourse } = useCourse(id as string);
     const { data: exams, isLoading: isLoadingExams } = useCourseExams(id as string);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
     if (isLoadingCourse) {
         return (
@@ -91,7 +94,11 @@ export default function CourseDetailPage() {
                     </div>
 
                     <div className="flex gap-3">
-                        <Button variant="outline" className="font-bold border-white/10 hover:bg-white/5">
+                        <Button
+                            variant="outline"
+                            className="font-bold border-white/10 hover:bg-white/5"
+                            onClick={() => setIsEditModalOpen(true)}
+                        >
                             <Settings className="h-4 w-4 mr-2" />
                             Settings
                         </Button>
@@ -229,6 +236,12 @@ export default function CourseDetailPage() {
                     </Card>
                 )}
             </div>
+
+            <EditCourseModal
+                isOpen={isEditModalOpen}
+                onClose={() => setIsEditModalOpen(false)}
+                course={course}
+            />
         </div>
     );
 }
