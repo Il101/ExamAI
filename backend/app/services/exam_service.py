@@ -220,9 +220,18 @@ class ExamService:
         If the exam belongs to a course, it will reschedule all incomplete topics 
         across the entire course sequentially, using this exam's date as the target.
         """
+        import logging
+        logger = logging.getLogger(__name__)
+        
         exam = await self.exam_repo.get_by_user_and_id(user_id, exam_id)
         if not exam:
             raise ValueError("Exam not found")
+        
+        logger.info(f"RESCHEDULE TRIGGERED: exam_id={exam_id}, exam_date={exam.exam_date}")
+        
+        if not exam.exam_date:
+            logger.warning(f"RESCHEDULE SKIPPED: exam {exam_id} has no exam_date set")
+            return []
 
         from app.repositories.topic_repository import TopicRepository
         from app.services.study_planner_service import StudyPlannerService
@@ -246,6 +255,7 @@ class ExamService:
             all_incomplete_topics.extend(incomplete)
 
         if all_incomplete_topics:
+            logger.info(f"SCHEDULING {len(all_incomplete_topics)} topics for exam {exam_id}")
             planner = StudyPlannerService()
             
             # Fetch user's study days
@@ -255,9 +265,12 @@ class ExamService:
             study_days = user.study_days if user else [0, 1, 2, 3, 4, 5, 6]
 
             # Use the triggering exam's date as the target deadline for the group
+            logger.info(f"Calling planner with study_days={study_days}, exam_date={exam.exam_date}")
             updated_topics = planner.schedule_exam(exam, all_incomplete_topics, study_days=study_days)
             
+            logger.info(f"Planner returned {len(updated_topics)} topics, updating database...")
             for topic in updated_topics:
+                logger.info(f"Topic {topic.topic_name}: scheduled_date={topic.scheduled_date}")
                 await topic_repo.update(topic)
             
             await self.exam_repo.session.flush()
