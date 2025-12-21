@@ -6,6 +6,7 @@ from app.api.v1.endpoints import (
     analyze,
     auth,
     chat,
+    courses,
     exams,
     health,
     push,
@@ -27,6 +28,7 @@ api_router.include_router(health.router)
 # Include all endpoint routers
 api_router.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 api_router.include_router(users.router, prefix="/users", tags=["Users"])
+api_router.include_router(courses.router, prefix="/courses", tags=["Courses"])
 api_router.include_router(exams.router, prefix="/exams", tags=["Exams"])
 api_router.include_router(topics.router, prefix="/topics", tags=["Topics"])
 api_router.include_router(reviews.router, prefix="/reviews", tags=["Reviews"])

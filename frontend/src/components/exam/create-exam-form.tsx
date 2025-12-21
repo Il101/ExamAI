@@ -13,6 +13,8 @@ import { FileUploadZone } from './file-upload-zone';
 import { useExams } from '@/lib/hooks/use-exams';
 import type { CreateExamRequest, Exam } from '@/lib/api/exams';
 import { toast } from 'sonner';
+import { useCourses } from '@/lib/hooks/use-courses';
+import { Folder } from 'lucide-react';
 
 const createExamSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters'),
@@ -36,12 +38,20 @@ const formatBytes = (bytes: number) => {
   return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
 };
 
-export function CreateExamForm({ onSuccess }: { onSuccess?: () => void }) {
+export function CreateExamForm({
+  onSuccess,
+  initialCourseId
+}: {
+  onSuccess?: () => void;
+  initialCourseId?: string | null;
+}) {
   const router = useRouter();
   const { createExam, isCreating } = useExams();
+  const { courses } = useCourses();
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [examType, setExamType] = useState<'oral' | 'written' | 'test'>('written');
   const [level, setLevel] = useState<'school' | 'bachelor' | 'master' | 'phd'>('bachelor');
+  const [courseId, setCourseId] = useState<string>(initialCourseId || 'none');
 
   const form = useForm<CreateExamFormData>({
     resolver: zodResolver(createExamSchema),
@@ -59,6 +69,10 @@ export function CreateExamForm({ onSuccess }: { onSuccess?: () => void }) {
     formData.append('subject', subject);
     formData.append('exam_type', exam_type);
     formData.append('level', level);
+
+    if (courseId && courseId !== 'none') {
+      formData.append('course_id', courseId);
+    }
 
     if (uploadedFiles.length) {
       uploadedFiles.forEach((file) => formData.append('files', file));
@@ -128,6 +142,32 @@ export function CreateExamForm({ onSuccess }: { onSuccess?: () => void }) {
         {form.formState.errors.subject && (
           <p className="text-sm text-red-500 mt-1">{form.formState.errors.subject.message}</p>
         )}
+      </div>
+
+      <div>
+        <Label className="flex items-center gap-2 mb-1.5">
+          <Folder className="h-4 w-4 text-muted-foreground" />
+          <span>Course Folder (Optional)</span>
+        </Label>
+        <Select
+          value={courseId}
+          onValueChange={setCourseId}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select a course folder" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Standalone (No Folder)</SelectItem>
+            {courses.map((course) => (
+              <SelectItem key={course.id} value={course.id}>
+                {course.title}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-[10px] text-muted-foreground mt-1 px-1">
+          Select a folder to group this exam with others in your dashboard.
+        </p>
       </div>
 
       <div className="grid grid-cols-2 gap-4">

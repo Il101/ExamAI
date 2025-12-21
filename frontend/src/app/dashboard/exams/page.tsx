@@ -10,11 +10,14 @@ import { ExamCard } from '@/components/exam/exam-card';
 import { Card } from '@/components/ui/card';
 import { useState } from 'react';
 import type { Exam } from '@/lib/api/exams';
+import { MoveToCourseModal } from '@/components/modals/move-to-course-modal';
 
 export default function ExamsPage() {
     const router = useRouter();
     const { exams, isLoading, deleteExam } = useExams();
     const [searchQuery, setSearchQuery] = useState('');
+    const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
+    const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
 
     const filteredExams = exams?.filter((exam: Exam) =>
         exam.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -81,6 +84,10 @@ export default function ExamsPage() {
                                     deleteExam(exam.id);
                                 }
                             }}
+                            onMoveToCourse={() => {
+                                setSelectedExam(exam);
+                                setIsMoveModalOpen(true);
+                            }}
                         />
                     ))}
                 </div>
@@ -110,6 +117,15 @@ export default function ExamsPage() {
                     </Link>
                 </Card>
             )}
+
+            <MoveToCourseModal
+                exam={selectedExam}
+                isOpen={isMoveModalOpen}
+                onClose={() => {
+                    setIsMoveModalOpen(false);
+                    setSelectedExam(null);
+                }}
+            />
         </div>
     );
 }

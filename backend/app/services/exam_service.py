@@ -146,12 +146,13 @@ class ExamService:
         self,
         user_id: UUID,
         status: Optional[ExamStatus] = None,
+        course_id: Optional[UUID] = None,
         limit: int = 100,
         offset: int = 0,
     ) -> List[Exam]:
         """List user's exams"""
         return await self.exam_repo.list_by_user(
-            user_id=user_id, status=status, limit=limit, offset=offset
+            user_id=user_id, status=status, course_id=course_id, limit=limit, offset=offset
         )
 
     async def update_exam(

@@ -10,6 +10,7 @@ export interface CreateExamRequest {
 
 export interface Exam {
   id: string;
+  course_id?: string;
   title: string;
   description: string;
   subject?: string;
@@ -76,7 +77,7 @@ export const examsApi = {
     return response.data;
   },
 
-  list: async (params?: { skip?: number; limit?: number }): Promise<ExamListResponse> => {
+  list: async (params?: { skip?: number; limit?: number; course_id?: string | null }): Promise<ExamListResponse> => {
     const response = await api.get('/exams/', { params });
     return response.data;
   },

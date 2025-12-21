@@ -20,6 +20,7 @@ class ExamRepository(BaseRepository[Exam, ExamModel]):
         self,
         user_id: UUID,
         status: Optional[ExamStatus] = None,
+        course_id: Optional[UUID] = None,
         limit: int = 100,
         offset: int = 0,
     ) -> List[Exam]:
@@ -84,6 +85,11 @@ class ExamRepository(BaseRepository[Exam, ExamModel]):
 
         if status:
             stmt = stmt.where(ExamModel.status == status)
+            
+        if course_id:
+            stmt = stmt.where(ExamModel.course_id == course_id)
+        elif course_id is False: # Special case for "standalone" (no course)
+             stmt = stmt.where(ExamModel.course_id == None)
 
         stmt = stmt.order_by(ExamModel.created_at.desc()).limit(limit).offset(offset)
 
@@ -102,8 +108,93 @@ class ExamRepository(BaseRepository[Exam, ExamModel]):
 
         return exams
 
+    async def list_by_course(
+        self,
+        user_id: UUID,
+        course_id: UUID,
+    ) -> List[Exam]:
+        """List all exams belonging to a specific course"""
+        from datetime import datetime, timezone
+        from app.db.models.topic import TopicModel
+        from app.db.models.review import ReviewItemModel
+        from app.db.models.study_session import StudySessionModel
+        from sqlalchemy import cast, extract, Integer
+
+        # Subquery for completed topics
+        completed_topics_sub = (
+            select(func.count(TopicModel.id))
+            .where(TopicModel.exam_id == ExamModel.id)
+            .where(TopicModel.quiz_completed == True)
+            .label("completed_topics")
+        )
+
+        # Subquery for due flashcards
+        due_flashcards_sub = (
+            select(func.count(ReviewItemModel.id))
+            .join(TopicModel, TopicModel.id == ReviewItemModel.topic_id)
+            .where(TopicModel.exam_id == ExamModel.id)
+            .where(ReviewItemModel.next_review_date <= datetime.now(timezone.utc))
+            .label("due_flashcards_count")
+        )
+
+        # Subquery for actual study time
+        actual_study_time_sub = (
+            select(func.sum(
+                cast(
+                    extract('epoch', StudySessionModel.ended_at - StudySessionModel.started_at) / 60,
+                    Integer
+                )
+            ))
+            .where(StudySessionModel.exam_id == ExamModel.id)
+            .where(StudySessionModel.ended_at.is_not(None))
+            .label("total_actual_study_minutes")
+        )
+
+        # Subquery for planned study time
+        planned_study_time_sub = (
+            select(func.sum(TopicModel.estimated_study_minutes))
+            .where(TopicModel.exam_id == ExamModel.id)
+            .label("total_planned_study_minutes")
+        )
+
+        # Subquery for average difficulty level
+        avg_difficulty_sub = (
+            select(func.avg(TopicModel.difficulty_level))
+            .where(TopicModel.exam_id == ExamModel.id)
+            .label("average_difficulty")
+        )
+
+        stmt = select(
+            ExamModel, 
+            completed_topics_sub, 
+            due_flashcards_sub, 
+            actual_study_time_sub,
+            planned_study_time_sub,
+            avg_difficulty_sub
+        ).where(
+            ExamModel.user_id == user_id,
+            ExamModel.course_id == course_id
+        ).order_by(ExamModel.created_at.desc())
+
+        result = await self.session.execute(stmt)
+        rows = result.all()
+
+        exams = []
+        for model, completed_count, due_count, actual_minutes, planned_minutes, avg_diff in rows:
+            setattr(model, "completed_topics", completed_count or 0)
+            setattr(model, "due_flashcards_count", due_count or 0)
+            setattr(model, "total_actual_study_minutes", actual_minutes or 0)
+            setattr(model, "total_planned_study_minutes", planned_minutes or 0)
+            setattr(model, "average_difficulty", float(avg_diff or 0.0))
+            exams.append(self.mapper.to_domain(model))
+
+        return exams
+
     async def count_by_user(
-        self, user_id: UUID, status: Optional[ExamStatus] = None
+        self, 
+        user_id: UUID, 
+        status: Optional[ExamStatus] = None,
+        course_id: Optional[UUID] = None
     ) -> int:
         """Count user's exams"""
         stmt = (
@@ -114,6 +205,11 @@ class ExamRepository(BaseRepository[Exam, ExamModel]):
 
         if status:
             stmt = stmt.where(ExamModel.status == status)
+
+        if course_id:
+            stmt = stmt.where(ExamModel.course_id == course_id)
+        elif course_id is False:
+            stmt = stmt.where(ExamModel.course_id == None)
 
         result = await self.session.execute(stmt)
         return result.scalar_one()

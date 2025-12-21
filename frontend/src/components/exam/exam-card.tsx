@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Book, Brain, Play, Trash2, GraduationCap, Clock } from 'lucide-react';
+import { Book, Brain, Play, Trash2, GraduationCap, Clock, Folder } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -16,6 +16,7 @@ interface ExamCardProps {
   onDelete?: () => void;
   onPressReview?: (examId: string) => void;
   onPressLearn?: (examId: string) => void;
+  onMoveToCourse?: () => void;
 }
 
 export function ExamCard({
@@ -25,7 +26,8 @@ export function ExamCard({
   completedTopics = 0,
   dueFlashcards = 0,
   onPressReview,
-  onPressLearn
+  onPressLearn,
+  onMoveToCourse
 }: ExamCardProps) {
   const router = useRouter();
 
@@ -166,8 +168,8 @@ export function ExamCard({
           <Button
             variant={exam.status === 'planned' ? 'default' : 'outline'}
             className={`flex-1 h-10 font-bold ${exam.status === 'planned'
-                ? 'bg-amber-500 hover:bg-amber-600 text-white border-none'
-                : 'border-border/60 hover:border-primary/40 hover:bg-primary/5 text-foreground'
+              ? 'bg-amber-500 hover:bg-amber-600 text-white border-none'
+              : 'border-border/60 hover:border-primary/40 hover:bg-primary/5 text-foreground'
               } transition-colors`}
             disabled={exam.status !== 'ready' && exam.status !== 'planned'}
             onClick={(e) => {
@@ -187,6 +189,21 @@ export function ExamCard({
               </>
             )}
           </Button>
+
+          {onMoveToCourse && (
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-10 w-10 shrink-0 text-muted-foreground hover:text-primary hover:bg-primary/10"
+              onClick={(e) => {
+                e.stopPropagation();
+                onMoveToCourse();
+              }}
+              title="Move to Folder"
+            >
+              <Folder className="h-4 w-4" />
+            </Button>
+          )}
 
           {onDelete && (
             <Button

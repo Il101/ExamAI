@@ -343,6 +343,7 @@ async def start_exam_generation(
 @router.get("/", response_model=ExamListResponse)
 async def list_exams(
     status: Optional[str] = Query(None, description="Filter by status"),
+    course_id: Optional[UUID] = Query(None, description="Filter by course"),
     limit: int = Query(100, ge=1, le=100),
     offset: int = Query(0, ge=0),
     current_user: User = Depends(get_current_active_user),
@@ -357,10 +358,18 @@ async def list_exams(
     """
 
     exams = await exam_service.list_user_exams(
-        user_id=current_user.id, status=status, limit=limit, offset=offset
+        user_id=current_user.id, 
+        status=status, 
+        course_id=course_id,
+        limit=limit, 
+        offset=offset
     )
 
-    total = await exam_service.exam_repo.count_by_user(current_user.id, status)
+    total = await exam_service.exam_repo.count_by_user(
+        user_id=current_user.id, 
+        status=status, 
+        course_id=course_id
+    )
 
     return ExamListResponse(
         exams=[ExamResponse.model_validate(exam) for exam in exams],

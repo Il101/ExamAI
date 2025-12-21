@@ -7,6 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
 if TYPE_CHECKING:
+    from .course import CourseModel
     from .exam import ExamModel
     from .review import ReviewItemModel
     from .study_session import StudySessionModel
@@ -61,6 +62,10 @@ class UserModel(Base):
     )
 
     # Relationships
+    courses: Mapped[list["CourseModel"]] = relationship(
+        "CourseModel", back_populates="user", cascade="all, delete-orphan"
+    )
+
     exams: Mapped[list["ExamModel"]] = relationship(
         "ExamModel", back_populates="user", cascade="all, delete-orphan"
     )

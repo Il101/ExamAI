@@ -1,3 +1,4 @@
+from .course import CourseModel  # noqa: F401
 from .exam import ExamModel  # noqa: F401
 from .llm_usage import LLMUsageLogModel  # noqa: F401
 from .notification import NotificationModel  # noqa: F401

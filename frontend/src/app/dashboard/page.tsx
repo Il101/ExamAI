@@ -10,13 +10,22 @@ import { BookOpen, Brain, TrendingUp, Clock, Plus, BarChart3 } from 'lucide-reac
 import Link from 'next/link';
 import { ExamCard } from '@/components/exam/exam-card';
 import type { Exam } from '@/lib/api/exams';
+import { useCourses } from '@/lib/hooks/use-courses';
+import { CourseList } from '@/components/course/CourseList';
+import { CreateCourseModal } from '@/components/modals/create-course-modal';
+import { useState } from 'react';
+import { FolderPlus } from 'lucide-react';
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const { stats, isLoading: isLoadingStats } = useAnalytics();
   const { exams, isLoading: isLoadingExams } = useExams();
+  const { courses, isLoading: isLoadingCourses } = useCourses();
+  const [isCourseModalOpen, setIsCourseModalOpen] = useState(false);
 
-  const recentExams = exams?.slice(0, 3) || [];
+  // Standalone exams (not in any course)
+  const standaloneExams = exams?.filter(e => !e.course_id) || [];
+  const recentExams = standaloneExams.slice(0, 3);
 
   return (
     <div className="space-y-8">
@@ -126,7 +135,18 @@ export default function DashboardPage() {
 
       {/* Quick Actions - Key Feature */}
       <div>
-        <h2 className="text-2xl font-bold text-foreground mb-6">Quick Actions</h2>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-foreground">Quick Actions</h2>
+          <Button
+            variant="glow"
+            size="sm"
+            onClick={() => setIsCourseModalOpen(true)}
+            className="h-9 px-4 font-bold"
+          >
+            <FolderPlus className="h-4 w-4 mr-2" />
+            New Course
+          </Button>
+        </div>
         <div className="grid gap-6 md:grid-cols-3">
           <Link href="/dashboard/exams/new">
             <Card className="p-8 border-border bg-gradient-to-br from-blue-500/10 to-blue-600/5 backdrop-blur-xl hover:from-blue-500/20 hover:to-blue-600/10 transition-all duration-300 cursor-pointer group hover:shadow-lg hover:shadow-blue-500/20 hover:scale-[1.02]">
@@ -178,10 +198,26 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Courses Section */}
+      <div>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-foreground">My Courses</h2>
+          <Link href="/dashboard/courses">
+            <Button variant="outline" className="border-white/10 hover:bg-white/5">Manage Folders</Button>
+          </Link>
+        </div>
+        <CourseList
+          courses={courses}
+          isLoading={isLoadingCourses}
+          onCourseClick={(id) => window.location.href = `/dashboard/courses/${id}`}
+          onCreateClick={() => setIsCourseModalOpen(true)}
+        />
+      </div>
+
       {/* Recent Exams */}
       <div>
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-foreground">Recent Exams</h2>
+          <h2 className="text-2xl font-bold text-foreground">Recent Standalone Exams</h2>
           <Link href="/dashboard/exams">
             <Button variant="outline" className="border-white/10 hover:bg-white/5">View All</Button>
           </Link>
@@ -223,6 +259,11 @@ export default function DashboardPage() {
           </Card>
         )}
       </div>
+
+      <CreateCourseModal
+        isOpen={isCourseModalOpen}
+        onClose={() => setIsCourseModalOpen(false)}
+      />
     </div>
   );
 }

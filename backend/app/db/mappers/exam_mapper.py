@@ -13,6 +13,7 @@ class ExamMapper:
         return Exam(
             id=model.id,
             user_id=model.user_id,
+            course_id=model.course_id,
             title=model.title,
             subject=model.subject,
             exam_type=cast(ExamType, model.exam_type),
@@ -47,6 +48,7 @@ class ExamMapper:
         return ExamModel(
             id=domain.id,
             user_id=domain.user_id,
+            course_id=domain.course_id,
             title=domain.title,
             subject=domain.subject,
             exam_type=domain.exam_type,
@@ -73,6 +75,7 @@ class ExamMapper:
     @staticmethod
     def update_model(model: ExamModel, domain: Exam) -> ExamModel:
         """Update existing DB model with domain data"""
+        model.course_id = domain.course_id
         model.title = domain.title
         model.subject = domain.subject
         model.exam_type = domain.exam_type

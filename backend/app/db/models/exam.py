@@ -9,6 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
 if TYPE_CHECKING:
+    from .course import CourseModel
     from .study_session import StudySessionModel
     from .topic import TopicModel
     from .user import UserModel
@@ -20,6 +21,13 @@ class ExamModel(Base):
     __tablename__ = "exams"
 
     # Foreign keys
+    course_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("courses.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),
@@ -65,6 +73,7 @@ class ExamModel(Base):
 
     # Relationships
     user: Mapped["UserModel"] = relationship("UserModel", back_populates="exams")
+    course: Mapped[Optional["CourseModel"]] = relationship("CourseModel", back_populates="exams")
 
     topics: Mapped[list["TopicModel"]] = relationship(
         "TopicModel",

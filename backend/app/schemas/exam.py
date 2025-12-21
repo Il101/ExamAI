@@ -34,6 +34,7 @@ class ExamUpdate(BaseModel):
 
     title: Optional[str] = Field(None, min_length=3, max_length=500)
     subject: Optional[str] = Field(None, min_length=2, max_length=200)
+    course_id: Optional[UUID] = None
 
 
 class ExamResponse(BaseModel):
@@ -41,6 +42,7 @@ class ExamResponse(BaseModel):
 
     id: UUID
     user_id: UUID
+    course_id: Optional[UUID] = None
     title: str
     subject: str
     exam_type: str

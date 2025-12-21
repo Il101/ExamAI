@@ -11,6 +11,7 @@ from app.integrations.llm.base import LLMProvider
 from app.integrations.llm.gemini import GeminiProvider
 from app.integrations.llm.openai import OpenAIProvider
 from app.repositories.exam_repository import ExamRepository
+from app.repositories.course_repository import CourseRepository
 from app.repositories.chat_repository import ChatMessageRepository
 from app.repositories.review_repository import ReviewItemRepository
 from app.repositories.study_session_repository import StudySessionRepository
@@ -27,6 +28,7 @@ from app.services.auth_service import AuthService
 from app.services.cost_guard_service import CostGuardService
 from app.services.exam_service import ExamService
 from app.services.prompt_service import PromptService
+from app.services.course_service import CourseService
 from app.services.study_service import StudyService
 from app.services.lemonsqueezy_service import LemonSqueezyService
 from app.services.subscription_service import SubscriptionService
@@ -43,6 +45,10 @@ async def get_user_repo(session: AsyncSession = Depends(get_db)) -> UserReposito
 
 async def get_exam_repo(session: AsyncSession = Depends(get_db)) -> ExamRepository:
     return ExamRepository(session)
+
+
+async def get_course_repo(session: AsyncSession = Depends(get_db)) -> CourseRepository:
+    return CourseRepository(session)
 
 
 async def get_topic_repo(session: AsyncSession = Depends(get_db)) -> TopicRepository:
@@ -131,6 +137,13 @@ async def get_exam_service(
     llm_provider: LLMProvider = Depends(get_llm_provider),
 ) -> ExamService:
     return ExamService(exam_repo, cost_guard, llm_provider)
+
+
+async def get_course_service(
+    course_repo: CourseRepository = Depends(get_course_repo),
+    exam_repo: ExamRepository = Depends(get_exam_repo),
+) -> CourseService:
+    return CourseService(course_repo, exam_repo)
 
 
 from app.repositories.review_log_repository import ReviewLogRepository
