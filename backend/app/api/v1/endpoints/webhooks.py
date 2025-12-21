@@ -53,6 +53,8 @@ async def lemonsqueezy_webhook(
 
     event_name = request.headers.get("x-event-name")
     logger.info(f"Received Lemon Squeezy webhook: {event_name}")
+    logger.debug(f"Webhook payload: {json.dumps(data, indent=2)}")
+    logger.debug(f"Webhook custom_data: {json.dumps(data.get('meta', {}).get('custom_data', {}), indent=2)}")
 
     try:
         if event_name == "subscription_created":

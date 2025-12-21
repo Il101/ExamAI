@@ -183,10 +183,14 @@ class SubscriptionService:
         Handle Lemon Squeezy subscription.created webhook event.
         """
         attributes = payload["data"]["attributes"]
-        custom_data = attributes.get("custom_data", {})
+        # Lemon Squeezy often puts custom data in meta field for webhooks
+        meta = payload.get("meta", {})
+        custom_data = meta.get("custom_data", {}) or attributes.get("custom_data", {})
         
         user_id_str = custom_data.get("user_id")
         if not user_id_str:
+            import logging
+            logging.getLogger(__name__).warning(f"No user_id found in webhook payload metadata or attributes: {payload.get('meta')}")
             return
             
         user_id = UUID(user_id_str)
