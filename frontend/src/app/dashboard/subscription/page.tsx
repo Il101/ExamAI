@@ -35,16 +35,8 @@ export default function SubscriptionPage() {
         setActionLoading(true);
         try {
             const { portal_url } = await subscriptionsApi.getPortalLink();
-
-            // Use Lemon Squeezy Overlay
-            // @ts-ignore
-            if (window.LemonSqueezy) {
-                // @ts-ignore
-                window.LemonSqueezy.Url.Open(portal_url);
-            } else {
-                // Fallback to redirect if script not loaded
-                window.location.href = portal_url;
-            }
+            // Simple redirect instead of overlay
+            window.location.href = portal_url;
         } catch (err) {
             console.error('Failed to get portal link:', err);
             toast.error('Failed to open billing portal');

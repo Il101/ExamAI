@@ -48,7 +48,6 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <LemonSqueezyScript />
         <Providers>
           {/* TEMPORARILY DISABLED - Need to test on all pages before re-enabling */}
           {/* <PullToRefresh> */}
