@@ -16,6 +16,7 @@ class Exam:
     Represents a study material with AI-generated content.
     """
 
+    id: UUID = field(default_factory=uuid4)
     user_id: UUID = field(default_factory=uuid4)
     course_id: Optional[UUID] = None
 

@@ -70,8 +70,6 @@ class CourseRepository(BaseRepository[Course, CourseModel]):
                     Integer
                 )
             ))
-            .where(StudySessionModel.course_id == CourseModel.id) # Need to make sure study_session has course_id or join via exam
-            # Actually study_session currently has exam_id. Let's join via exam.
             .select_from(StudySessionModel)
             .join(ExamModel, ExamModel.id == StudySessionModel.exam_id)
             .where(ExamModel.course_id == CourseModel.id)
