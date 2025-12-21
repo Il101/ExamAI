@@ -217,6 +217,9 @@ export default function CourseDetailPage() {
                             <ExamCard
                                 key={exam.id}
                                 exam={exam}
+                                totalTopics={exam.topic_count}
+                                completedTopics={exam.completed_topics}
+                                dueFlashcards={exam.due_flashcards_count}
                                 onPressLearn={() => router.push(`/dashboard/exams/${exam.id}`)}
                                 onPressReview={() => router.push(`/dashboard/flashcards?exam_id=${exam.id}`)}
                             />

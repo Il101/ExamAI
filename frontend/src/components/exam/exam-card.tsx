@@ -21,15 +21,20 @@ interface ExamCardProps {
 
 export function ExamCard({
   exam,
+  totalTopics,
+  completedTopics,
+  dueFlashcards,
   onDelete,
-  totalTopics = 0,
-  completedTopics = 0,
-  dueFlashcards = 0,
   onPressReview,
   onPressLearn,
   onMoveToCourse
 }: ExamCardProps) {
   const router = useRouter();
+
+  // Handle fallback to exam properties if props are undefined
+  const effectiveTotalTopics = totalTopics ?? exam.topic_count ?? 0;
+  const effectiveCompletedTopics = completedTopics ?? exam.completed_topics ?? 0;
+  const effectiveDueFlashcards = dueFlashcards ?? exam.due_flashcards_count ?? 0;
 
   const statusColors: Record<string, string> = {
     draft: 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300',
@@ -39,7 +44,7 @@ export function ExamCard({
     failed: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
   };
 
-  const progress = totalTopics > 0 ? (completedTopics / totalTopics) * 100 : 0;
+  const progress = effectiveTotalTopics > 0 ? (effectiveCompletedTopics / effectiveTotalTopics) * 100 : 0;
 
   const formatMinutes = (mins: number) => {
     if (mins <= 0) return '0m';
@@ -89,7 +94,7 @@ export function ExamCard({
                 <Book className="h-3.5 w-3.5" />
                 <span>Topics Progress</span>
               </div>
-              <span className="text-foreground">{completedTopics}/{totalTopics}</span>
+              <span className="text-foreground">{effectiveCompletedTopics}/{effectiveTotalTopics}</span>
             </div>
             <Progress value={progress} className="h-1.5 bg-muted/30" />
           </div>
@@ -100,9 +105,9 @@ export function ExamCard({
               <Brain className="h-3.5 w-3.5" />
               <span>Review Session</span>
             </div>
-            {dueFlashcards > 0 ? (
+            {effectiveDueFlashcards > 0 ? (
               <Badge variant="outline" className="text-orange-500 border-orange-500/20 bg-orange-500/5 font-bold">
-                ⚡ {dueFlashcards} due
+                ⚡ {effectiveDueFlashcards} due
               </Badge>
             ) : (
               <span className="text-xs font-medium text-emerald-500">All caught up</span>
@@ -161,7 +166,7 @@ export function ExamCard({
               }}
             >
               <Play className="h-4 w-4 mr-2 fill-current" />
-              Train {dueFlashcards > 0 ? `(${dueFlashcards})` : ''}
+              Train {effectiveDueFlashcards > 0 ? `(${effectiveDueFlashcards})` : ''}
             </Button>
           )}
 
