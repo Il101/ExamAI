@@ -131,6 +131,16 @@ class CourseRepository(BaseRepository[Course, CourseModel]):
 
         return courses
 
+    async def count_by_user(self, user_id: UUID) -> int:
+        """Count user's courses"""
+        stmt = (
+            select(func.count())
+            .select_from(CourseModel)
+            .where(CourseModel.user_id == user_id)
+        )
+        result = await self.session.execute(stmt)
+        return result.scalar_one()
+
     async def get_by_user_and_id(self, user_id: UUID, course_id: UUID) -> Optional[Course]:
         """Get course by user and ID with aggregated statistics"""
         
