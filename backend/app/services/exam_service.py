@@ -188,7 +188,29 @@ class ExamService:
         # Validate
         exam._validate()
 
-        return await self.exam_repo.update(exam)
+        updated = await self.exam_repo.update(exam)
+
+        # If exam_date changed, trigger rescheduling of topics
+        if "exam_date" in updates and updates["exam_date"]:
+            try:
+                from app.repositories.topic_repository import TopicRepository
+                from app.services.study_planner_service import StudyPlannerService
+                
+                topic_repo = TopicRepository(self.exam_repo.session)
+                topics = await topic_repo.get_by_exam_id(exam_id)
+                
+                if topics:
+                    planner = StudyPlannerService()
+                    updated_topics = planner.schedule_exam(updated, topics)
+                    for topic in updated_topics:
+                        await topic_repo.update(topic)
+                    await self.exam_repo.session.flush()
+            except Exception as e:
+                # Log but don't fail the primary update
+                import logging
+                logging.getLogger(__name__).error(f"FAILED TO RESCHEDULE TOPICS after date update: {e}")
+
+        return updated
 
     async def delete_exam(self, user_id: UUID, exam_id: UUID) -> bool:
         """

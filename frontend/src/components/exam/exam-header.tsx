@@ -1,11 +1,13 @@
 'use client';
 
-import { ArrowLeft, Calendar, BookOpen, Play, Download } from 'lucide-react';
+import { ArrowLeft, Calendar, BookOpen, Play, Download, Settings } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { EditExamModal } from '@/components/modals/edit-exam-modal';
 
 interface ExamHeaderProps {
     examId: string;
@@ -27,8 +29,10 @@ export function ExamHeader({
     createdAt,
     updatedAt,
     onStudyClick,
-}: ExamHeaderProps) {
+    exam,
+}: ExamHeaderProps & { exam: any }) {
     const router = useRouter();
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const statusColors = {
         draft: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200',
         planned: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
@@ -46,6 +50,14 @@ export function ExamHeader({
                 </Button>
 
                 <div className="flex gap-2">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setIsEditModalOpen(true)}
+                    >
+                        <Settings className="h-4 w-4 mr-2" />
+                        Settings
+                    </Button>
                     {status === 'ready' && (
                         <>
                             <Button variant="outline" size="sm">
@@ -90,6 +102,11 @@ export function ExamHeader({
                     {status.charAt(0).toUpperCase() + status.slice(1)}
                 </Badge>
             </div>
+            <EditExamModal
+                isOpen={isEditModalOpen}
+                onClose={() => setIsEditModalOpen(false)}
+                exam={exam}
+            />
         </div>
     );
 }

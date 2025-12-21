@@ -72,7 +72,8 @@ async def create_exam_with_plan(
         subject=subject,
         exam_type=exam_type,
         level=level,
-        original_content=original_content
+        original_content=original_content,
+        exam_date=exam_date
     )
     
     # 2. Generate plan with cache

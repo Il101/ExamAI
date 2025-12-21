@@ -24,6 +24,7 @@ export interface Exam {
   total_actual_study_minutes: number;
   total_planned_study_minutes: number;
   average_difficulty: number;
+  exam_date?: string;
   created_at: string;
   updated_at: string;
   user_id: string;
@@ -105,6 +106,11 @@ export const examsApi = {
 
   startGeneration: async (examId: string) => {
     const response = await api.post(`/exams/${examId}/generate`);
+    return response.data;
+  },
+
+  update: async (examId: string, data: any) => {
+    const response = await api.put(`/exams/${examId}`, data);
     return response.data;
   },
 };

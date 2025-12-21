@@ -51,11 +51,33 @@ export function useExams() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: ({ examId, data }: { examId: string; data: any }) => examsApi.update(examId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['exams'] });
+      queryClient.invalidateQueries({ queryKey: ['exam'] });
+      toast.success('Exam updated successfully');
+    },
+    onError: (error: unknown) => {
+      let message = 'Failed to update exam';
+      if (error instanceof Error && 'response' in error) {
+        const responseError = error as { response?: { data?: { error?: { message?: string }, detail?: string } } };
+        message = responseError.response?.data?.error?.message ||
+          responseError.response?.data?.detail ||
+          'Failed to update exam';
+      }
+      toast.error(message);
+    },
+  });
+
   return {
     exams: data?.exams || [],
     isLoading,
     createExam: createMutation.mutate,
+    updateExam: updateMutation.mutate,
     deleteExam: deleteMutation.mutate,
     isCreating: createMutation.isPending,
+    isUpdating: updateMutation.isPending,
+    isDeleting: deleteMutation.isPending,
   };
 }

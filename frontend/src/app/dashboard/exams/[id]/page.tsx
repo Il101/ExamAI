@@ -271,6 +271,7 @@ export default function ExamDetailPage() {
                     topicCount={exam.topic_count}
                     createdAt={exam.created_at}
                     updatedAt={exam.updated_at}
+                    exam={exam}
                     onStudyClick={handleStartReview}
                 />
             </div>
