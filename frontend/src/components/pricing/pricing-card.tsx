@@ -61,7 +61,7 @@ export function PricingCard({ plan, currentPlan, onSelect, isLoading, billingPer
             included: true
         },
         {
-            name: plan.limits?.max_topics_per_exam === null ? 'Unlimited topics' : `${plan.limits?.max_topics_per_exam || 8} topics per exam`,
+            name: plan.limits?.max_topics_per_exam === null ? 'Unlimited topics' : `Up to ${plan.limits?.max_topics_per_exam || 8} topics per exam`,
             included: true
         },
         {

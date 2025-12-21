@@ -127,7 +127,7 @@ export default function PricingPage() {
                         >
                             Yearly
                             <Badge variant="secondary" className="bg-green-500/10 text-green-600 border-none px-1.5 py-0 h-5">
-                                -40%
+                                -38%
                             </Badge>
                         </label>
                     </div>
