@@ -35,10 +35,20 @@ export default function SubscriptionPage() {
         setActionLoading(true);
         try {
             const { portal_url } = await subscriptionsApi.getPortalLink();
-            window.location.href = portal_url;
+
+            // Use Lemon Squeezy Overlay
+            // @ts-ignore
+            if (window.LemonSqueezy) {
+                // @ts-ignore
+                window.LemonSqueezy.Url.Open(portal_url);
+            } else {
+                // Fallback to redirect if script not loaded
+                window.location.href = portal_url;
+            }
         } catch (err) {
             console.error('Failed to get portal link:', err);
             toast.error('Failed to open billing portal');
+        } finally {
             setActionLoading(false);
         }
     };
@@ -136,7 +146,7 @@ export default function SubscriptionPage() {
                     )}
 
                     <div className="flex gap-4 pt-4">
-                        {subscription.stripe_customer_id && (
+                        {subscription.external_customer_id && (
                             <Button
                                 onClick={handleOpenPortal}
                                 disabled={actionLoading}

@@ -37,8 +37,6 @@ google-genai==1.53.0
 # OpenAI
 openai>=1.50.0
 
-# Payment processing
-stripe==14.0.0
 
 # Monitoring
 sentry-sdk==2.45.0

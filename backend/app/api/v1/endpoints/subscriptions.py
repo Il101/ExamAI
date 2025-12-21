@@ -41,7 +41,7 @@ async def create_checkout(
     current_user: User = Depends(get_current_active_user),
     subscription_service: SubscriptionService = Depends(get_subscription_service),
 ):
-    """Create Stripe Checkout session"""
+    """Create Lemon Squeezy Checkout session"""
     try:
         result = await subscription_service.create_checkout_session(
             user_id=current_user.id,
@@ -74,14 +74,12 @@ async def reactivate_subscription(
     current_user: User = Depends(get_current_active_user),
     subscription_service: SubscriptionService = Depends(get_subscription_service),
 ):
-    """Reactivate canceled subscription"""
-    try:
-        subscription = await subscription_service.reactivate_subscription(
-            current_user.id
-        )
-        return SubscriptionResponse.from_orm(subscription)
-    except Exception as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    """Reactivate canceled subscription (stub)"""
+    # Lemon Squeezy reactivation is usually handled via their portal
+    raise HTTPException(
+        status_code=status.HTTP_501_NOT_IMPLEMENTED,
+        detail="Reactivation is managed via the billing portal.",
+    )
 
 
 @router.post("/portal", response_model=PortalResponse)
@@ -89,21 +87,20 @@ async def get_portal(
     current_user: User = Depends(get_current_active_user),
     subscription_service: SubscriptionService = Depends(get_subscription_service),
 ):
-    """Get Stripe Customer Portal link"""
+    """Get Lemon Squeezy Customer Portal link"""
     try:
         subscription = await subscription_service.get_user_subscription(current_user.id)
 
-        if not subscription.stripe_customer_id:
+        if not subscription.external_customer_id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No Stripe customer found",
+                detail="No billing record found. Purchase a plan first.",
             )
 
-        return_url = f"{settings.FRONTEND_URL}/subscription"
-        portal_url = subscription_service.get_customer_portal_url(
-            subscription.stripe_customer_id, return_url
-        )
-
+        # Lemon Squeezy customer portal (General link for the store)
+        # Note: Lemon Squeezy often handles this via "My Orders" or subscription.attributes.urls.customer_portal
+        portal_url = f"https://{settings.LEMON_SQUEEZY_STORE_ID}.lemonsqueezy.com/billing"
+        
         return PortalResponse(portal_url=portal_url)
     except HTTPException:
         raise

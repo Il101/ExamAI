@@ -35,9 +35,8 @@ export interface Plan {
         ai_tutor?: boolean;
         team_management?: boolean;
     };
-    stripe_price_id?: string;
-    stripe_price_id_monthly?: string;
-    stripe_price_id_yearly?: string;
+    lemonsqueezy_variant_id_monthly?: string;
+    lemonsqueezy_variant_id_yearly?: string;
     popular?: boolean;
 }
 
@@ -48,8 +47,8 @@ export interface Subscription {
     status: string;
     current_period_start: string;
     current_period_end: string;
-    stripe_subscription_id: string | null;
-    stripe_customer_id: string | null;
+    external_subscription_id: string | null;
+    external_customer_id: string | null;
     cancel_at_period_end: boolean;
     canceled_at: string | null;
     created_at: string;

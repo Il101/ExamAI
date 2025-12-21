@@ -1,77 +1,73 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 import logging
+import json
 
-from app.dependencies import get_subscription_service, get_stripe_service
+from app.dependencies import get_subscription_service, get_lemonsqueezy_service
 from app.services.subscription_service import SubscriptionService
-from app.services.stripe_service import StripeService
+from app.services.lemonsqueezy_service import LemonSqueezyService
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-@router.post("/stripe")
-async def stripe_webhook(
+@router.post("/lemon-squeezy")
+async def lemonsqueezy_webhook(
     request: Request,
     subscription_service: SubscriptionService = Depends(get_subscription_service),
-    stripe_service: StripeService = Depends(get_stripe_service),
+    lemonsqueezy_service: LemonSqueezyService = Depends(get_lemonsqueezy_service),
 ):
     """
-    Handle Stripe webhook events.
+    Handle Lemon Squeezy webhook events.
 
     Events handled:
-    - customer.subscription.created
-    - customer.subscription.updated
-    - customer.subscription.deleted
-    - invoice.payment_succeeded
-    - invoice.payment_failed
+    - subscription_created
+    - subscription_updated
+    - subscription_cancelled
     """
     # Get raw body and signature
     payload = await request.body()
-    signature = request.headers.get("stripe-signature")
+    signature = request.headers.get("x-signature")
 
     if not signature:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Missing stripe-signature header",
+            detail="Missing x-signature header",
         )
 
+    # Verify signature
+    if not lemonsqueezy_service.verify_webhook_signature(payload, signature):
+        logger.error("Lemon Squeezy webhook signature verification failed")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid signature",
+        )
+
+    # Parse payload
     try:
-        # Verify and parse event
-        event = stripe_service.verify_webhook_signature(payload, signature)
-    except ValueError as e:
-        logger.error(f"Webhook signature verification failed: {e}")
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        data = json.loads(payload)
+    except json.JSONDecodeError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid JSON payload",
+        )
 
-    # Handle the event
-    event_type = event["type"]
-    data = event["data"]["object"]
-
-    logger.info(f"Received Stripe webhook: {event_type}")
+    event_name = request.headers.get("x-event-name")
+    logger.info(f"Received Lemon Squeezy webhook: {event_name}")
 
     try:
-        if event_type == "customer.subscription.created":
+        if event_name == "subscription_created":
             await subscription_service.handle_subscription_created(data)
-        elif event_type == "customer.subscription.updated":
+        elif event_name == "subscription_updated":
             await subscription_service.handle_subscription_updated(data)
-        elif event_type == "customer.subscription.deleted":
-            await subscription_service.handle_subscription_deleted(data)
-        elif event_type == "invoice.payment_succeeded":
-            logger.info(
-                f"Payment succeeded for subscription: {data.get('subscription')}"
-            )
-            # Could send confirmation email here
-        elif event_type == "invoice.payment_failed":
-            logger.warning(
-                f"Payment failed for subscription: {data.get('subscription')}"
-            )
-            # Could send notification email here
+        elif event_name == "subscription_cancelled":
+            await subscription_service.handle_subscription_cancelled(data)
         else:
-            logger.info(f"Unhandled event type: {event_type}")
+            logger.info(f"Unhandled Lemon Squeezy event: {event_name}")
 
         return {"status": "success"}
 
     except Exception as e:
-        logger.error(f"Error handling webhook event {event_type}: {e}")
+        logger.error(f"Error handling Lemon Squeezy event {event_name}: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Webhook processing failed",

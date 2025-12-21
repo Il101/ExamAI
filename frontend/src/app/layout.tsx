@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { FeedbackButton } from "@/components/feedback/feedback-button";
@@ -46,6 +47,17 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <Script
+          src="https://app.lemonsqueezy.com/js/lemon.js"
+          strategy="afterInteractive"
+          onLoad={() => {
+            // @ts-ignore
+            if (window.createLemonSqueezy) {
+              // @ts-ignore
+              window.createLemonSqueezy();
+            }
+          }}
+        />
         <Providers>
           {/* TEMPORARILY DISABLED - Need to test on all pages before re-enabling */}
           {/* <PullToRefresh> */}

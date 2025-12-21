@@ -114,16 +114,16 @@ class Settings(BaseSettings):
     # Notification Settings
     NOTIFICATION_PROVIDER: Literal["sendgrid", "smtp", "mock"] = "sendgrid"
 
-    # Stripe
-    STRIPE_SECRET_KEY: str = ""
-    STRIPE_PUBLISHABLE_KEY: str = ""
-    STRIPE_WEBHOOK_SECRET: str = ""
-    STRIPE_PRICE_ID_PRO: str = ""
-    STRIPE_PRICE_ID_PRO_YEARLY: str = ""
-    STRIPE_PRICE_ID_PREMIUM: str = ""
-    STRIPE_PRICE_ID_PREMIUM_YEARLY: str = ""
-    STRIPE_PRICE_ID_TEAM: str = ""
-    STRIPE_PRICE_ID_TEAM_YEARLY: str = ""
+    # Lemon Squeezy
+    LEMON_SQUEEZY_API_KEY: str = ""
+    LEMON_SQUEEZY_WEBHOOK_SECRET: str = ""
+    LEMON_SQUEEZY_STORE_ID: str = ""
+    LEMON_SQUEEZY_VARIANT_ID_PRO: str = ""
+    LEMON_SQUEEZY_VARIANT_ID_PRO_YEARLY: str = ""
+    LEMON_SQUEEZY_VARIANT_ID_PREMIUM: str = ""
+    LEMON_SQUEEZY_VARIANT_ID_PREMIUM_YEARLY: str = ""
+    LEMON_SQUEEZY_VARIANT_ID_TEAM: str = ""
+    LEMON_SQUEEZY_VARIANT_ID_TEAM_YEARLY: str = ""
 
     # Frontend
     FRONTEND_URL: str = "http://localhost:3000"

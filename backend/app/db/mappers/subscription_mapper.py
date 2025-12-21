@@ -17,8 +17,8 @@ class SubscriptionMapper:
             status=cast(SubscriptionStatus, model.status),
             current_period_start=model.current_period_start,
             current_period_end=model.current_period_end,
-            stripe_subscription_id=model.stripe_subscription_id,
-            stripe_customer_id=model.stripe_customer_id,
+            external_subscription_id=model.external_subscription_id,
+            external_customer_id=model.external_customer_id,
             cancel_at_period_end=model.cancel_at_period_end,
             canceled_at=model.canceled_at,
             created_at=model.created_at,
@@ -35,8 +35,8 @@ class SubscriptionMapper:
             status=domain.status,
             current_period_start=domain.current_period_start,
             current_period_end=domain.current_period_end,
-            stripe_subscription_id=domain.stripe_subscription_id,
-            stripe_customer_id=domain.stripe_customer_id,
+            external_subscription_id=domain.external_subscription_id,
+            external_customer_id=domain.external_customer_id,
             cancel_at_period_end=domain.cancel_at_period_end,
             canceled_at=domain.canceled_at,
             created_at=domain.created_at,
@@ -52,8 +52,8 @@ class SubscriptionMapper:
         model.status = domain.status
         model.current_period_start = domain.current_period_start
         model.current_period_end = domain.current_period_end
-        model.stripe_subscription_id = domain.stripe_subscription_id
-        model.stripe_customer_id = domain.stripe_customer_id
+        model.external_subscription_id = domain.external_subscription_id
+        model.external_customer_id = domain.external_customer_id
         model.cancel_at_period_end = domain.cancel_at_period_end
         model.canceled_at = domain.canceled_at
         model.updated_at = domain.updated_at

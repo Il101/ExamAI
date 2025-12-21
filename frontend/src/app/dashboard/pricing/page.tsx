@@ -63,10 +63,19 @@ export default function PricingPage() {
                 billingPeriod
             );
 
-            window.location.href = checkout_url;
+            // Use Lemon Squeezy Overlay
+            // @ts-ignore
+            if (window.LemonSqueezy) {
+                // @ts-ignore
+                window.LemonSqueezy.Url.Open(checkout_url);
+            } else {
+                // Fallback to redirect if script not loaded
+                window.location.href = checkout_url;
+            }
         } catch (err) {
             console.error('Failed to create checkout:', err);
             toast.error('Failed to start checkout');
+        } finally {
             setCheckoutLoading(false);
         }
     };

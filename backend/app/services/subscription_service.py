@@ -4,21 +4,21 @@ from datetime import datetime, timezone, timedelta
 
 from app.domain.subscription import Subscription
 from app.repositories.subscription_repository import SubscriptionRepository
-from app.services.stripe_service import StripeService
+from app.services.lemonsqueezy_service import LemonSqueezyService
 from app.core.config import settings
 
 
 class SubscriptionService:
     """
     Service for subscription management.
-    Coordinates between StripeService and SubscriptionRepository.
+    Coordinates between LemonSqueezyService and SubscriptionRepository.
     """
 
     def __init__(
-        self, subscription_repo: SubscriptionRepository, stripe_service: StripeService
+        self, subscription_repo: SubscriptionRepository, lemonsqueezy_service: LemonSqueezyService
     ):
         self.subscription_repo = subscription_repo
-        self.stripe_service = stripe_service
+        self.lemonsqueezy_service = lemonsqueezy_service
 
     def get_available_plans(self) -> List[Dict[str, Any]]:
         """
@@ -57,8 +57,8 @@ class SubscriptionService:
                     "monthly": {"amount": PLAN_PRICING["pro"]["monthly"], "currency": "EUR"},
                     "yearly": {"amount": PLAN_PRICING["pro"]["yearly"], "currency": "EUR"},
                 },
-                "stripe_price_id_monthly": settings.STRIPE_PRICE_ID_PRO,
-                "stripe_price_id_yearly": settings.STRIPE_PRICE_ID_PRO_YEARLY,
+                "lemonsqueezy_variant_id_monthly": settings.LEMON_SQUEEZY_VARIANT_ID_PRO,
+                "lemonsqueezy_variant_id_yearly": settings.LEMON_SQUEEZY_VARIANT_ID_PRO_YEARLY,
                 "limits": PLAN_LIMITS["pro"],
                 "features": {
                     "spaced_repetition": True,
@@ -78,8 +78,8 @@ class SubscriptionService:
                     "monthly": {"amount": PLAN_PRICING["premium"]["monthly"], "currency": "EUR"},
                     "yearly": {"amount": PLAN_PRICING["premium"]["yearly"], "currency": "EUR"},
                 },
-                "stripe_price_id_monthly": settings.STRIPE_PRICE_ID_PREMIUM,
-                "stripe_price_id_yearly": settings.STRIPE_PRICE_ID_PREMIUM_YEARLY,
+                "lemonsqueezy_variant_id_monthly": settings.LEMON_SQUEEZY_VARIANT_ID_PREMIUM,
+                "lemonsqueezy_variant_id_yearly": settings.LEMON_SQUEEZY_VARIANT_ID_PREMIUM_YEARLY,
                 "limits": PLAN_LIMITS["premium"],
                 "features": {
                     "spaced_repetition": True,
@@ -98,8 +98,8 @@ class SubscriptionService:
                     "monthly": {"amount": PLAN_PRICING["team"]["monthly"], "currency": "EUR"},
                     "yearly": {"amount": PLAN_PRICING["team"]["yearly"], "currency": "EUR"},
                 },
-                "stripe_price_id_monthly": settings.STRIPE_PRICE_ID_TEAM,
-                "stripe_price_id_yearly": settings.STRIPE_PRICE_ID_TEAM_YEARLY,
+                "lemonsqueezy_variant_id_monthly": settings.LEMON_SQUEEZY_VARIANT_ID_TEAM,
+                "lemonsqueezy_variant_id_yearly": settings.LEMON_SQUEEZY_VARIANT_ID_TEAM_YEARLY,
                 "limits": PLAN_LIMITS["team"],
                 "features": {
                     "spaced_repetition": True,
@@ -116,12 +116,6 @@ class SubscriptionService:
     async def get_user_subscription(self, user_id: UUID) -> Subscription:
         """
         Get user's subscription (or create free tier if none exists).
-
-        Args:
-            user_id: User UUID
-
-        Returns:
-            Subscription object
         """
         subscription = await self.subscription_repo.get_by_user_id(user_id)
 
@@ -133,7 +127,7 @@ class SubscriptionService:
                 status="active",
                 current_period_start=datetime.now(timezone.utc),
                 current_period_end=datetime.now(timezone.utc)
-                + timedelta(days=36500),  # 100 years (permanent)
+                + timedelta(days=36500),  # 100 years
             )
             subscription = await self.subscription_repo.create(subscription)
 
@@ -149,172 +143,111 @@ class SubscriptionService:
         billing_period: str = "monthly",
     ) -> Dict[str, Any]:
         """
-        Create Stripe checkout session for subscription upgrade.
-
-        Args:
-            user_id: User UUID
-            user_email: User email
-            plan_type: 'pro' or 'premium'
-            success_url: Redirect URL after success
-            cancel_url: Redirect URL if canceled
-
-        Returns:
-            Dict with checkout_url
+        Create Lemon Squeezy checkout session for subscription upgrade.
         """
         # Get existing subscription
         subscription = await self.get_user_subscription(user_id)
 
-        # Create Stripe checkout
-        checkout = self.stripe_service.create_checkout_session(
+        # Create Lemon Squeezy checkout
+        checkout = self.lemonsqueezy_service.create_checkout_session(
             user_id=user_id,
             user_email=user_email,
             plan_type=plan_type,
             success_url=success_url,
             cancel_url=cancel_url,
             billing_period=billing_period,
-            stripe_customer_id=subscription.stripe_customer_id,
+            external_customer_id=subscription.external_customer_id,
         )
-
-        # Update subscription with customer ID if new
-        if not subscription.stripe_customer_id:
-            subscription.stripe_customer_id = checkout["customer_id"]
-            await self.subscription_repo.update(subscription)
 
         return {"checkout_url": checkout["checkout_url"]}
 
-    async def handle_subscription_created(self, stripe_subscription: Dict[str, Any]):
+    async def handle_subscription_created(self, payload: Dict[str, Any]):
         """
-        Handle Stripe subscription.created webhook event.
-
-        Args:
-            stripe_subscription: Stripe subscription object
+        Handle Lemon Squeezy subscription.created webhook event.
         """
-        user_id = UUID(stripe_subscription["metadata"]["user_id"])
-        plan_type = stripe_subscription["metadata"]["plan_type"]
+        attributes = payload["data"]["attributes"]
+        custom_data = attributes.get("custom_data", {})
+        
+        user_id_str = custom_data.get("user_id")
+        if not user_id_str:
+            return
+            
+        user_id = UUID(user_id_str)
+        plan_type = custom_data.get("plan_type", "pro")
 
         subscription = await self.subscription_repo.get_by_user_id(user_id)
 
         if subscription:
-            # Update existing subscription
             subscription.plan_type = plan_type
-            subscription.status = "active"
-            subscription.stripe_subscription_id = stripe_subscription["id"]
-            subscription.stripe_customer_id = stripe_subscription["customer"]
-            subscription.current_period_start = datetime.fromtimestamp(
-                stripe_subscription["current_period_start"]
-            )
-            subscription.current_period_end = datetime.fromtimestamp(
-                stripe_subscription["current_period_end"]
-            )
-            subscription.cancel_at_period_end = stripe_subscription.get(
-                "cancel_at_period_end", False
-            )
-            subscription.updated_at = datetime.utcnow()
-
+            subscription.status = attributes["status"]
+            subscription.external_subscription_id = str(payload["data"]["id"])
+            subscription.external_customer_id = str(attributes["customer_id"])
+            
+            # Lemon Squeezy provides ends_at or renews_at
+            if attributes.get("renews_at"):
+                subscription.current_period_end = datetime.fromisoformat(
+                    attributes["renews_at"].replace("Z", "+00:00")
+                )
+            
+            subscription.updated_at = datetime.now(timezone.utc)
             await self.subscription_repo.update(subscription)
 
-    async def handle_subscription_updated(self, stripe_subscription: Dict[str, Any]):
+    async def handle_subscription_updated(self, payload: Dict[str, Any]):
         """
-        Handle Stripe subscription.updated webhook event.
+        Handle Lemon Squeezy subscription.updated webhook event.
         """
-        subscription = await self.subscription_repo.get_by_stripe_subscription_id(
-            stripe_subscription["id"]
+        attributes = payload["data"]["attributes"]
+        subscription = await self.subscription_repo.get_by_external_subscription_id(
+            str(payload["data"]["id"])
         )
 
         if subscription:
-            subscription.status = stripe_subscription["status"]
-            subscription.current_period_end = datetime.fromtimestamp(
-                stripe_subscription["current_period_end"]
-            )
-            subscription.cancel_at_period_end = stripe_subscription.get(
-                "cancel_at_period_end", False
-            )
-            subscription.updated_at = datetime.utcnow()
+            subscription.status = attributes["status"]
+            if attributes.get("renews_at"):
+                subscription.current_period_end = datetime.fromisoformat(
+                    attributes["renews_at"].replace("Z", "+00:00")
+                )
+            
+            subscription.cancel_at_period_end = attributes.get("cancelled", False)
+            subscription.updated_at = datetime.now(timezone.utc)
 
             await self.subscription_repo.update(subscription)
 
-    async def handle_subscription_deleted(self, stripe_subscription: Dict[str, Any]):
+    async def handle_subscription_cancelled(self, payload: Dict[str, Any]):
         """
-        Handle Stripe subscription.deleted webhook event.
+        Handle Lemon Squeezy subscription.cancelled (expired) event.
         """
-        subscription = await self.subscription_repo.get_by_stripe_subscription_id(
-            stripe_subscription["id"]
+        subscription = await self.subscription_repo.get_by_external_subscription_id(
+            str(payload["data"]["id"])
         )
 
         if subscription:
             # Downgrade to free tier
             subscription.plan_type = "free"
-            subscription.status = "canceled"
-            subscription.stripe_subscription_id = None
-            subscription.canceled_at = datetime.utcnow()
-            subscription.updated_at = datetime.utcnow()
+            subscription.status = "expired"
+            subscription.external_subscription_id = None
+            subscription.canceled_at = datetime.now(timezone.utc)
+            subscription.updated_at = datetime.now(timezone.utc)
 
             await self.subscription_repo.update(subscription)
 
     async def cancel_subscription(self, user_id: UUID) -> Subscription:
         """
-        Cancel user's subscription (at period end).
-
-        Args:
-            user_id: User UUID
-
-        Returns:
-            Updated subscription
+        Cancel user's subscription in Lemon Squeezy.
         """
         subscription = await self.get_user_subscription(user_id)
 
-        if subscription.stripe_subscription_id:
-            # Cancel in Stripe
-            self.stripe_service.cancel_subscription(
-                subscription.stripe_subscription_id, at_period_end=True
+        if subscription.external_subscription_id:
+            # Cancel in Lemon Squeezy
+            self.lemonsqueezy_service.cancel_subscription(
+                subscription.external_subscription_id
             )
 
             # Update local record
             subscription.cancel_at_period_end = True
-            subscription.canceled_at = datetime.utcnow()
-            subscription.updated_at = datetime.utcnow()
+            subscription.canceled_at = datetime.now(timezone.utc)
+            subscription.updated_at = datetime.now(timezone.utc)
 
             await self.subscription_repo.update(subscription)
 
         return subscription
-
-    async def reactivate_subscription(self, user_id: UUID) -> Subscription:
-        """
-        Reactivate a subscription that was set to cancel.
-
-        Args:
-            user_id: User UUID
-
-        Returns:
-            Updated subscription
-        """
-        subscription = await self.get_user_subscription(user_id)
-
-        if subscription.stripe_subscription_id and subscription.cancel_at_period_end:
-            # Reactivate in Stripe
-            self.stripe_service.reactivate_subscription(
-                subscription.stripe_subscription_id
-            )
-
-            # Update local record
-            subscription.cancel_at_period_end = False
-            subscription.updated_at = datetime.utcnow()
-
-            await self.subscription_repo.update(subscription)
-
-        return subscription
-
-    def get_customer_portal_url(self, stripe_customer_id: str, return_url: str) -> str:
-        """
-        Get Stripe Customer Portal URL.
-
-        Args:
-            stripe_customer_id: Stripe customer ID
-            return_url: URL to return to
-
-        Returns:
-            Portal URL
-        """
-        return self.stripe_service.create_customer_portal_session(
-            stripe_customer_id, return_url
-        )

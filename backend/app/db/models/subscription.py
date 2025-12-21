@@ -37,11 +37,11 @@ class SubscriptionModel(Base):
         DateTime(timezone=True), nullable=False
     )
 
-    # External billing (Stripe)
-    stripe_subscription_id: Mapped[Optional[str]] = mapped_column(
+    # External billing (Lemon Squeezy / Generic)
+    external_subscription_id: Mapped[Optional[str]] = mapped_column(
         String(255), nullable=True
     )
-    stripe_customer_id: Mapped[Optional[str]] = mapped_column(
+    external_customer_id: Mapped[Optional[str]] = mapped_column(
         String(255), nullable=True
     )
 

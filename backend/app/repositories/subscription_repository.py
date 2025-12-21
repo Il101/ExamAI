@@ -27,12 +27,12 @@ class SubscriptionRepository(BaseRepository[Subscription, SubscriptionModel]):
 
         return self.mapper.to_domain(model)
 
-    async def get_by_stripe_subscription_id(
-        self, stripe_subscription_id: str
+    async def get_by_external_subscription_id(
+        self, external_subscription_id: str
     ) -> Optional[Subscription]:
-        """Get subscription by Stripe subscription ID"""
+        """Get subscription by external subscription ID"""
         stmt = select(SubscriptionModel).where(
-            SubscriptionModel.stripe_subscription_id == stripe_subscription_id
+            SubscriptionModel.external_subscription_id == external_subscription_id
         )
         result = await self.session.execute(stmt)
         model = result.scalar_one_or_none()
@@ -42,12 +42,12 @@ class SubscriptionRepository(BaseRepository[Subscription, SubscriptionModel]):
 
         return self.mapper.to_domain(model)
 
-    async def get_by_stripe_customer_id(
-        self, stripe_customer_id: str
+    async def get_by_external_customer_id(
+        self, external_customer_id: str
     ) -> Optional[Subscription]:
-        """Get subscription by Stripe customer ID"""
+        """Get subscription by external customer ID"""
         stmt = select(SubscriptionModel).where(
-            SubscriptionModel.stripe_customer_id == stripe_customer_id
+            SubscriptionModel.external_customer_id == external_customer_id
         )
         result = await self.session.execute(stmt)
         model = result.scalar_one_or_none()

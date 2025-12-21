@@ -13,9 +13,8 @@ class PlanResponse(BaseModel):
     price: Dict[str, Any]
     limits: Optional[Dict[str, Any]] = None
     features: Dict[str, Any]
-    stripe_price_id: Optional[str] = None
-    stripe_price_id_monthly: Optional[str] = None
-    stripe_price_id_yearly: Optional[str] = None
+    lemonsqueezy_variant_id_monthly: Optional[str] = None
+    lemonsqueezy_variant_id_yearly: Optional[str] = None
     popular: Optional[bool] = False
 
 
@@ -28,8 +27,8 @@ class SubscriptionResponse(BaseModel):
     status: str
     current_period_start: datetime
     current_period_end: datetime
-    stripe_subscription_id: Optional[str] = None
-    stripe_customer_id: Optional[str] = None
+    external_subscription_id: Optional[str] = None
+    external_customer_id: Optional[str] = None
     cancel_at_period_end: bool
     canceled_at: Optional[datetime] = None
     created_at: datetime

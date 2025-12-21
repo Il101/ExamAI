@@ -28,7 +28,7 @@ from app.services.cost_guard_service import CostGuardService
 from app.services.exam_service import ExamService
 from app.services.prompt_service import PromptService
 from app.services.study_service import StudyService
-from app.services.stripe_service import StripeService
+from app.services.lemonsqueezy_service import LemonSqueezyService
 from app.services.subscription_service import SubscriptionService
 from app.services.tutor_service import TutorService
 
@@ -92,9 +92,9 @@ def get_prompt_service() -> PromptService:
     return PromptService()
 
 
-def get_stripe_service() -> StripeService:
-    """Get Stripe service"""
-    return StripeService()
+def get_lemonsqueezy_service() -> LemonSqueezyService:
+    """Get Lemon Squeezy service"""
+    return LemonSqueezyService()
 
 
 # --- LLM Provider ---
@@ -160,10 +160,10 @@ async def get_study_service(
 
 async def get_subscription_service(
     subscription_repo: SubscriptionRepository = Depends(get_subscription_repo),
-    stripe_service: StripeService = Depends(get_stripe_service),
+    lemonsqueezy_service: LemonSqueezyService = Depends(get_lemonsqueezy_service),
 ) -> SubscriptionService:
     """Get subscription service"""
-    return SubscriptionService(subscription_repo, stripe_service)
+    return SubscriptionService(subscription_repo, lemonsqueezy_service)
 
 
 async def get_tutor_service(
