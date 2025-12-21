@@ -22,6 +22,7 @@ const createExamSchema = z.object({
   exam_type: z.enum(['oral', 'written', 'test']),
   level: z.enum(['school', 'bachelor', 'master', 'phd']),
   original_content: z.string().optional(),
+  exam_date: z.string().optional(),
 });
 
 type CreateExamFormData = z.infer<typeof createExamSchema>;
@@ -69,6 +70,9 @@ export function CreateExamForm({
     formData.append('subject', subject);
     formData.append('exam_type', exam_type);
     formData.append('level', level);
+    if (data.exam_date) {
+      formData.append('exam_date', data.exam_date);
+    }
 
     if (courseId && courseId !== 'none') {
       formData.append('course_id', courseId);
@@ -211,6 +215,18 @@ export function CreateExamForm({
             </SelectContent>
           </Select>
         </div>
+      </div>
+
+      <div>
+        <Label htmlFor="exam_date">Exam Date (Optional)</Label>
+        <Input
+          id="exam_date"
+          type="date"
+          {...form.register('exam_date')}
+        />
+        <p className="text-[10px] text-muted-foreground mt-1 px-1">
+          Set the date of your exam to help the system plan your studies and revision.
+        </p>
       </div>
 
       <div>

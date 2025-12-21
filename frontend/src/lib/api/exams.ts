@@ -52,6 +52,7 @@ export interface ExamWithTopics extends Exam {
     order_index: number;
     difficulty_level: number;
     estimated_study_minutes: number;
+    scheduled_date?: string;
     is_viewed?: boolean;
     quiz_completed?: boolean;
   }>;

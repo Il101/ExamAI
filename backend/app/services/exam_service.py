@@ -35,6 +35,7 @@ class ExamService:
         exam_type: ExamType,
         level: ExamLevel,
         original_content: str,
+        exam_date: Optional[datetime] = None,
     ) -> Exam:
         """
         Create new exam.
@@ -122,6 +123,7 @@ class ExamService:
             exam_type=exam_type,
             level=level,
             original_content=cleaned_content,
+            exam_date=exam_date,
             status="draft",
         )
 

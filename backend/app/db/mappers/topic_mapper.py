@@ -31,6 +31,7 @@ class TopicMapper:
             last_viewed_at=model.last_viewed_at,
             content_blocknote=model.content_blocknote,
             content_markdown_backup=model.content_markdown_backup,
+            scheduled_date=model.scheduled_date,
         )
 
     @staticmethod
@@ -56,6 +57,7 @@ class TopicMapper:
             last_viewed_at=entity.last_viewed_at,
             content_blocknote=entity.content_blocknote,
             content_markdown_backup=entity.content_markdown_backup,
+            scheduled_date=entity.scheduled_date,
         )
 
     @staticmethod
@@ -80,5 +82,6 @@ class TopicMapper:
         # Update editor fields
         model.content_blocknote = entity.content_blocknote
         model.content_markdown_backup = entity.content_markdown_backup
+        model.scheduled_date = entity.scheduled_date
         
         return model

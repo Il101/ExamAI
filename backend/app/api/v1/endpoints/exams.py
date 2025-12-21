@@ -41,6 +41,7 @@ async def create_exam_v3(
     exam_type: str = Form(...),
     level: str = Form(...),
     files: List[UploadFile] = File(...),
+    exam_date: Optional[str] = Form(None),
     current_user: User = Depends(get_current_active_user),
     exam_service: ExamService = Depends(get_exam_service),
     llm_provider: LLMProvider = Depends(get_llm_provider),
@@ -78,6 +79,17 @@ async def create_exam_v3(
     gemini_files: list[dict] = []
     stored_files: list[dict] = []
     
+    parsed_exam_date = None
+    if exam_date:
+        try:
+            from dateutil import parser
+            from datetime import timezone
+            parsed_exam_date = parser.isoparse(exam_date)
+            if parsed_exam_date.tzinfo is None:
+                parsed_exam_date = parsed_exam_date.replace(tzinfo=timezone.utc)
+        except Exception as e:
+            logger.warning(f"Failed to parse exam_date '{exam_date}': {e}")
+
     try:
         MAX_FILES = 5
         MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB per file
@@ -212,6 +224,7 @@ async def create_exam_v3(
             gemini_file_uri=primary_gemini_uri,
             original_files=stored_files,
             gemini_files=gemini_files,
+            exam_date=parsed_exam_date,
         )
 
         # Trigger Async Content Generation

@@ -42,6 +42,7 @@ async def create_exam_with_plan(
     gemini_file_uri: str = None,  # URI for direct Gemini caching (optional)
     original_files: list[dict] | None = None,
     gemini_files: list[dict] | None = None,
+    exam_date: datetime | None = None,
 ) -> Tuple[Exam, ExamPlan]:
     """
     Create exam with automatic plan generation and caching (v3.0)

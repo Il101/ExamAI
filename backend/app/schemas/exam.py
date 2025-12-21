@@ -16,6 +16,7 @@ class ExamCreate(BaseModel):
     exam_type: str = Field(..., pattern="^(oral|written|test)$")
     level: str = Field(..., pattern="^(school|bachelor|master|phd)$")
     original_content: str = Field(..., min_length=100)
+    exam_date: Optional[datetime] = None
 
     class Config:
         json_schema_extra = {
@@ -35,6 +36,7 @@ class ExamUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=3, max_length=500)
     subject: Optional[str] = Field(None, min_length=2, max_length=200)
     course_id: Optional[UUID] = None
+    exam_date: Optional[datetime] = None
 
 
 class ExamResponse(BaseModel):
@@ -55,6 +57,7 @@ class ExamResponse(BaseModel):
     total_actual_study_minutes: int = 0
     total_planned_study_minutes: int = 0
     average_difficulty: float = 0.0
+    exam_date: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
 

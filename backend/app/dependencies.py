@@ -33,6 +33,7 @@ from app.services.study_service import StudyService
 from app.services.lemonsqueezy_service import LemonSqueezyService
 from app.services.subscription_service import SubscriptionService
 from app.services.tutor_service import TutorService
+from app.services.study_planner_service import StudyPlannerService
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_PREFIX}/auth/login")
 
@@ -144,6 +145,10 @@ async def get_course_service(
     exam_repo: ExamRepository = Depends(get_exam_repo),
 ) -> CourseService:
     return CourseService(course_repo, exam_repo)
+
+
+def get_study_planner_service() -> StudyPlannerService:
+    return StudyPlannerService()
 
 
 from app.repositories.review_log_repository import ReviewLogRepository

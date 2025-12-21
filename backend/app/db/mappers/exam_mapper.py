@@ -41,6 +41,7 @@ class ExamMapper:
             storage_path=model.storage_path,
             plan_data=model.plan_data,
             cache_expires_at=model.cache_expires_at,
+            exam_date=model.exam_date,
         )
 
     @staticmethod
@@ -71,6 +72,7 @@ class ExamMapper:
             storage_path=domain.storage_path,
             plan_data=domain.plan_data,
             cache_expires_at=domain.cache_expires_at,
+            exam_date=domain.exam_date,
         )
 
     @staticmethod
@@ -96,5 +98,6 @@ class ExamMapper:
         model.storage_path = domain.storage_path
         model.plan_data = domain.plan_data
         model.cache_expires_at = domain.cache_expires_at
+        model.exam_date = domain.exam_date
 
         return model

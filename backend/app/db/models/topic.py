@@ -60,6 +60,11 @@ class TopicModel(Base):
     quiz_completed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     last_viewed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    # Study Scheduling
+    scheduled_date: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
     # Relationships
     exam: Mapped["ExamModel"] = relationship("ExamModel", back_populates="topics")
     user: Mapped["UserModel"] = relationship("UserModel", back_populates="topics")

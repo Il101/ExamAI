@@ -17,6 +17,7 @@ class TopicResponse(BaseModel):
     order_index: int
     difficulty_level: Optional[int] = None
     estimated_study_minutes: Optional[int] = None
+    scheduled_date: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
     

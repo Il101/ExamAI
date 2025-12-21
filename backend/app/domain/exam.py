@@ -38,6 +38,7 @@ class Exam:
     storage_path: Optional[str] = None  # S3/Supabase storage path
     plan_data: Optional[dict] = None  # ExamPlan JSON
     cache_expires_at: Optional[datetime] = None  # Cache expiry timestamp
+    exam_date: Optional[datetime] = None  # Scheduled exam date
 
     # Metadata
     status: ExamStatus = "draft"

@@ -51,8 +51,8 @@ export function EditCourseModal({ isOpen, onClose, course }: EditCourseModalProp
                 id: course.id,
                 data: {
                     ...formData,
-                    semester_start: formData.semester_start || null,
-                    semester_end: formData.semester_end || null,
+                    semester_start: formData.semester_start || undefined,
+                    semester_end: formData.semester_end || undefined,
                 }
             });
             onClose();

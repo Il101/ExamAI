@@ -4,7 +4,8 @@ import { ExamWithTopics } from '@/lib/api/exams';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Play, Clock, Brain, CheckCircle2, BookOpen, ExternalLink } from 'lucide-react';
+import { Play, Clock, Brain, CheckCircle2, BookOpen, ExternalLink, Calendar } from 'lucide-react';
+import { format, isToday, isTomorrow, parseISO } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -98,8 +99,17 @@ export function TopicList({ exam }: TopicListProps) {
                                         <span>~{topic.estimated_study_minutes || 5} min</span>
                                     </div>
                                     <div className="mt-2 pt-2 border-t flex items-center justify-between text-xs">
-                                        <span>Next review:</span>
-                                        <span className="font-medium text-foreground">Tomorrow</span>
+                                        <div className="flex items-center gap-1">
+                                            <Calendar className="h-3 w-3" />
+                                            <span>Scheduled:</span>
+                                        </div>
+                                        <span className="font-medium text-foreground">
+                                            {topic.scheduled_date ? (
+                                                isToday(parseISO(topic.scheduled_date)) ? 'Today' :
+                                                    isTomorrow(parseISO(topic.scheduled_date)) ? 'Tomorrow' :
+                                                        format(parseISO(topic.scheduled_date), 'MMM d')
+                                            ) : 'TBD'}
+                                        </span>
                                     </div>
                                 </div>
                             </CardContent>

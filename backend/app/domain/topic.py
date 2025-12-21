@@ -47,6 +47,9 @@ class Topic:
     quiz_completed: bool = False
     last_viewed_at: Optional[datetime] = None
 
+    # Study Scheduling
+    scheduled_date: Optional[datetime] = None
+
     def __post_init__(self):
         self._validate()
 

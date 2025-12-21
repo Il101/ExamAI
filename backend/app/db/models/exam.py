@@ -71,6 +71,11 @@ class ExamModel(Base):
     # Topic count
     topic_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
+    # Study Scheduling
+    exam_date: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
     # Relationships
     user: Mapped["UserModel"] = relationship("UserModel", back_populates="exams")
     course: Mapped[Optional["CourseModel"]] = relationship("CourseModel", back_populates="exams")

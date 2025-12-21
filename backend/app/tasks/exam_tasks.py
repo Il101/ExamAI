@@ -19,6 +19,7 @@ from app.services.content_generation.flashcard_generator import FlashcardGenerat
 from app.services.content_generation.summary_generator import ExamSummaryGenerator, TopicGist
 from app.integrations.storage.supabase_storage import SupabaseStorage
 from app.integrations.llm.cache_manager import ContextCacheManager
+from app.services.study_planner_service import StudyPlannerService
 from app.tasks.celery_app import celery_app
 from google import genai
 from google.genai import types
@@ -319,6 +320,17 @@ async def _generate_exam_content_async(
         total = len(topics)
         if total == 0:
             raise ValueError(f"No topics found for exam {exam_id}")
+            
+        # 0. Study Scheduling (New)
+        if exam.exam_date:
+            print(f"[CELERY ASYNC] Scheduling topics for exam {exam_id} (exam_date={exam.exam_date})...")
+            planner = StudyPlannerService()
+            topics = planner.schedule_exam(exam, topics)
+            # Save scheduled dates
+            for topic in topics:
+                await topic_repo.update(topic)
+            await session.commit()
+            print(f"[CELERY ASYNC] Successfully scheduled {total} topics.")
 
         # Ensure exam is in generating state
         if exam.status != "generating":
