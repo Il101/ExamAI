@@ -9,9 +9,9 @@ This method:
 5. Triggers initial prefetch (first 2 topics)
 6. Returns exam with plan ready
 """
-from typing import Tuple
-from uuid import UUID
 from datetime import datetime, timedelta, timezone
+from typing import TYPE_CHECKING, Tuple
+from uuid import UUID
 import logging
 
 from app.domain.exam import Exam
