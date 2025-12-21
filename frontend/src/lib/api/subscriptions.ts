@@ -48,6 +48,7 @@ export interface Subscription {
     current_period_start: string;
     current_period_end: string;
     external_subscription_id: string | null;
+    external_customer_id: string | null;
     customer_portal_url: string | null;
     cancel_at_period_end: boolean;
     canceled_at: string | null;
