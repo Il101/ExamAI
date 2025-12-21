@@ -184,7 +184,7 @@ export function PricingCard({ plan, currentPlan, onSelect, isLoading, billingPer
                         onClick={() => onSelect(plan.id)}
                         disabled={isLoading}
                     >
-                        {isLoading ? 'Processing...' : plan.id === 'team' ? 'Start Team Trial' : 'Get Started'}
+                        {isLoading ? 'Processing...' : 'Get Started'}
                     </Button>
                 ) : (
                     <Button

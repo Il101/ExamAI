@@ -65,11 +65,14 @@ export default function PricingPage() {
 
             // Use Lemon Squeezy Overlay
             // @ts-ignore
+            console.log('Attempting overlay with URL:', checkout_url);
+            // @ts-ignore
             if (window.LemonSqueezy) {
+                console.log('LemonSqueezy object found, opening overlay...');
                 // @ts-ignore
                 window.LemonSqueezy.Url.Open(checkout_url);
             } else {
-                // Fallback to redirect if script not loaded
+                console.warn('LemonSqueezy object NOT found, falling back to redirect');
                 window.location.href = checkout_url;
             }
         } catch (err) {
