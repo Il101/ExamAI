@@ -119,6 +119,7 @@ export function EditCourseModal({ isOpen, onClose, course }: EditCourseModalProp
         try {
             await coursesApi.reschedule(course.id);
             toast.success('Study schedule updated!');
+            router.refresh(); // Reload page data to show updated scheduled dates
         } catch (error: any) {
             toast.error(error?.response?.data?.detail || 'Failed to reschedule');
         } finally {
