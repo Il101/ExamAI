@@ -206,6 +206,23 @@ export function EditCourseModal({ isOpen, onClose, course }: EditCourseModalProp
                             </div>
                         </div>
 
+                        <div className="space-y-2">
+                            <Label htmlFor="exam_date" className="text-sm font-bold flex items-center gap-2">
+                                <Calendar className="h-4 w-4" />
+                                Exam Date
+                            </Label>
+                            <Input
+                                id="exam_date"
+                                type="date"
+                                value={formData.exam_date}
+                                onChange={(e) => setFormData({ ...formData, exam_date: e.target.value })}
+                                className="bg-muted/30 border-border/40 [color-scheme:dark]"
+                            />
+                            <p className="text-[10px] text-muted-foreground italic">
+                                The deadline for all topics in this course.
+                            </p>
+                        </div>
+
                         <div className="space-y-3 pt-2">
                             <Label className="text-sm font-bold flex items-center gap-2">
                                 <Calendar className="h-4 w-4" />
