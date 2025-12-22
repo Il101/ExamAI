@@ -344,44 +344,6 @@ async def start_exam_generation(
     }
 
 
-@router.post("/{exam_id}/reschedule", response_model=List[TopicResponse])
-async def reschedule_exam(
-    exam_id: UUID,
-    current_user: User = Depends(get_current_active_user),
-    exam_service: ExamService = Depends(get_exam_service),
-):
-    """
-    Reschedule incomplete topics for an exam.
-    
-    This endpoint redistributes non-completed topics across the remaining
-    time until the exam date.
-    """
-    try:
-        updated_topics = await exam_service.reschedule_exam_topics(current_user.id, exam_id)
-        await exam_service.exam_repo.session.commit()
-        
-        return [
-            TopicResponse(
-                id=t.id,
-                exam_id=t.exam_id,
-                topic_name=t.topic_name,
-                content=t.content,
-                flashcard_count=t.flashcard_count,
-                order_index=t.order_index,
-                difficulty_level=t.difficulty_level,
-                estimated_study_minutes=t.estimated_study_minutes,
-                created_at=t.created_at,
-                updated_at=t.updated_at,
-                scheduled_date=t.scheduled_date.isoformat() if t.scheduled_date else None,
-            )
-            for t in updated_topics
-        ]
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        logger.error(f"Failed to reschedule topics: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Internal server error during rescheduling")
-
 
 @router.get("/", response_model=ExamListResponse)
 async def list_exams(
