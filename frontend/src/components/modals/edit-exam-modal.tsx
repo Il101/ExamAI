@@ -12,8 +12,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Settings, Loader2, Trash2, RefreshCw } from 'lucide-react';
-import { Exam, examsApi } from '@/lib/api/exams';
+import { Settings, Loader2, Trash2 } from 'lucide-react';
+import { Exam } from '@/lib/api/exams';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 
@@ -26,35 +26,19 @@ interface EditExamModalProps {
 export function EditExamModal({ isOpen, onClose, exam }: EditExamModalProps) {
     const router = useRouter();
     const { updateExam, deleteExam, isUpdating, isDeleting } = useExams();
-    const [isRescheduling, setIsRescheduling] = useState(false);
 
     const [formData, setFormData] = useState({
         title: exam.title,
         subject: exam.subject || '',
-        exam_date: exam.exam_date ? exam.exam_date.split('T')[0] : '',
     });
 
     useEffect(() => {
         setFormData({
             title: exam.title,
             subject: exam.subject || '',
-            exam_date: exam.exam_date ? exam.exam_date.split('T')[0] : '',
         });
     }, [exam]);
 
-    const handleReschedule = async () => {
-        try {
-            setIsRescheduling(true);
-            await examsApi.reschedule(exam.id);
-            toast.success('Study plan refreshed!');
-            router.refresh();
-        } catch (error) {
-            console.error('Failed to reschedule:', error);
-            toast.error('Failed to refresh schedule. Please try again.');
-        } finally {
-            setIsRescheduling(false);
-        }
-    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -63,10 +47,7 @@ export function EditExamModal({ isOpen, onClose, exam }: EditExamModalProps) {
         try {
             updateExam({
                 examId: exam.id,
-                data: {
-                    ...formData,
-                    exam_date: formData.exam_date || null,
-                }
+                data: formData
             });
             onClose();
         } catch (error) {
@@ -95,7 +76,7 @@ export function EditExamModal({ isOpen, onClose, exam }: EditExamModalProps) {
                     </div>
                     <DialogTitle className="text-2xl font-bold">Exam Settings</DialogTitle>
                     <DialogDescription className="text-muted-foreground">
-                        Update your exam title and date.
+                        Update your exam title and subject.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -113,38 +94,6 @@ export function EditExamModal({ isOpen, onClose, exam }: EditExamModalProps) {
                                 className="bg-muted/30 border-border/40"
                             />
                         </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="exam_date" className="text-sm font-bold">
-                                Exam Date
-                            </Label>
-                            <Input
-                                id="exam_date"
-                                type="date"
-                                value={formData.exam_date}
-                                onChange={(e) => setFormData({ ...formData, exam_date: e.target.value })}
-                                className="bg-muted/30 border-border/40 [color-scheme:dark]"
-                            />
-                        </div>
-
-                        {exam.exam_date && (
-                            <div className="pt-2">
-                                <Button
-                                    type="button"
-                                    variant="secondary"
-                                    className="w-full bg-primary/10 hover:bg-primary/20 text-primary border-primary/20 h-10 font-bold"
-                                    onClick={handleReschedule}
-                                    disabled={isRescheduling}
-                                >
-                                    {isRescheduling ? (
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    ) : (
-                                        <RefreshCw className="mr-2 h-4 w-4" />
-                                    )}
-                                    Refresh Study Schedule
-                                </Button>
-                            </div>
-                        )}
                     </div>
 
                     <div className="flex flex-col gap-3 pt-4 border-t border-border/40">
@@ -154,14 +103,14 @@ export function EditExamModal({ isOpen, onClose, exam }: EditExamModalProps) {
                                 variant="outline"
                                 className="flex-1 font-bold"
                                 onClick={onClose}
-                                disabled={isUpdating || isDeleting || isRescheduling}
+                                disabled={isUpdating || isDeleting}
                             >
                                 Cancel
                             </Button>
                             <Button
                                 type="submit"
                                 className="flex-1 font-bold"
-                                disabled={isUpdating || isDeleting || isRescheduling || !formData.title}
+                                disabled={isUpdating || isDeleting || !formData.title}
                             >
                                 {isUpdating ? (
                                     <>
@@ -179,7 +128,7 @@ export function EditExamModal({ isOpen, onClose, exam }: EditExamModalProps) {
                             variant="ghost"
                             className="w-full text-destructive hover:text-destructive hover:bg-destructive/10 font-bold"
                             onClick={handleDelete}
-                            disabled={isUpdating || isDeleting || isRescheduling}
+                            disabled={isUpdating || isDeleting}
                         >
                             <Trash2 className="h-4 w-4 mr-2" />
                             Delete Exam
