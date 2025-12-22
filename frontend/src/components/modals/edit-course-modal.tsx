@@ -18,6 +18,7 @@ import { Course, coursesApi } from '@/lib/api/courses';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { usersApi } from '@/lib/api/users';
 import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 interface EditCourseModalProps {
     isOpen: boolean;
@@ -37,6 +38,7 @@ const DAYS = [
 
 export function EditCourseModal({ isOpen, onClose, course }: EditCourseModalProps) {
     const { user } = useAuth();
+    const router = useRouter();
     const { updateCourse, deleteCourse, isUpdating, isDeleting } = useCourses();
     const [formData, setFormData] = useState({
         title: course.title,
