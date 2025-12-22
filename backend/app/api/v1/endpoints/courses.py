@@ -139,3 +139,27 @@ async def remove_exam_from_course(
         return {"status": "success"}
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.post("/{course_id}/reschedule")
+async def reschedule_course(
+    course_id: UUID,
+    current_user: User = Depends(get_current_active_user),
+    course_service: CourseService = Depends(get_course_service),
+):
+    """
+    Reschedule all incomplete topics in the course based on course.exam_date.
+    
+    This will collect ALL topics from ALL exams in the course and redistribute
+    them across the available study window until the course exam date.
+    """
+    try:
+        updated_topics = await course_service.reschedule_course_topics(current_user.id, course_id)
+        await course_service.course_repo.session.commit()
+        
+        return {
+            "message": f"Successfully rescheduled {len(updated_topics)} topics",
+            "topics_updated": len(updated_topics)
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

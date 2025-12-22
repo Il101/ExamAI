@@ -13,8 +13,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Settings, Loader2, Trash2, Calendar } from 'lucide-react';
-import { Course } from '@/lib/api/courses';
+import { Settings, Loader2, Trash2, Calendar, RefreshCw } from 'lucide-react';
+import { Course, coursesApi } from '@/lib/api/courses';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { usersApi } from '@/lib/api/users';
 import { toast } from 'sonner';
@@ -44,8 +44,10 @@ export function EditCourseModal({ isOpen, onClose, course }: EditCourseModalProp
         description: course.description || '',
         semester_start: course.semester_start || '',
         semester_end: course.semester_end || '',
+        exam_date: course.exam_date ? course.exam_date.split('T')[0] : '',
     });
     const [studyDays, setStudyDays] = useState<number[]>([]);
+    const [isRescheduling, setIsRescheduling] = useState(false);
 
     useEffect(() => {
         setFormData({
@@ -54,6 +56,7 @@ export function EditCourseModal({ isOpen, onClose, course }: EditCourseModalProp
             description: course.description || '',
             semester_start: course.semester_start || '',
             semester_end: course.semester_end || '',
+            exam_date: course.exam_date ? course.exam_date.split('T')[0] : '',
         });
         if (user?.study_days) {
             setStudyDays(user.study_days);
@@ -82,6 +85,7 @@ export function EditCourseModal({ isOpen, onClose, course }: EditCourseModalProp
                     ...formData,
                     semester_start: formData.semester_start || undefined,
                     semester_end: formData.semester_end || undefined,
+                    exam_date: formData.exam_date || undefined,
                 }
             });
             // Update user study days
@@ -102,6 +106,23 @@ export function EditCourseModal({ isOpen, onClose, course }: EditCourseModalProp
             window.location.href = '/dashboard/courses';
         } catch (error) {
             // Error handled by hook
+        }
+    };
+
+    const handleReschedule = async () => {
+        if (!formData.exam_date) {
+            toast.error('Please set an exam date first');
+            return;
+        }
+
+        setIsRescheduling(true);
+        try {
+            await coursesApi.reschedule(course.id);
+            toast.success('Study schedule updated!');
+        } catch (error: any) {
+            toast.error(error?.response?.data?.detail || 'Failed to reschedule');
+        } finally {
+            setIsRescheduling(false);
         }
     };
 
@@ -237,6 +258,26 @@ export function EditCourseModal({ isOpen, onClose, course }: EditCourseModalProp
                                 )}
                             </Button>
                         </div>
+
+                        <Button
+                            type="button"
+                            variant="outline"
+                            className="w-full font-bold"
+                            onClick={handleReschedule}
+                            disabled={isUpdating || isDeleting || isRescheduling || !formData.exam_date}
+                        >
+                            {isRescheduling ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Rescheduling...
+                                </>
+                            ) : (
+                                <>
+                                    <RefreshCw className="mr-2 h-4 w-4" />
+                                    Refresh Study Schedule
+                                </>
+                            )}
+                        </Button>
 
                         <Button
                             type="button"

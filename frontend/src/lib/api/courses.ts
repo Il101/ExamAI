@@ -9,6 +9,7 @@ export interface Course {
     description?: string;
     semester_start?: string;
     semester_end?: string;
+    exam_date?: string;
     is_archived: boolean;
     created_at: string;
     updated_at: string;
@@ -32,6 +33,7 @@ export interface CourseCreateRequest {
     description?: string;
     semester_start?: string;
     semester_end?: string;
+    exam_date?: string;
 }
 
 export interface CourseUpdateRequest {
@@ -40,6 +42,7 @@ export interface CourseUpdateRequest {
     description?: string;
     semester_start?: string;
     semester_end?: string;
+    exam_date?: string;
     is_archived?: boolean;
 }
 
@@ -84,5 +87,10 @@ export const coursesApi = {
 
     removeExam: async (courseId: string, examId: string): Promise<void> => {
         await api.delete(`/courses/${courseId}/exams/${examId}`);
+    },
+
+    reschedule: async (courseId: string) => {
+        const response = await api.post(`/courses/${courseId}/reschedule`);
+        return response.data;
     },
 };

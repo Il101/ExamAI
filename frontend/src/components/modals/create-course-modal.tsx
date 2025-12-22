@@ -42,6 +42,7 @@ export function CreateCourseModal({ isOpen, onClose }: CreateCourseModalProps) {
         description: '',
         semester_start: '',
         semester_end: '',
+        exam_date: '',
     });
     const [studyDays, setStudyDays] = useState<number[]>([]);
 
@@ -70,11 +71,12 @@ export function CreateCourseModal({ isOpen, onClose }: CreateCourseModalProps) {
                 ...formData,
                 semester_start: formData.semester_start || undefined,
                 semester_end: formData.semester_end || undefined,
+                exam_date: formData.exam_date || undefined,
             });
             // Update user study days
             await usersApi.updateProfile({ study_days: studyDays });
             toast.success('Course folder created!');
-            setFormData({ title: '', subject: '', description: '', semester_start: '', semester_end: '' });
+            setFormData({ title: '', subject: '', description: '', semester_start: '', semester_end: '', exam_date: '' });
             onClose();
         } catch (error) {
             // Error handled by hook
@@ -162,6 +164,24 @@ export function CreateCourseModal({ isOpen, onClose }: CreateCourseModalProps) {
                                     className="bg-muted/30 border-border/40 [color-scheme:dark]"
                                 />
                             </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="exam_date" className="text-sm font-bold flex items-center gap-2">
+                                <Calendar className="h-4 w-4" />
+                                Exam Date
+                            </Label>
+                            <Input
+                                id="exam_date"
+                                type="date"
+                                placeholder="When is the final exam?"
+                                value={formData.exam_date}
+                                onChange={(e) => setFormData({ ...formData, exam_date: e.target.value })}
+                                className="bg-muted/30 border-border/40 [color-scheme:dark]"
+                            />
+                            <p className="text-[10px] text-muted-foreground italic">
+                                The deadline for all topics in this course.
+                            </p>
                         </div>
 
                         <div className="space-y-3 pt-2">

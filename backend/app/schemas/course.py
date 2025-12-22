@@ -10,6 +10,7 @@ class CourseBase(BaseModel):
     description: Optional[str] = Field(None, max_length=2000)
     semester_start: Optional[date] = None
     semester_end: Optional[date] = None
+    exam_date: Optional[datetime] = None
 
 class CourseCreate(CourseBase):
     pass
@@ -20,6 +21,7 @@ class CourseUpdate(BaseModel):
     description: Optional[str] = Field(None, max_length=2000)
     semester_start: Optional[date] = None
     semester_end: Optional[date] = None
+    exam_date: Optional[datetime] = None
     is_archived: Optional[bool] = None
 
 class CourseStats(BaseModel):
@@ -55,6 +57,7 @@ class CourseResponse(CourseBase):
             description=course.description,
             semester_start=course.semester_start,
             semester_end=course.semester_end,
+            exam_date=course.exam_date,
             is_archived=course.is_archived,
             created_at=course.created_at,
             updated_at=course.updated_at,
