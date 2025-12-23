@@ -168,7 +168,7 @@ class SubscriptionService:
         subscription = await self.get_user_subscription(user_id)
 
         # Create Lemon Squeezy checkout
-        checkout = self.lemonsqueezy_service.create_checkout_session(
+        checkout = await self.lemonsqueezy_service.create_checkout_session(
             user_id=user_id,
             user_email=user_email,
             plan_type=plan_type,
@@ -330,7 +330,7 @@ class SubscriptionService:
 
         if subscription.external_subscription_id:
             # Cancel in Lemon Squeezy
-            self.lemonsqueezy_service.cancel_subscription(
+            await self.lemonsqueezy_service.cancel_subscription(
                 subscription.external_subscription_id
             )
 

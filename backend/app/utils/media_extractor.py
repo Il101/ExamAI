@@ -7,6 +7,7 @@ from PIL import Image
 from typing import List, Optional
 import io
 import logging
+from starlette.concurrency import run_in_threadpool
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +17,27 @@ class MediaExtractor:
     def __init__(self):
         pass
     
-    def extract_image_region(
+    async def extract_image_region(
+        self, 
+        pdf_path: str, 
+        page_num: int, 
+        box_2d: List[int],
+        padding_percent: float = 0.05,
+        dpi: int = 150
+    ) -> Optional[Image.Image]:
+        """
+        Extracts a region from a PDF page as a raster image (Asynchronous).
+        """
+        return await run_in_threadpool(
+            self._extract_image_region_sync,
+            pdf_path,
+            page_num,
+            box_2d,
+            padding_percent,
+            dpi
+        )
+
+    def _extract_image_region_sync(
         self, 
         pdf_path: str, 
         page_num: int, 

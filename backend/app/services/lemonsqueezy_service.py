@@ -1,7 +1,7 @@
 import hmac
 import hashlib
 import json
-import requests
+import httpx
 from typing import Dict, Any, Optional
 from uuid import UUID
 
@@ -24,7 +24,7 @@ class LemonSqueezyService:
             "Authorization": f"Bearer {self.api_key}",
         }
 
-    def create_checkout_session(
+    async def create_checkout_session(
         self,
         user_id: UUID,
         user_email: str,
@@ -93,11 +93,12 @@ class LemonSqueezyService:
             }
         }
 
-        response = requests.post(
-            f"{self.base_url}/checkouts",
-            headers=self.headers,
-            json=payload
-        )
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{self.base_url}/checkouts",
+                headers=self.headers,
+                json=payload
+            )
         
         if response.status_code != 201:
             raise ValidationException(f"Failed to create Lemon Squeezy checkout: {response.text}")
@@ -122,28 +123,30 @@ class LemonSqueezyService:
         
         return hmac.compare_digest(digest, signature)
 
-    def get_subscription(self, subscription_id: str) -> Dict[str, Any]:
+    async def get_subscription(self, subscription_id: str) -> Dict[str, Any]:
         """
         Retrieve subscription details from Lemon Squeezy.
         """
-        response = requests.get(
-            f"{self.base_url}/subscriptions/{subscription_id}",
-            headers=self.headers
-        )
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{self.base_url}/subscriptions/{subscription_id}",
+                headers=self.headers
+            )
         
         if response.status_code != 200:
             raise ValidationException(f"Failed to fetch Lemon Squeezy subscription: {response.text}")
             
         return response.json()
 
-    def cancel_subscription(self, subscription_id: str) -> Dict[str, Any]:
+    async def cancel_subscription(self, subscription_id: str) -> Dict[str, Any]:
         """
         Cancel a Lemon Squeezy subscription.
         """
-        response = requests.delete(
-            f"{self.base_url}/subscriptions/{subscription_id}",
-            headers=self.headers
-        )
+        async with httpx.AsyncClient() as client:
+            response = await client.delete(
+                f"{self.base_url}/subscriptions/{subscription_id}",
+                headers=self.headers
+            )
         
         if response.status_code != 200:
             raise ValidationException(f"Failed to cancel Lemon Squeezy subscription: {response.text}")

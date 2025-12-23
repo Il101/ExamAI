@@ -338,11 +338,20 @@ async def _generate_exam_content_async(
             await exam_repo.update(exam)
             await session.commit()
 
-        # Generate in batches to save costs and reduce overhead
-        batch_size = 4
-        pending_topics = [t for t in topics if not (t.status == "ready" and t.content)]
-        ready_count = total - len(pending_topics)
-        
+        # 1. Dynamic Initial Batch Size (based on complexity)
+        # We aim for ~10-15 paragraphs per batch to avoid LLM saturation/truncation
+        # Medium topics (5 para) -> batch of 3. Simple (3 para) -> batch of 5.
+        avg_complexity = 5.0 # Default
+        if pending_topics:
+            # We don't have direct 'estimated_paragraphs' in DB topic objects here, 
+            # but we can check if it's a 'main' topic or use a default.
+            # For now, let's use a conservative smart default:
+            batch_size = 4
+            if any(len(t.topic_name) > 50 for t in pending_topics): # Very long names often mean complex topics
+                batch_size = 3
+        else:
+            batch_size = 4
+
         # Split pending topics into batches
         batches = [pending_topics[i : i + batch_size] for i in range(0, len(pending_topics), batch_size)]
         

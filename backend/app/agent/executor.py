@@ -501,9 +501,12 @@ class TopicExecutor:
                 # Check for truncation
                 finish_reason = (response.finish_reason or "").lower()
                 if finish_reason in {"max_tokens", "length", "max_output_tokens"}:
-                    logger.warning(f"Batch generation likely truncated (finish_reason={finish_reason}). Retrying with higher max_tokens...")
-                    if attempt < max_retries - 1:
-                        continue
+                    logger.warning(f"Batch generation truncated (finish_reason={finish_reason}).")
+                    # If truncated, we might still have some parsed topics
+                    if not response.parsed and len(steps) > 1:
+                        logger.warning("Truncated with no parsed result. Re-running with smaller batch size naturally via recovery flow.")
+                        # We return empty results_map, recovery flow will handle it
+                        return {}
 
                 # Track usage
                 state.add_token_usage(response.tokens_input, response.tokens_output, response.cost_usd)
@@ -559,7 +562,7 @@ class TopicExecutor:
         raise last_error or RuntimeError("Batch generation failed")
 
     async def execute_all_steps_with_recovery(
-        self, state: AgentState, batch_size: int = 4
+        self, state: AgentState, initial_batch_size: int = 4
     ) -> dict[str, StepResult]:
         """
         Execute all steps in plan using BATCHING to save costs.
@@ -567,16 +570,21 @@ class TopicExecutor:
         results = {}
         state.status = ExecutionStatus.EXECUTING
         
-        # Split plan into batches
-        plan_steps = state.plan[state.current_step_index:]
-        batches = [plan_steps[i : i + batch_size] for i in range(0, len(plan_steps), batch_size)]
+        # Execute in batches
+        remaining_steps = state.plan[state.current_step_index:]
+        current_batch_size = initial_batch_size
 
-        for batch in batches:
+        while remaining_steps:
+            # Take next batch
+            batch = remaining_steps[:current_batch_size]
             batch_start_time = datetime.utcnow()
+            
             try:
                 # Try batch execution
                 batch_results = await self.execute_batch(state, batch)
                 
+                # Check which steps succeeded
+                succeeded_ids = set()
                 for step in batch:
                     step_id_str = str(step.id)
                     if step_id_str in batch_results:
@@ -584,43 +592,53 @@ class TopicExecutor:
                             step_id=step.id,
                             content=batch_results[step_id_str],
                             success=True,
-                            tokens_used=0, # Per-step tokens approximated as 0 since tracked in batch
+                            tokens_used=0, # Tracked in batch
                             cost_usd=0,
                             timestamp=batch_start_time.isoformat(),
                         )
                         results[step_id_str] = result
                         state.results[step.id] = result
+                        succeeded_ids.add(step_id_str)
                         state.current_step_index += 1
-                    else:
-                        # If a specific step failed in batch, retry individually
-                        try:
-                            content = await self.execute_step(state) # state.current_step_index points here
-                            result = StepResult(step_id=step.id, content=content, success=True, timestamp=datetime.utcnow().isoformat())
-                            results[step.id] = result
-                            state.results[step.id] = result
-                        except Exception as e:
-                            error_msg = f"Failed individual retry for {step.title}: {e}"
-                            state.log_error(error_msg)
-                            state.results[step.id] = StepResult(step_id=step.id, content="", success=False, error_message=error_msg)
-                            state.failed_steps.append(step.id)
-                        finally:
-                            state.current_step_index += 1
+                
+                # If the batch was empty/failed but no exception, try smaller batch
+                if not succeeded_ids and len(batch) > 1:
+                    logger.warning(f"Batch of {len(batch)} failed/truncated completely. Reducing batch size.")
+                    current_batch_size = max(1, current_batch_size // 2)
+                    continue
+
+                # Advance
+                remaining_steps = remaining_steps[len(succeeded_ids):]
+                
+                # Reset to initial on full success
+                if len(succeeded_ids) == len(batch):
+                    current_batch_size = initial_batch_size
+                elif not succeeded_ids:
+                    # If nothing succeeded and batch was 1, we must move on or fail
+                    remaining_steps = remaining_steps[1:]
 
             except Exception as e:
-                logger.error(f"Batch execution failed: {e}. Falling back to individual generation.")
-                # Fallback to individual for this whole batch
-                for step in batch:
-                    try:
-                        content = await self.execute_step(state)
-                        results[step.id] = StepResult(step_id=step.id, content=content, success=True, timestamp=datetime.utcnow().isoformat())
-                        state.results[step.id] = results[step.id]
-                    except Exception as ex:
-                        error_msg = f"Individual fallback failed for {step.title}: {ex}"
-                        state.log_error(error_msg)
-                        state.results[step.id] = StepResult(step_id=step.id, content="", success=False, error_message=error_msg)
-                        state.failed_steps.append(step.id)
-                    finally:
-                        state.current_step_index += 1
+                logger.error(f"Batch execution error for topics: {[s.title for s in batch]}: {e}")
+                # Fallback to individual execution for the first item in the failed batch
+                failed_step = remaining_steps[0]
+                try:
+                    logger.info(f"Retrying failed topic individually: {failed_step.title}")
+                    content = await self.execute_step(state) # uses state.current_step_index
+                    result = StepResult(
+                        step_id=failed_step.id,
+                        content=content,
+                        success=True,
+                        timestamp=datetime.utcnow().isoformat()
+                    )
+                    results[str(failed_step.id)] = result
+                    state.results[failed_step.id] = result
+                    state.current_step_index += 1
+                    remaining_steps = remaining_steps[1:]
+                except Exception as ind_e:
+                    logger.error(f"Individual fallback also failed for {failed_step.title}: {ind_e}")
+                    remaining_steps = remaining_steps[1:]
+                    state.current_step_index += 1
+
 
         # Update final status
         if not state.failed_steps:
