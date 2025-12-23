@@ -148,7 +148,12 @@ async def create_exam_v3(
 
             # 1. Upload to Gemini (for Context Caching)
             # Use processed file (PDF for DOCX)
-            uploaded_file = client.files.upload(file=processing_path, config={'mime_type': processing_mime})
+            from starlette.concurrency import run_in_threadpool
+            uploaded_file = await run_in_threadpool(
+                client.files.upload, 
+                file=processing_path, 
+                config={'mime_type': processing_mime}
+            )
             gemini_files.append({
                 "uri": uploaded_file.uri,
                 "mime_type": processing_mime,

@@ -99,7 +99,7 @@ class ContentEnricher:
                     continue
                     
                 # Extract image
-                image = self.extractor.extract_image_region(
+                image = await self.extractor.extract_image_region(
                     local_pdf_path, 
                     page, 
                     box_2d

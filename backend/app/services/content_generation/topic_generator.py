@@ -154,8 +154,10 @@ class TopicContentGenerator:
         # 3. Execute theory with fallback
         async def _execute_batch_op(cn: Optional[str]):
             state.cache_name = cn
-            content_map = await self.executor.execute_batch(state, state.plan)
-            return content_map
+            # Use the new recovery-aware method which handles dynamic batching internally
+            results = await self.executor.execute_all_steps_with_recovery(state, initial_batch_size=4)
+            # execute_all_steps_with_recovery returns Dict[str, StepResult], but we need Dict[str, str] (content)
+            return {sid: res.content for sid, res in results.items()}
 
         raw_result, updated_cache_name = await self.fallback.execute_with_fallback(
             exam_id=exam_id,
@@ -235,7 +237,8 @@ class TopicContentGenerator:
                 print(f"[PIPELINE] generating MCQ batch for {len(topics_data_for_cards)} topics")
                 mcq_map, mcq_usage = await self.flashcard_gen.quiz_generator.generate_mcq_batch(
                     topics_data=topics_data_for_cards,
-                    num_questions_per_topic=2
+                    num_questions_per_topic=2,
+                    cache_name=effective_cache_name
                 )
                 
                 # Save MCQs to database (caching them immediately)

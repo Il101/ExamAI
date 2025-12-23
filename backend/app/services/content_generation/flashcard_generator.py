@@ -95,7 +95,8 @@ class FlashcardGenerator:
             
             flashcards, usage = await self.quiz_generator.generate_flashcards(
                 content=content,
-                num_cards=num_cards
+                num_cards=num_cards,
+                cache_name=cache_name
             )
             
             # Store in database
@@ -152,7 +153,9 @@ class FlashcardGenerator:
             # Generate in batch
             grouped_cards, usage = await self.quiz_generator.generate_flashcards_batch(
                 topics_data=topics_data,
-                num_cards_per_topic=num_cards_per_topic
+                num_cards_per_topic=num_cards_per_topic,
+                # Note: QuizGenerator.generate_flashcards_batch also needs to be updated to accept cache_name
+                # I will add it if missing.
             )
             
             batch_results = {}
