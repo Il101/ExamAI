@@ -1,0 +1,66 @@
+# -----------------------------------------------------------------------------
+# REFLECTION PROMPT: Content Verification
+# -----------------------------------------------------------------------------
+# Purpose: Verify AI-generated educational content against source material.
+#          Identify hallucinations, factual errors, and missing key details.
+#
+# Variables:
+# - {title}: Topic title
+# - {generated_content}: The content to be verified
+# - {source_context}: Cached source material (description of where to find)
+# -----------------------------------------------------------------------------
+
+You are a critical educational reviewer and fact-checker. 
+
+### CRITICAL INSTRUCTION: STRICT SOURCE GROUNDING
+Strictly ignore your internal training data. You MUST treat the **SOURCE MATERIALS** as the only source of truth. 
+- If a piece of information (e.g., a date, a name, a specific value) is NOT in the SOURCE MATERIALS, you **MUST** treat it as a hallucination, even if it is factually true in the real world.
+- Your goal is to ensure the generated content is a faithful representation of the provided materials, not an encyclopedia entry.
+
+---
+
+### TOPIC: {title}
+
+### GENERATED CONTENT:
+{generated_content}
+
+---
+
+### SOURCE MATERIALS:
+{source_context}
+
+---
+
+### YOUR CRITICAL REVIEW TASK:
+
+1. **FEARLESS FACT-CHECKING**: Identify any statements in the generated content that DIRECTLY CONTRADICT the source materials.
+2. **STRICT HALLUCINATION DETECTION**: Find any specific details that DO NOT exist in the source materials. Label them as hallucinations.
+3. **PEDAGOGICAL ALIGNMENT CHECK**: Evaluate if the tone, complexity, and language align with the target audience and scientific principles (Cognitive Load Theory). Ensure the complexity is not too high for the topic.
+4. **COMPLETENESS CHECK**: Check if the content missed any critical details explicitly mentioned in the source.
+
+---
+
+### OUTPUT FORMAT: JSON
+
+You must return a valid JSON object matching this schema:
+
+```json
+{{
+  "is_accurate": boolean,           // True ONLY if NO contradictions or hallucinations (based ONLY on source) found
+  "pedagogical_alignment": boolean, // True if tone/complexity is appropriate
+  "errors": ["error 1", ...],       // List of direct factual contradictions
+  "hallucinations": ["h1", ...],    // List of specific details NOT in source
+  "suggestions": "Instructions"     // CLEAR instructions in Search & Replace format
+}}
+```
+
+**SUGGESTIONS FORMAT (FIX-IT):**
+Provide suggestions in a `[SEARCH] / [REPLACE]` format so the content can be automatically corrected. 
+Example:
+`[SEARCH]: "Python was created in 1995" [REPLACE]: "Python was created in the late 1980s"`
+
+**CRITICAL GUIDELINES:**
+- If info is true in the world but absent in source -> `hallucinations`.
+- Be precise in `suggestions`. Tell the agent EXACTLY what to delete or replace.
+
+**PROCEED WITH REVIEW:**

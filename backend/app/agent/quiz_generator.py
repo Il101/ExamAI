@@ -8,6 +8,8 @@ from app.integrations.llm.base import LLMProvider
 from app.core.config import settings
 from google.genai import types
 import asyncio
+from typing import List, Any, Optional, Dict, Tuple
+from app.agent.schemas import ReflectionResult
 
 logger = logging.getLogger(__name__)
 
@@ -106,10 +108,8 @@ class QuizGenerator:
         })
         
         # Use cache if available, otherwise use content directly
-        # NOTE: We intentionally do NOT use the cache here. 
-        # The flashcards are generated from the provided 'content' string (the topic summary),
-        # not the entire book. Passing the massive cache + the content causing redundancy 
-        # and 504 timeouts (RPC failures) in Gemini.
+        # NOTE: Flashcards are generated from the provided 'content' string (the topic summary).
+        # However, we will use the cache for REFLECTION (verification layer).
         
         # Build prompt with full content
         prompt = load_prompt(
@@ -138,11 +138,50 @@ class QuizGenerator:
                     response_schema=FlashcardSetSchema, # Use schema for stability
                     # Timeout handled by GeminiProvider (180s) or passing explicit
                     timeout=120.0,
-                    max_tokens=4000  # Increased for individual topic search-notes/explanations
+                                        max_tokens=4000  # Increased for individual topic search-notes/explanations
                 )
                 
                 # If response_schema is used, llm_response.parsed is the validated object
                 flashcard_set = llm_response.parsed
+                
+                # --- VERIFICATION LAYER: Reflection ---
+                if flashcard_set and flashcard_set.cards and cache_name:
+                    try:
+                        # Convert cards to text for reflection
+                        generated_txt = "\n".join([f"Q: {c.front}\nA: {c.back}" for c in flashcard_set.cards])
+                        reflection = await self._reflect_on_quiz(
+                            title="Flashcards",
+                            generated_content=generated_txt,
+                            cache_name=cache_name,
+                            source_context=None # Use cache
+                        )
+                        
+                        if not reflection.is_accurate or not reflection.pedagogical_alignment:
+                            logger.warning(f"[QuizGen] ⚠️ Quiz Reflection failed, attempting self-correction")
+                            
+                            # Self-correction attempt
+                            prompt_fix = (
+                                f"{prompt}\n\n"
+                                f"--- \n"
+                                f"⚠️ **SELF-CORRECTION REQUIRED** ⚠️\n"
+                                f"Previous flashcards had issues:\n"
+                                + "\n".join([f"- {e}" for e in reflection.errors + reflection.hallucinations]) +
+                                f"\n\n**FIX INSTRUCTIONS:**\n{reflection.suggestions}\n"
+                                f"Regenerate the flashcards fixing these issues."
+                            )
+                            
+                            llm_response = await self.llm.generate(
+                                prompt=prompt_fix,
+                                model=current_model,
+                                temperature=0.2,
+                                response_schema=FlashcardSetSchema,
+                                cache_name=cache_name,
+                                timeout=120.0
+                            )
+                            flashcard_set = llm_response.parsed
+                    except Exception as re:
+                        logger.error(f"[QuizGen] Reflection error: {re}")
+                # --- END VERIFICATION ---
                 
                 # If parsing failed or wasn't used, fallback to manual parse
                 if not flashcard_set:
@@ -258,7 +297,8 @@ class QuizGenerator:
         self,
         topics_data: List[Dict[str, Any]],
         num_cards_per_topic: int = 3,
-        max_retries: int = 2
+        max_retries: int = 2,
+        cache_name: Optional[str] = None
     ) -> tuple[Dict[int, List[FlashcardSchema]], dict[str, Any]]:
         """
         Generate flashcards for multiple topics at once.
@@ -289,19 +329,41 @@ class QuizGenerator:
                     response_schema=FlashcardBatchSchema,
                     timeout=120.0,
                     max_tokens=12000, # Increased for batch generation
-                    operation_type="flashcard_batch_generation"
+                    operation_type="flashcard_batch_generation",
+                    cache_name=cache_name
                 )
                 
                 batch_result = llm_response.parsed
                 if not batch_result:
                     raise ValueError("Failed to parse flashcard batch")
 
-                # Group by topic ID
+                # Group by topic ID and VERIFY
                 grouped_cards = {}
                 for card in batch_result.cards:
-                    if card.id not in grouped_cards:
-                        grouped_cards[card.id] = []
-                    grouped_cards[card.id].append(card)
+                    # VERIFICATION LAYER: Check each card in batch
+                    is_valid = True
+                    if cache_name:
+                        try:
+                            # Simple text representation of the card
+                            card_txt = f"Q: {card.front}\nA: {card.back}"
+                            # We can't easily find the full topic text here, 
+                            # but we can verify against the full source cache.
+                            reflection = await self._reflect_on_quiz(
+                                title=f"Flashcard Batch Item (Topic {card.id})",
+                                generated_content=card_txt,
+                                cache_name=cache_name,
+                                source_context=None
+                            )
+                            if not reflection.is_accurate or not reflection.pedagogical_alignment:
+                                logger.warning(f"[QuizGen] Batch card verification failed for topic {card.id}")
+                                is_valid = False
+                        except Exception as re:
+                            logger.error(f"[QuizGen] Batch card reflection error: {re}")
+                    
+                    if is_valid:
+                        if card.id not in grouped_cards:
+                            grouped_cards[card.id] = []
+                        grouped_cards[card.id].append(card)
 
                 usage = {
                     "tokens_input": llm_response.tokens_input,
@@ -319,7 +381,8 @@ class QuizGenerator:
         self,
         topics_data: List[Dict[str, Any]],
         num_questions_per_topic: int = 2,
-        max_retries: int = 2
+        max_retries: int = 2,
+        cache_name: Optional[str] = None
     ) -> tuple[Dict[int, List[MCQQuestion]], dict[str, Any]]:
         """
         Generate MCQs for multiple topics at once.
@@ -349,19 +412,40 @@ class QuizGenerator:
                     response_schema=MCQBatchSchema,
                     timeout=120.0,
                     max_tokens=15000, # Increased for batch generation with detailed explanations
-                    operation_type="mcq_batch_generation"
+                    operation_type="mcq_batch_generation",
+                    cache_name=cache_name
                 )
                 
                 batch_result = llm_response.parsed
                 if not batch_result:
                     raise ValueError("Failed to parse MCQ batch")
 
-                # Group by topic ID
+                # Group by topic ID and VERIFY
                 grouped_questions = {}
                 for q in batch_result.questions:
-                    if q.id not in grouped_questions:
-                        grouped_questions[q.id] = []
-                    grouped_questions[q.id].append(q)
+                    # VERIFICATION LAYER: Check each question in batch
+                    is_valid = True
+                    if cache_name:
+                        try:
+                            opts = "\n".join([f"- {opt.text} ({'Correct' if opt.is_correct else 'Wrong'})" for opt in q.options])
+                            q_txt = f"Q: {q.question}\nOptions:\n{opts}\nExplanation: {q.explanation.correct}"
+                            
+                            reflection = await self._reflect_on_quiz(
+                                title=f"MCQ Batch Item (Topic {q.id})",
+                                generated_content=q_txt,
+                                cache_name=cache_name,
+                                source_context=None
+                            )
+                            if not reflection.is_accurate or not reflection.pedagogical_alignment:
+                                logger.warning(f"[QuizGen] Batch MCQ verification failed for topic {q.id}")
+                                is_valid = False
+                        except Exception as re:
+                            logger.error(f"[QuizGen] Batch MCQ reflection error: {re}")
+                    
+                    if is_valid:
+                        if q.id not in grouped_questions:
+                            grouped_questions[q.id] = []
+                        grouped_questions[q.id].append(q)
 
                 usage = {
                     "tokens_input": llm_response.tokens_input,
@@ -378,7 +462,8 @@ class QuizGenerator:
     async def generate_mcq_quiz(
         self, 
         content: str, 
-        num_questions: int = 5
+        num_questions: int = 5,
+        cache_name: str = None
     ) -> tuple[List[MCQQuestion], dict[str, Any]]:
         """
         Generate multiple choice questions from the provided content.
@@ -428,11 +513,54 @@ class QuizGenerator:
                     system_prompt="You are an expert tutor creating educational assessments.",
                     response_schema=MCQQuizSchema,
                     timeout=60.0,
-                    operation_type="mcq_generation"
+                    operation_type="mcq_generation",
+                    cache_name=cache_name # Use cache for grounding if available
                 )
                 
                 # Get the parsed object
                 mcq_quiz = llm_response.parsed
+                
+                # --- VERIFICATION LAYER: Reflection ---
+                if mcq_quiz and mcq_quiz.questions and cache_name:
+                    try:
+                        # Convert MCQs to text for reflection
+                        generated_txt = ""
+                        for q in mcq_quiz.questions:
+                            opts = "\n".join([f"- {opt.text} ({'Correct' if opt.is_correct else 'Wrong'})" for opt in q.options])
+                            generated_txt += f"Q: {q.question}\nOptions:\n{opts}\nExplanation: {q.explanation.correct}\n\n"
+                        
+                        reflection = await self._reflect_on_quiz(
+                            title="MCQ Quiz",
+                            generated_content=generated_txt,
+                            cache_name=cache_name,
+                            source_context=None
+                        )
+                        
+                        if not reflection.is_accurate or not reflection.pedagogical_alignment:
+                            logger.warning(f"[QuizGen] ⚠️ MCQ Reflection failed, attempting self-correction")
+                            
+                            prompt_fix = (
+                                f"{prompt}\n\n"
+                                f"--- \n"
+                                f"⚠️ **SELF-CORRECTION REQUIRED** ⚠️\n"
+                                f"Previous MCQs had issues:\n"
+                                + "\n".join([f"- {e}" for e in reflection.errors + reflection.hallucinations]) +
+                                f"\n\n**FIX INSTRUCTIONS:**\n{reflection.suggestions}\n"
+                                f"Regenerate fixing these issues."
+                            )
+                            
+                            llm_response = await self.llm.generate(
+                                prompt=prompt_fix,
+                                model=current_model,
+                                temperature=0.2,
+                                response_schema=MCQQuizSchema,
+                                cache_name=cache_name,
+                                timeout=120.0
+                            )
+                            mcq_quiz = llm_response.parsed
+                    except Exception as re:
+                        logger.error(f"[QuizGen] MCQ Reflection error: {re}")
+                # --- END VERIFICATION ---
                 
                 # Fallback to manual parse if needed
                 if not mcq_quiz:
@@ -511,3 +639,41 @@ class QuizGenerator:
         
         # If loop finishes without returning, it means all retries failed
         raise last_error if last_error else RuntimeError("Failed to generate MCQ quiz after all retries")
+
+    async def _reflect_on_quiz(
+        self,
+        title: str,
+        generated_content: str,
+        cache_name: str = None,
+        source_context: str = None
+    ) -> ReflectionResult:
+        """
+        Verify quiz content against source material using the Reflector Agent.
+        """
+        from app.prompts import load_prompt
+        
+        reflection_prompt = load_prompt(
+            'executor/reflection_quiz.txt',
+            title=title,
+            generated_content=generated_content,
+            source_context=source_context or "Refer to cached documents."
+        )
+
+        response = await self.llm.generate(
+            prompt=reflection_prompt,
+            temperature=0.1,  # Low temperature for strict fact-checking
+            max_tokens=2000,
+            system_prompt="You are a strict fact-checker and pedagogical reviewer.",
+            response_schema=ReflectionResult,
+            cache_name=cache_name
+        )
+        
+        if response.parsed:
+            return response.parsed
+        
+        # Fallback if parsing fails
+        return ReflectionResult(
+            is_accurate=True, 
+            pedagogical_alignment=True,
+            suggestions="No reflections available."
+        )

@@ -44,3 +44,12 @@ class ExamPlan(BaseModel):
             if any(t.id == topic_id for t in block.topics):
                 return block
         return None
+
+
+class ReflectionResult(BaseModel):
+    """Result of AI content verification (Reflector Agent)"""
+    is_accurate: bool = Field(description="Whether the content is factually accurate according to source")
+    pedagogical_alignment: bool = Field(description="Whether the tone and complexity align with target level and scientific principles")
+    errors: List[str] = Field(default_factory=list, description="List of factual errors or inaccuracies found")
+    hallucinations: List[str] = Field(default_factory=list, description="List of details not found in source material")
+    suggestions: str = Field(default="", description="Instructions on how to correct the errors")

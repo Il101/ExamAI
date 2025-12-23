@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 from app.core.config import settings
 from app.agent.state import AgentState, ExecutionStatus, PlanStep, StepResult
+from app.agent.schemas import ReflectionResult
 from app.integrations.llm.base import LLMProvider
 
 logger = logging.getLogger(__name__)
@@ -134,6 +135,59 @@ class TopicExecutor:
                     from app.utils.content_cleaner import strip_thinking_tags
                     content = strip_thinking_tags(response.content).strip()
 
+                # --- REFLECTION STEP (NEW) ---
+                if state.cache_name:
+                    try:
+                        reflection = await self._reflect_on_content(state, current_step, content)
+                        
+                        if not reflection.is_accurate or not reflection.pedagogical_alignment:
+                            issue_type = "Accuracy/Hallucination" if not reflection.is_accurate else "Pedagogical Alignment"
+                            print(f"[Executor] ⚠️ Reflection failed ({issue_type}) for '{current_step.title}'. Errors: {reflection.hallucinations + reflection.errors}")
+                            print(f"[Executor] 🔄 Attempting self-correction with suggestions: {reflection.suggestions}")
+                            
+                            # Self-correction prompt
+                            correction_prompt = (
+                                f"{prompt}\n\n"
+                                f"--- \n"
+                                f"⚠️ **SELF-CORRECTION REQUIRED** ⚠️\n"
+                                f"Your previous output contained issues:\n"
+                                + "\n".join([f"- {e}" for e in reflection.errors + reflection.hallucinations]) +
+                                (f"\n- Pedagogical Alignment issues found." if not reflection.pedagogical_alignment else "") +
+                                f"\n\n**CRITICAL INSTRUCTIONS FOR FIXING (STRICT GROUNDING):**\n{reflection.suggestions}\n"
+                                f"Please regenerate the topic content based strictly on the source materials, matching the level and fixing these issues."
+                            )
+                            
+                            # Regenerate with correction instructions
+                            correction_response = await self.llm.generate(
+                                prompt=correction_prompt,
+                                temperature=0.5, # Lower temperature for better accuracy during correction
+                                max_tokens=max_tokens,
+                                system_prompt=f"You are an expert educator. FIX the mistakes noted in the reflection. Use {language_name}.",
+                                response_schema=TopicSchema,
+                                cache_name=state.cache_name,
+                                operation_type="topic_correction"
+                            )
+                            
+                            state.add_token_usage(correction_response.tokens_input, correction_response.tokens_output, correction_response.cost_usd)
+                            
+                            if correction_response.parsed:
+                                td = correction_response.parsed
+                                content = (
+                                    f"### {td.title}\n\n"
+                                    f"#### Ключевые понятия\n" + "\n".join([f"- {c}" for c in td.key_concepts]) + "\n\n"
+                                    f"#### Детальное объяснение\n"
+                                    f"{td.overview}\n\n"
+                                    f"{td.detailed_content}\n\n"
+                                    f"#### Резюме\n{td.summary}"
+                                )
+                                print(f"[Executor] ✅ Self-correction successful for '{current_step.title}'")
+                            else:
+                                print(f"[Executor] ⚠️ Self-correction failed to return parsed JSON for '{current_step.title}', using uncorrected content.")
+                        else:
+                            print(f"[Executor] ✅ Reflection passed for '{current_step.title}'")
+                    except Exception as re:
+                        print(f"[Executor] ⚠️ Reflection/Correction step failed: {re}. Continuing with original content.")
+
                 return content
 
             except RuntimeError as e:
@@ -171,6 +225,41 @@ class TopicExecutor:
 
         # Should never reach here, but just in case
         raise last_error if last_error else RuntimeError("Unknown error in execute_step")
+
+    async def _reflect_on_content(self, state: AgentState, step: PlanStep, content: str) -> ReflectionResult:
+        """
+        Call Reflector Agent to verify generated content against source.
+        """
+        from app.prompts import load_prompt
+        
+        source_context = (
+            "The full source material for this course is loaded in your context cache. "
+            "Refer to the cached PDF/document to verify the accuracy of the generated content."
+        )
+        
+        reflection_prompt = load_prompt(
+            'executor/reflection.txt',
+            title=step.title,
+            generated_content=content,
+            source_context=source_context
+        )
+        
+        response = await self.llm.generate(
+            prompt=reflection_prompt,
+            temperature=0.1,  # Ultra-low temperature for factual verification
+            max_tokens=2000,
+            system_prompt="You are a strict fact-checker. Verify generated content against cached source.",
+            response_schema=ReflectionResult,
+            cache_name=state.cache_name,
+            operation_type="topic_reflection"
+        )
+        
+        state.add_token_usage(response.tokens_input, response.tokens_output, response.cost_usd)
+        
+        if response.parsed:
+            return response.parsed
+        
+        raise RuntimeError("Failed to parse reflection result")
 
     def _build_previous_context(self, state: AgentState, current_step: PlanStep) -> str:
         """
@@ -431,15 +520,32 @@ class TopicExecutor:
                             f"{t.detailed_content}\n\n"
                             f"#### Резюме\n{t.summary}"
                         )
-                        # Normalize returned ID to string for lookup
-                        results_map[str(t.id)] = formatted_content
+                        
+                        # VERIFICATION LAYER: Check each topic in batch
+                        is_valid = True
+                        if state.cache_name:
+                            try:
+                                # Find corresponding PlanStep for this topic
+                                step_match = next((s for s in steps if str(s.id) == str(t.id)), None)
+                                if step_match:
+                                    reflection = await self._reflect_on_content(state, step_match, formatted_content)
+                                    if not reflection.is_accurate or not reflection.pedagogical_alignment:
+                                        issue_type = "Accuracy" if not reflection.is_accurate else "Pedagogy"
+                                        logger.warning(f"[Executor] Batch verification failed ({issue_type}) for topic {t.id}: {t.title}")
+                                        is_valid = False
+                            except Exception as re:
+                                logger.error(f"[Executor] Batch reflection error for topic {t.id}: {re}")
+                        
+                        if is_valid:
+                            # Normalize returned ID to string for lookup
+                            results_map[str(t.id)] = formatted_content
                     
-                    # Check if any topics are missing from response
+                    # Check if any topics are missing from response (either LLM forgot or verification failed)
                     for step in steps:
                         # Normalize step ID to string for lookup
                         step_id_str = str(step.id)
                         if step_id_str not in results_map:
-                            logger.warning(f"Topic {step_id_str} ({step.title}) missing from batch response (keys returned: {list(results_map.keys())}), retrying individually later.")
+                            logger.warning(f"Topic {step_id_str} ({step.title}) not available (failed gen or verification), retrying individually later.")
                     
                     return results_map
 

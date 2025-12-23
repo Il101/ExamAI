@@ -235,7 +235,8 @@ class TopicContentGenerator:
                 print(f"[PIPELINE] generating MCQ batch for {len(topics_data_for_cards)} topics")
                 mcq_map, mcq_usage = await self.flashcard_gen.quiz_generator.generate_mcq_batch(
                     topics_data=topics_data_for_cards,
-                    num_questions_per_topic=2
+                    num_questions_per_topic=2,
+                    cache_name=effective_cache_name
                 )
                 
                 # Save MCQs to database (caching them immediately)

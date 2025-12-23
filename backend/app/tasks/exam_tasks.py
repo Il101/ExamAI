@@ -566,6 +566,7 @@ async def _generate_topic_content_async(topic_id: UUID, user_id: UUID):
             level=exam.level,
             exam_type=exam.exam_type,
             original_content=exam.original_content,
+            cache_name=exam.cache_name,
         )
 
         state.output_language = getattr(user, "preferred_language", None) or "ru"
