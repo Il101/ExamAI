@@ -12,8 +12,11 @@ import {
     Clock,
     Target,
     Loader2,
-    Play
+    Play,
+    Zap,
+    Info
 } from 'lucide-react';
+import { DailyProgressChart } from '@/components/analytics/daily-progress';
 import {
     Tooltip,
     TooltipContent,
@@ -61,9 +64,38 @@ export default function AnalyticsPage() {
             <div>
                 <h1 className="text-3xl font-bold text-foreground">Analytics</h1>
                 <p className="mt-2 text-muted-foreground">
-                    Track your learning progress and performance
+                    Understand how your brain learns and track your memory growth
                 </p>
             </div>
+
+            {/* AI Recommendation / Next Steps */}
+            <Card className="p-6 border-blue-500/20 bg-blue-500/5">
+                <div className="flex items-start gap-4">
+                    <div className="p-2 bg-blue-500 rounded-lg">
+                        <Zap className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                        <h3 className="text-lg font-semibold flex items-center gap-2">
+                            Learning Recommendation
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p className="max-w-xs">We analyze your performance using the FSRS model to predict which cards you are likely to forget soon.</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        </h3>
+                        <p className="text-muted-foreground mt-1">
+                            {stats?.total_cards_learned && stats.total_cards_learned > 0
+                                ? `You have learned ${stats.total_cards_learned} cards. To maintain high retention, we recommend reviewing your scheduled cards today.`
+                                : "Your learning journey is just beginning! Start your first focus session to build your personal memory forecast."}
+                        </p>
+                    </div>
+                </div>
+            </Card>
 
             {/* Stats Overview */}
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -131,55 +163,41 @@ export default function AnalyticsPage() {
 
                     <TabsContent value="progress" className="mt-6">
                         <div className="space-y-4">
-                            <h3 className="text-lg font-semibold">Daily Progress</h3>
+                            <h3 className="text-lg font-semibold">Study Consistency</h3>
+                            <p className="text-sm text-muted-foreground">
+                                Your daily study activity. Consistency is the key to moving information into long-term memory.
+                            </p>
                             {stats?.daily_progress && stats.daily_progress.length > 0 ? (
-                                <div className="space-y-2">
-                                    {stats.daily_progress.slice(0, 7).map((day, index) => {
-                                        const hasActivity = day.cards_reviewed > 0 || day.minutes_studied > 0;
-                                        const isHighActivity = day.cards_reviewed >= 10 || day.minutes_studied >= 30;
-
-                                        return (
-                                            <div key={index} className="flex items-center justify-between p-3 bg-muted rounded">
-                                                <div className="flex items-center gap-3">
-                                                    <div className={cn(
-                                                        "h-3 w-3 rounded-full",
-                                                        isHighActivity ? "bg-green-500" :
-                                                            hasActivity ? "bg-yellow-500" :
-                                                                "bg-muted"
-                                                    )} />
-                                                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                                                    <span className="text-sm font-medium">
-                                                        {new Date(day.date).toLocaleDateString()}
-                                                    </span>
-                                                </div>
-                                                <div className="flex gap-6 text-sm">
-                                                    <span className="text-muted-foreground">
-                                                        {day.cards_reviewed} cards
-                                                    </span>
-                                                    <span className="text-muted-foreground">
-                                                        {day.minutes_studied} min
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
+                                <DailyProgressChart data={stats.daily_progress} />
                             ) : (
-                                <p className="text-muted-foreground text-center py-8">
-                                    No progress data available yet. Start studying to see your progress!
-                                </p>
+                                <div className="text-center py-12 bg-muted/30 rounded-lg border border-dashed">
+                                    <Brain className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
+                                    <h4 className="font-semibold">No progress data yet</h4>
+                                    <p className="text-sm text-muted-foreground mt-1">
+                                        Start studying to see your daily progress here!
+                                    </p>
+                                </div>
                             )}
                         </div>
                     </TabsContent>
 
                     <TabsContent value="retention" className="mt-6">
                         <div className="space-y-4">
-                            <h3 className="text-lg font-semibold">Forgetting Curve</h3>
+                            <h3 className="text-lg font-semibold">Memory Forecast</h3>
                             <p className="text-sm text-muted-foreground mb-4">
-                                Shows how your memory retention decays over time without review (based on FSRS model).
+                                This graph shows your predicted chance of recalling information over time.
+                                We use the <span className="font-mono text-xs bg-muted px-1 rounded">FSRS</span> model to ensure you review at the perfect moment.
                             </p>
                             <div className="bg-muted/30 p-4 rounded-lg border">
                                 <RetentionChart data={retentionData} />
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                                <div className="p-3 rounded bg-blue-500/10 border border-blue-500/20 text-xs text-blue-700 dark:text-blue-400">
+                                    <strong>Tip:</strong> Reviewing when retention is between 80-90% is the most efficient way to learn.
+                                </div>
+                                <div className="p-3 rounded bg-purple-500/10 border border-purple-500/20 text-xs text-purple-700 dark:text-purple-400">
+                                    <strong>Science:</strong> Spaced repetition flattens the forgetting curve, making memories permanent.
+                                </div>
                             </div>
                         </div>
                     </TabsContent>

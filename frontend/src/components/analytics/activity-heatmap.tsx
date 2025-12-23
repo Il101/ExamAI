@@ -45,12 +45,12 @@ export function ActivityHeatmap({ data }: ActivityHeatmapProps) {
 
   const getLevelColor = (level: number) => {
     switch (level) {
-      case 0: return 'bg-gray-100 dark:bg-gray-800';
-      case 1: return 'bg-green-200 dark:bg-green-900/40';
-      case 2: return 'bg-green-400 dark:bg-green-700';
-      case 3: return 'bg-green-600 dark:bg-green-500';
-      case 4: return 'bg-green-800 dark:bg-green-300';
-      default: return 'bg-gray-100 dark:bg-gray-800';
+      case 0: return 'bg-muted dark:bg-muted/50';
+      case 1: return 'bg-blue-100 dark:bg-blue-900/20';
+      case 2: return 'bg-blue-300 dark:bg-blue-700/40';
+      case 3: return 'bg-blue-500 dark:bg-blue-500/60';
+      case 4: return 'bg-blue-600 dark:bg-blue-400';
+      default: return 'bg-muted';
     }
   };
 
@@ -88,16 +88,16 @@ export function ActivityHeatmap({ data }: ActivityHeatmapProps) {
         ))}
       </div>
 
-      <div className="flex items-center gap-2 mt-4 text-xs text-gray-500">
-        <span>Less</span>
+      <div className="flex items-center gap-2 mt-4 text-[10px] text-muted-foreground uppercase tracking-wider">
+        <span>Less active</span>
         <div className="flex gap-1">
-          <div className="h-3 w-3 rounded-sm bg-gray-100 dark:bg-gray-800" />
-          <div className="h-3 w-3 rounded-sm bg-green-200 dark:bg-green-900/40" />
-          <div className="h-3 w-3 rounded-sm bg-green-400 dark:bg-green-700" />
-          <div className="h-3 w-3 rounded-sm bg-green-600 dark:bg-green-500" />
-          <div className="h-3 w-3 rounded-sm bg-green-800 dark:bg-green-300" />
+          <div className="h-2 w-2 rounded-sm bg-muted" />
+          <div className="h-2 w-2 rounded-sm bg-blue-100 dark:bg-blue-900/20" />
+          <div className="h-2 w-2 rounded-sm bg-blue-300 dark:bg-blue-700/40" />
+          <div className="h-2 w-2 rounded-sm bg-blue-500 dark:bg-blue-500/60" />
+          <div className="h-2 w-2 rounded-sm bg-blue-600 dark:bg-blue-400" />
         </div>
-        <span>More</span>
+        <span>More active</span>
       </div>
     </div>
   );

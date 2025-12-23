@@ -36,17 +36,21 @@ export function RetentionChart({ data }: RetentionChartProps) {
           <CartesianGrid strokeDasharray="3 3" vertical={false} />
           <XAxis
             dataKey="days_since_review"
-            label={{ value: 'Days Since Review', position: 'insideBottom', offset: -5 }}
+            label={{ value: 'Days Since Review', position: 'insideBottom', offset: -5, style: { fontSize: '12px' } }}
+            tick={{ fontSize: 10 }}
           />
           <YAxis
             domain={[0, 100]}
-            label={{ value: 'Retention %', angle: -90, position: 'insideLeft' }}
+            label={{ value: 'Chance of Recalling %', angle: -90, position: 'insideLeft', style: { fontSize: '12px' } }}
+            tick={{ fontSize: 10 }}
           />
           <Tooltip
-            formatter={(value: number) => [`${value}%`, 'Retention']}
-            labelFormatter={(label: number) => `${label} days since review`}
+            contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+            formatter={(value: number) => [`${value}%`, 'Memory Strength']}
+            labelFormatter={(label: number) => `After ${label} days`}
           />
-          <ReferenceLine y={90} label="Target (90%)" stroke="green" strokeDasharray="3 3" />
+          <ReferenceLine y={90} label={{ value: "Target (90%)", position: "right", fill: "#10b981", fontSize: 10 }} stroke="#10b981" strokeDasharray="3 3" />
+          <ReferenceLine y={80} stroke="#10b981" strokeDasharray="3 3" opacity={0.5} />
           <Line
             type="monotone"
             dataKey="retention_percent"
