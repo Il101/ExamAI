@@ -498,15 +498,31 @@ class TopicExecutor:
                     current_batch_size = max(1, current_batch_size // 2)
                     continue
 
-                # Advance
-                remaining_steps = remaining_steps[len(succeeded_ids):]
+                # Advance ONLY by consecutive successes from the start of the batch
+                # This ensures we don't skip a middle topic that failed in the batch response
+                consecutive_success_count = 0
+                for step in batch:
+                    if str(step.id) in succeeded_ids:
+                        consecutive_success_count += 1
+                    else:
+                        break
                 
-                # Reset to initial on full success
-                if len(succeeded_ids) == len(batch):
+                # Advance the remaining list by what we actually finished
+                remaining_steps = remaining_steps[consecutive_success_count:]
+                
+                # Reset to initial if everything in THIS batch was successful
+                if consecutive_success_count == len(batch):
                     current_batch_size = initial_batch_size
-                elif not succeeded_ids:
-                    # If nothing succeeded and batch was 1, we must move on or fail
-                    remaining_steps = remaining_steps[1:]
+                elif consecutive_success_count == 0:
+                    # If even the first topic failed AND it was already a batch of 1, 
+                    # we must fall back to individual logic or move on
+                    if len(batch) > 1:
+                        logger.warning(f"Batch of {len(batch)} failed/truncated at the first item. Reducing batch size.")
+                        current_batch_size = max(1, current_batch_size // 2)
+                        continue
+                    else:
+                        # Batch of 1 failed, fallback will happen in the catch block below
+                        raise Exception(f"Single topic batch failed for {batch[0].title}")
 
             except Exception as e:
                 logger.error(f"Batch execution error for topics: {[s.title for s in batch]}: {e}")
