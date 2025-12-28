@@ -50,14 +50,6 @@ export function ExamHeader({
                 </Button>
 
                 <div className="flex gap-2">
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setIsEditModalOpen(true)}
-                    >
-                        <Settings className="h-4 w-4 mr-2" />
-                        Settings
-                    </Button>
                     {status === 'ready' && (
                         <>
                             <Button variant="outline" size="sm">

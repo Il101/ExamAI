@@ -89,7 +89,7 @@ export function MobileNav({ open, onClose, isAdmin = false }: MobileNavProps) {
                             >
                                 <div className="flex h-16 shrink-0 items-center">
                                     <Link href="/dashboard/courses" onClick={onClose}>
-                                        <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent cursor-pointer hover:opacity-80 transition-opacity">
+                                        <h1 className="text-2xl font-bold text-primary cursor-pointer hover:opacity-80 transition-opacity">
                                             ExamAI Pro
                                         </h1>
                                     </Link>

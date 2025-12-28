@@ -115,86 +115,62 @@ export default function CourseDetailPage() {
             </div>
 
             {/* Course Stats Card */}
-            <Card className="border-border bg-card/40 backdrop-blur-xl overflow-hidden">
+            <Card className="border-border bg-card/40 backdrop-blur-xl overflow-hidden shadow-sm">
                 <CardContent className="p-0">
-                    <div className="grid grid-cols-1 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-border/20">
+                    <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-border/20">
                         {/* Overall Progress */}
-                        <div className="p-6 space-y-4 md:col-span-2">
+                        <div className="p-4 flex flex-col justify-center border-b md:border-b-0 space-y-2 col-span-2 md:col-span-1">
                             <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2 text-sm font-bold text-muted-foreground uppercase">
-                                    <Book className="h-4 w-4" />
-                                    <span>Curriculum Progress</span>
+                                <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase">
+                                    <Book className="h-3.5 w-3.5" />
+                                    <span>Progress</span>
                                 </div>
-                                <span className="text-2xl font-black text-foreground">{Math.round(progress)}%</span>
+                                <span className="text-lg font-black text-foreground">{Math.round(progress)}%</span>
                             </div>
-                            <Progress value={progress} className="h-3 bg-muted/20" />
-                            <div className="flex justify-between text-sm text-muted-foreground">
-                                <span>{stats.completed_topics} / {stats.topic_count} topics completed</span>
-                                <span>{stats.exam_count} exams total</span>
+                            <Progress value={progress} className="h-2 bg-muted/20" />
+                            <div className="flex justify-between text-[10px] text-muted-foreground">
+                                <span>{stats.completed_topics}/{stats.topic_count} topics</span>
+                                <span>{stats.exam_count} exams</span>
                             </div>
                         </div>
 
-                        {/* Time & Review Stats */}
-                        <div className="p-6 flex flex-col justify-center gap-4">
-                            <div>
-                                <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase mb-1">
-                                    <Clock className="h-3.5 w-3.5" />
-                                    <span>Total Study Time</span>
-                                </div>
-                                <div className="flex items-baseline gap-1.5">
-                                    <span className="text-2xl font-bold text-foreground">{formatMinutes(stats.total_actual_study_minutes)}</span>
-                                    <span className="text-xs text-muted-foreground">/ {formatMinutes(stats.total_planned_study_minutes)}</span>
-                                </div>
+                        {/* Time Stats */}
+                        <div className="p-4 flex flex-col justify-center border-b md:border-b-0">
+                            <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase mb-1">
+                                <Clock className="h-3.5 w-3.5" />
+                                <span>Study Time</span>
                             </div>
+                            <div className="flex items-baseline gap-1.5">
+                                <span className="text-lg font-bold text-foreground">{formatMinutes(stats.total_actual_study_minutes)}</span>
+                                <span className="text-[10px] text-muted-foreground">/ {formatMinutes(stats.total_planned_study_minutes)}</span>
+                            </div>
+                        </div>
 
-                            <div>
-                                <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase mb-1">
-                                    <Brain className="h-3.5 w-3.5" />
-                                    <span>Active Review</span>
-                                </div>
-                                {stats.due_flashcards_count > 0 ? (
-                                    <Badge className="bg-orange-500/10 text-orange-500 border-none hover:bg-orange-500/20">
-                                        {stats.due_flashcards_count} cards due
-                                    </Badge>
-                                ) : (
-                                    <span className="text-sm font-medium text-emerald-500">Curriculum up to date</span>
-                                )}
+                        {/* Review Stats */}
+                        <div className="p-4 flex flex-col justify-center border-l border-b md:border-b-0">
+                            <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase mb-1">
+                                <Brain className="h-3.5 w-3.5" />
+                                <span>Review</span>
                             </div>
+                            {stats.due_flashcards_count > 0 ? (
+                                <Badge className="bg-orange-500/10 text-orange-500 border-none hover:bg-orange-500/20 py-0 text-[10px] h-5">
+                                    {stats.due_flashcards_count} cards
+                                </Badge>
+                            ) : (
+                                <span className="text-[10px] font-medium text-emerald-500">Up to date</span>
+                            )}
                         </div>
 
                         {/* Difficulty & Semester */}
-                        <div className="p-6 flex flex-col justify-center gap-4">
-                            <div>
-                                <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase mb-1">
-                                    <Brain className="h-3.5 w-3.5" />
-                                    <span>Avg. Difficulty</span>
-                                </div>
-                                <div className="flex gap-1.5">
-                                    {[1, 2, 3, 4, 5].map((dot) => {
-                                        const isActive = dot <= Math.round(stats.average_difficulty);
-                                        return (
-                                            <div
-                                                key={dot}
-                                                className={`h-2 w-2 rounded-full transition-colors ${isActive
-                                                    ? 'bg-primary'
-                                                    : 'bg-muted/40'
-                                                    }`}
-                                            />
-                                        );
-                                    })}
-                                </div>
+                        <div className="p-4 flex flex-col justify-center">
+                            <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase mb-1">
+                                <Calendar className="h-3.5 w-3.5" />
+                                <span>Range</span>
                             </div>
-
-                            <div>
-                                <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase mb-1">
-                                    <Calendar className="h-3.5 w-3.5" />
-                                    <span>Semester Range</span>
-                                </div>
-                                <div className="text-sm font-medium">
-                                    {course.semester_start ? format(new Date(course.semester_start), 'MMM yyyy') : 'No date'}
-                                    {' - '}
-                                    {course.semester_end ? format(new Date(course.semester_end), 'MMM yyyy') : 'TBD'}
-                                </div>
+                            <div className="text-[10px] font-medium truncate">
+                                {course.semester_start ? format(new Date(course.semester_start), 'MMM yy') : 'No date'}
+                                {' - '}
+                                {course.semester_end ? format(new Date(course.semester_end), 'MMM yy') : 'TBD'}
                             </div>
                         </div>
                     </div>

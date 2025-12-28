@@ -66,7 +66,7 @@ export function Sidebar({ isAdmin = false }: SidebarProps) {
                 <div className="flex h-16 shrink-0 items-center">
                     <Link href="/dashboard/courses">
                         <h1 className={cn(
-                            "text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent cursor-pointer hover:opacity-80 transition-all duration-300",
+                            "text-2xl font-bold text-primary cursor-pointer hover:opacity-80 transition-all duration-300",
                             !isExpanded && "opacity-0 w-0"
                         )}>
                             {isExpanded && "ExamAI Pro"}

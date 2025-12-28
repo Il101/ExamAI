@@ -26,6 +26,7 @@ export function CheckYourself({ topicId, examId, onComplete, onSkip }: CheckYour
     const [isAnswered, setIsAnswered] = useState(false);
     const [answers, setAnswers] = useState<boolean[]>([]);
     const [showResults, setShowResults] = useState(false);
+    const [isSkipped, setIsSkipped] = useState(false);
 
     useEffect(() => {
         loadQuiz();
@@ -35,6 +36,7 @@ export function CheckYourself({ topicId, examId, onComplete, onSkip }: CheckYour
         try {
             setIsLoading(true);
             setError(null);
+            setIsSkipped(false);
 
             const data = await topicsApi.getQuiz(topicId, 5);
             setQuizData(data);
@@ -89,12 +91,14 @@ export function CheckYourself({ topicId, examId, onComplete, onSkip }: CheckYour
         try {
             // Mark as viewed with quiz_completed=true in backend
             await topicsApi.markAsViewed(topicId, examId, true);
+            setIsSkipped(true);
             if (onSkip) {
                 onSkip();
             }
         } catch (err) {
             console.error('Failed to mark quiz as skipped:', err);
             // Still call onSkip to allow user to proceed locally
+            setIsSkipped(true);
             if (onSkip) {
                 onSkip();
             }
@@ -117,6 +121,24 @@ export function CheckYourself({ topicId, examId, onComplete, onSkip }: CheckYour
                 <CardContent className="py-8 text-center">
                     <AlertCircle className="h-8 w-8 text-destructive mx-auto mb-2" />
                     <p className="text-sm text-muted-foreground">{error || 'Quiz not available'}</p>
+                </CardContent>
+            </Card>
+        );
+    }
+
+    if (isSkipped) {
+        return (
+            <Card className="border-emerald-500/20 bg-emerald-500/5">
+                <CardContent className="py-8 text-center space-y-3">
+                    <div className="flex justify-center">
+                        <div className="bg-emerald-500/10 p-3 rounded-full">
+                            <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+                        </div>
+                    </div>
+                    <CardTitle className="text-emerald-500">Quiz Skipped</CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                        You've skipped this quiz. You can now proceed to the next topic.
+                    </p>
                 </CardContent>
             </Card>
         );
