@@ -82,7 +82,8 @@ export default function TopicDetailPage() {
                     type: 'mcq',
                     props: {
                         topicId: topicId,
-                        quizCompleted: false,
+                        examId: topicData.exam_id,
+                        quizCompleted: topicData.quiz_completed || false,
                     },
                     id: `mcq-${topicId}`,
                     content: [],
@@ -163,6 +164,15 @@ export default function TopicDetailPage() {
 
     const handleContentChange = (blocks: Block[]) => {
         setEditorContent(blocks);
+
+        // Check if MCQ block was marked as completed
+        const mcqBlock = blocks.find((b) => (b.type as string) === 'mcq');
+        if (mcqBlock && mcqBlock.props && (mcqBlock.props as any).quizCompleted) {
+            if (!quizCompleted) {
+                console.log('Quiz completion detected from editor');
+                setQuizCompleted(true);
+            }
+        }
     };
 
     if (isLoading) {

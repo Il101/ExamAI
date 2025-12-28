@@ -11,11 +11,12 @@ import { topicsApi, QuizData } from '@/lib/api/topics';
 
 interface CheckYourselfProps {
     topicId: string;
+    examId: string;
     onComplete: (score: number, total: number) => void;
     onSkip?: () => void;
 }
 
-export function CheckYourself({ topicId, onComplete, onSkip }: CheckYourselfProps) {
+export function CheckYourself({ topicId, examId, onComplete, onSkip }: CheckYourselfProps) {
     const [quizData, setQuizData] = useState<QuizData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -84,9 +85,19 @@ export function CheckYourself({ topicId, onComplete, onSkip }: CheckYourselfProp
         }
     };
 
-    const handleSkip = () => {
-        if (onSkip) {
-            onSkip();
+    const handleSkip = async () => {
+        try {
+            // Mark as viewed with quiz_completed=true in backend
+            await topicsApi.markAsViewed(topicId, examId, true);
+            if (onSkip) {
+                onSkip();
+            }
+        } catch (err) {
+            console.error('Failed to mark quiz as skipped:', err);
+            // Still call onSkip to allow user to proceed locally
+            if (onSkip) {
+                onSkip();
+            }
         }
     };
 
@@ -135,6 +146,8 @@ export function CheckYourself({ topicId, onComplete, onSkip }: CheckYourselfProp
     }
 
     const currentQuestion = quizData.questions[currentQuestionIndex];
+    if (!currentQuestion) return null;
+
     const progress = ((currentQuestionIndex + 1) / quizData.questions.length) * 100;
 
     return (
@@ -196,7 +209,7 @@ export function CheckYourself({ topicId, onComplete, onSkip }: CheckYourselfProp
                 {isAnswered && (
                     <div className="p-4 rounded-lg bg-muted border">
                         <p className="text-sm font-medium mb-1">Explanation:</p>
-                        <p className="text-sm text-muted-foreground">{currentQuestion.explanation}</p>
+                        <p className="text-sm text-muted-foreground">{currentQuestion.explanation.correct}</p>
                     </div>
                 )}
 

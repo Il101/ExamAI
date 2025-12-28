@@ -15,6 +15,9 @@ export const MCQBlock = createReactBlockSpec(
             topicId: {
                 default: '',
             },
+            examId: {
+                default: '',
+            },
             quizCompleted: {
                 default: false,
             },
@@ -25,6 +28,7 @@ export const MCQBlock = createReactBlockSpec(
         render: (props) => {
             const { block } = props;
             const topicId = block.props.topicId as string;
+            const examId = block.props.examId as string;
 
             if (!topicId) {
                 return (
@@ -38,6 +42,7 @@ export const MCQBlock = createReactBlockSpec(
                 <div className="my-6">
                     <CheckYourself
                         topicId={topicId}
+                        examId={examId}
                         onComplete={(score, total) => {
                             console.log('Quiz completed:', score, '/', total);
                             // Update block props to mark as completed

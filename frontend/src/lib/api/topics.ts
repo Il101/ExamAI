@@ -29,7 +29,10 @@ export interface QuizQuestion {
     id: number;
     question: string;
     options: QuizOption[];
-    explanation: string;
+    explanation: {
+        correct: string;
+        distractors: Record<string, string>;
+    };
 }
 
 export interface QuizData {
