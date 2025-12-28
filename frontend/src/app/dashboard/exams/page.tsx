@@ -37,8 +37,8 @@ export default function ExamsPage() {
                 <div className="flex items-center gap-3">
                     <Link href="/dashboard/courses">
                         <Button variant="outline" className="border-white/10 hover:bg-white/5">
-                            <Folder className="mr-2 h-4 w-4" />
-                            Folders
+                            <BookOpen className="mr-2 h-4 w-4" />
+                            Courses
                         </Button>
                     </Link>
                     <Link href="/dashboard/exams/new">
