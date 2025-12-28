@@ -321,16 +321,40 @@ async def _generate_exam_content_async(
         if total == 0:
             raise ValueError(f"No topics found for exam {exam_id}")
             
-        # 0. Study Scheduling (New)
-        if exam.exam_date:
-            print(f"[CELERY ASYNC] Scheduling topics for exam {exam_id} (exam_date={exam.exam_date})...")
+        # 0. Study Scheduling - determine deadline from exam or course
+        exam_deadline = exam.exam_date
+        if not exam_deadline and exam.course_id:
+            # Check course for exam_date
+            from app.repositories.course_repository import CourseRepository
+            course_repo = CourseRepository(session)
+            course = await course_repo.get_by_user_and_id(user.id, exam.course_id)
+            if course and course.exam_date:
+                exam_deadline = course.exam_date
+                print(f"[CELERY ASYNC] Using course.exam_date: {exam_deadline}")
+        
+        if exam_deadline:
+            print(f"[CELERY ASYNC] Scheduling topics for exam {exam_id} (deadline={exam_deadline})...")
             planner = StudyPlannerService()
-            topics = planner.schedule_exam(exam, topics)
+            
+            # Use user's study_days preference
+            study_days = getattr(user, "study_days", [0, 1, 2, 3, 4, 5, 6])
+            
+            # Create holder object with exam_date for planner
+            class DeadlineHolder:
+                def __init__(self, exam_date):
+                    self.exam_date = exam_date
+            
+            holder = DeadlineHolder(exam_deadline)
+            topics = planner.schedule_exam(holder, topics, study_days=study_days)
+            
             # Save scheduled dates
             for topic in topics:
                 await topic_repo.update(topic)
             await session.commit()
             print(f"[CELERY ASYNC] Successfully scheduled {total} topics.")
+        else:
+            print(f"[CELERY ASYNC] Skipping scheduling: no exam_date set on exam or course")
+
 
         # Ensure exam is in generating state
         if exam.status != "generating":

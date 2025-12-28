@@ -35,7 +35,6 @@ export default function CoursesPage() {
                     </p>
                 </div>
                 <Button
-                    variant="glow"
                     onClick={() => setIsCourseModalOpen(true)}
                     className="h-10 px-4 font-bold"
                 >

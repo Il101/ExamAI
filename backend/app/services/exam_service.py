@@ -239,3 +239,76 @@ class ExamService:
         task = generate_exam_content.apply_async(args=[str(exam_id), str(user_id)])
 
         return updated, task.id
+
+    async def reschedule_exam_topics(
+        self, user_id: UUID, exam_id: UUID
+    ) -> list:
+        """
+        Reschedule all incomplete topics in an exam based on exam_date.
+        
+        If the exam has exam_date set, uses that.
+        If the exam belongs to a course with exam_date, uses course.exam_date.
+        
+        Returns:
+            List of updated topics with new scheduled_date
+        """
+        from app.repositories.topic_repository import TopicRepository
+        from app.repositories.user_repository import UserRepository
+        from app.repositories.course_repository import CourseRepository
+        from app.services.study_planner_service import StudyPlannerService
+        import logging
+        
+        logger = logging.getLogger(__name__)
+        
+        exam = await self.exam_repo.get_by_user_and_id(user_id, exam_id)
+        if not exam:
+            raise ValueError("Exam not found")
+        
+        # Determine the deadline: exam.exam_date or course.exam_date
+        deadline = exam.exam_date
+        
+        if not deadline and exam.course_id:
+            # Check if the course has an exam_date
+            course_repo = CourseRepository(self.exam_repo.session)
+            course = await course_repo.get_by_user_and_id(user_id, exam.course_id)
+            if course and course.exam_date:
+                deadline = course.exam_date
+        
+        if not deadline:
+            logger.warning(f"Cannot reschedule exam {exam_id}: no exam_date set on exam or course")
+            return []
+        
+        # Get incomplete topics
+        topic_repo = TopicRepository(self.exam_repo.session)
+        topics = await topic_repo.get_by_exam_id(exam_id)
+        incomplete_topics = [t for t in topics if not t.quiz_completed]
+        
+        if not incomplete_topics:
+            logger.info(f"No incomplete topics found for exam {exam_id}")
+            return []
+        
+        # Get user's study days preference
+        user_repo = UserRepository(self.exam_repo.session)
+        user = await user_repo.get_by_id(user_id)
+        study_days = user.study_days if user else [0, 1, 2, 3, 4, 5, 6]
+        
+        # Create a mock object with exam_date for the planner
+        class ExamDateHolder:
+            def __init__(self, exam_date):
+                self.exam_date = exam_date
+        
+        holder = ExamDateHolder(deadline)
+        
+        # Schedule topics
+        planner = StudyPlannerService()
+        updated_topics = planner.schedule_exam(holder, incomplete_topics, study_days=study_days)
+        
+        # Save updated scheduled_dates
+        for topic in updated_topics:
+            await topic_repo.update(topic)
+        
+        await self.exam_repo.session.flush()
+        
+        logger.info(f"Rescheduled {len(updated_topics)} topics for exam {exam_id}")
+        return updated_topics
+

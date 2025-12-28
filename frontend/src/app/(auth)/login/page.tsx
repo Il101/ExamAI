@@ -25,7 +25,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      router.push('/dashboard');
+      router.push('/dashboard/courses');
     }
   }, [isLoading, isAuthenticated, router]);
 

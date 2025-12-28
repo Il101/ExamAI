@@ -196,7 +196,7 @@ export function CreateCourseModal({ isOpen, onClose }: CreateCourseModalProps) {
                                         type="button"
                                         onClick={() => toggleDay(day.value)}
                                         className={`h-9 w-9 rounded-full text-xs font-bold transition-all border ${studyDays.includes(day.value)
-                                            ? 'bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20'
+                                            ? 'bg-primary text-primary-foreground border-primary'
                                             : 'bg-muted/30 text-muted-foreground border-border/40 hover:bg-muted/50'
                                             }`}
                                     >

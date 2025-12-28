@@ -104,7 +104,7 @@ export default function CourseDetailPage() {
                         </Button>
                         <Button
                             variant="default"
-                            className="font-bold shadow-[0_0_20px_rgba(124,58,237,0.4)]"
+                            className="font-bold"
                             onClick={() => router.push(`/dashboard/exams/new?course_id=${course.id}`)}
                         >
                             <Plus className="h-4 w-4 mr-2" />
@@ -176,7 +176,7 @@ export default function CourseDetailPage() {
                                             <div
                                                 key={dot}
                                                 className={`h-2 w-2 rounded-full transition-colors ${isActive
-                                                    ? 'bg-primary shadow-[0_0_8px_rgba(var(--primary),0.6)]'
+                                                    ? 'bg-primary'
                                                     : 'bg-muted/40'
                                                     }`}
                                             />

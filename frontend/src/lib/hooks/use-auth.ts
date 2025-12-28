@@ -1,3 +1,5 @@
+'use client';
+
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { authApi } from '@/lib/api/auth';
 import { useAuthStore } from '@/lib/stores/auth-store';
@@ -48,7 +50,7 @@ export function useAuth() {
             try {
                 // Fetch user with new token
                 const user = await authApi.getCurrentUser();
-                
+
                 if (user) {
                     // Update query cache
                     queryClient.setQueryData(['currentUser'], user);
@@ -72,7 +74,7 @@ export function useAuth() {
         },
         onError: (error: unknown) => {
             let message = 'Login failed';
-            
+
             if (error instanceof Error) {
                 // Check for network error
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -85,7 +87,7 @@ export function useAuth() {
                     message = error.message || 'Login failed';
                 }
             }
-            
+
             toast.error(message);
         },
     });

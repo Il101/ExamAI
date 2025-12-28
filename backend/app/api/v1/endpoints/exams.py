@@ -416,14 +416,20 @@ async def get_exam(
             topic_name=t.topic_name,
             content=t.content,
             flashcard_count=t.flashcard_count,
+            status=t.status,
             order_index=t.order_index,
             difficulty_level=t.difficulty_level,
             estimated_study_minutes=t.estimated_study_minutes,
+            scheduled_date=t.scheduled_date,
+            is_viewed=t.is_viewed,
+            quiz_completed=t.quiz_completed,
+            last_viewed_at=t.last_viewed_at,
             created_at=t.created_at,
             updated_at=t.updated_at,
         )
         for t in topics
     ]
+
 
     return response
 
@@ -463,8 +469,33 @@ async def delete_exam(
         raise NotFoundException("Exam", str(exam_id))
 
 
+@router.post("/{exam_id}/reschedule")
+async def reschedule_exam(
+    exam_id: UUID,
+    current_user: User = Depends(get_current_active_user),
+    exam_service: ExamService = Depends(get_exam_service),
+):
+    """
+    Reschedule all incomplete topics in an exam based on exam_date.
+    
+    Uses exam.exam_date if set, otherwise falls back to course.exam_date.
+    Topics are distributed across user's preferred study_days until the deadline.
+    """
+    try:
+        updated_topics = await exam_service.reschedule_exam_topics(current_user.id, exam_id)
+        await exam_service.exam_repo.session.commit()
+        
+        return {
+            "message": f"Successfully rescheduled {len(updated_topics)} topics",
+            "topics_updated": len(updated_topics)
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 @router.get("/{exam_id}/status", response_model=GenerationStatusResponse)
 async def get_generation_status(
+
     exam_id: UUID,
     current_user: User = Depends(get_current_active_user),
     exam_service: ExamService = Depends(get_exam_service),
