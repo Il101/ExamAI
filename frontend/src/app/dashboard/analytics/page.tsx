@@ -1,246 +1,171 @@
 'use client';
 
+import { useState } from 'react';
 import { useAnalytics } from '@/lib/hooks/use-analytics';
 import { Card } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { RetentionChart } from '@/components/analytics/retention-chart';
+import { Button } from '@/components/ui/button';
+import { MemoryHealthScore } from '@/components/analytics/memory-health-score';
+import { TodayInsight } from '@/components/analytics/today-insight';
+import { QuickStats } from '@/components/analytics/quick-stats';
 import { ActivityHeatmap } from '@/components/analytics/activity-heatmap';
-import {
-    TrendingUp,
-    Calendar,
-    Brain,
-    Clock,
-    Target,
-    Loader2,
-    Play,
-    Zap,
-    Info
-} from 'lucide-react';
+import { RetentionChart } from '@/components/analytics/retention-chart';
 import { DailyProgressChart } from '@/components/analytics/daily-progress';
+import {
+    ChevronDown,
+    ChevronUp,
+    BarChart3,
+    Brain,
+    Info,
+    Settings2,
+    TrendingUp
+} from 'lucide-react';
 import {
     Tooltip,
     TooltipContent,
     TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { cn } from '@/lib/utils';
 
 export default function AnalyticsPage() {
     const { stats, isLoading } = useAnalytics();
+    const [showDetails, setShowDetails] = useState(false);
 
     if (isLoading) {
         return (
-            <div className="space-y-6">
-                <div className="animate-pulse">
-                    <div className="h-8 bg-muted rounded w-1/3 mb-4" />
-                    <div className="grid gap-6 md:grid-cols-4">
-                        {[1, 2, 3, 4].map((i) => (
-                            <Card key={i} className="p-6">
-                                <div className="h-4 bg-muted rounded mb-2" />
-                                <div className="h-8 bg-muted rounded" />
-                            </Card>
-                        ))}
-                    </div>
+            <div className="space-y-8 animate-pulse">
+                <div className="h-10 bg-muted rounded w-1/4" />
+                <div className="grid gap-8 md:grid-cols-2">
+                    <div className="h-64 bg-muted rounded-xl" />
+                    <div className="h-64 bg-muted rounded-xl" />
                 </div>
             </div>
         );
     }
 
-    // Transform data for retention chart if empty (fallback for MVP)
-    const retentionData = stats?.retention_curve || [
-        { days_since_review: 1, retention_rate: 1.0 },
-        { days_since_review: 3, retention_rate: 0.9 },
-        { days_since_review: 7, retention_rate: 0.75 },
-        { days_since_review: 14, retention_rate: 0.6 },
-        { days_since_review: 30, retention_rate: 0.45 },
-    ];
-
-    // Transform data for heatmap if empty (fallback for MVP)
-    const heatmapData = stats?.activity_heatmap || [];
+    // Calculate a mock Memory Health score based on retention and streak
+    // In a real app, this would come from the backend or a more complex FE logic
+    const baseHealth = stats?.retention_curve?.[0]?.retention_rate
+        ? Math.round(stats.retention_curve[0].retention_rate * 100)
+        : 85;
+    const healthScore = Math.min(100, baseHealth + (stats?.current_streak || 0));
 
     return (
-        <div className="space-y-8">
+        <div className="max-w-5xl mx-auto space-y-10 pb-20">
             {/* Header */}
-            <div>
-                <h1 className="text-3xl font-bold text-foreground">Analytics</h1>
-                <p className="mt-2 text-muted-foreground">
-                    Understand how your brain learns and track your memory growth
-                </p>
-            </div>
-
-            {/* AI Recommendation / Next Steps */}
-            <Card className="p-6 border-blue-500/20 bg-blue-500/5">
-                <div className="flex items-start gap-4">
-                    <div className="p-2 bg-blue-500 rounded-lg">
-                        <Zap className="h-5 w-5 text-white" />
-                    </div>
-                    <div>
-                        <h3 className="text-lg font-semibold flex items-center gap-2">
-                            Learning Recommendation
-                            <TooltipProvider>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p className="max-w-xs">We analyze your performance using the FSRS model to predict which cards you are likely to forget soon.</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
-                        </h3>
-                        <p className="text-muted-foreground mt-1">
-                            {stats?.total_cards_learned && stats.total_cards_learned > 0
-                                ? `You have learned ${stats.total_cards_learned} cards. To maintain high retention, we recommend reviewing your scheduled cards today.`
-                                : "Your learning journey is just beginning! Start your first focus session to build your personal memory forecast."}
-                        </p>
-                    </div>
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-4xl font-black text-foreground tracking-tight">Your Progress</h1>
+                    <p className="mt-2 text-muted-foreground font-medium">
+                        Real-time visualization of your learning journey
+                    </p>
                 </div>
-            </Card>
-
-            {/* Stats Overview */}
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                <Card className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                        <Brain className="h-8 w-8 text-blue-600" />
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-1">Total Cards Learned</p>
-                    <p className="text-3xl font-bold">{stats?.total_cards_learned || 0}</p>
-                </Card>
-
-                <Card className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                        <Clock className="h-8 w-8 text-green-600" />
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-1">Study Time</p>
-                    <div className="flex items-baseline gap-2">
-                        <p className="text-3xl font-bold">{stats?.total_minutes_studied || 0}</p>
-                        <p className="text-xs text-muted-foreground">minutes</p>
-                    </div>
-                    {(!stats?.total_minutes_studied || stats.total_minutes_studied === 0) && (
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <div className="flex items-center gap-1 mt-2 text-xs text-blue-600 cursor-pointer hover:underline">
-                                        <Play className="h-3 w-3" />
-                                        <span>Start Session</span>
-                                    </div>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>Click the timer 🧠 in the header to start tracking!</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                    )}
-                </Card>
-
-                <Card className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                        <TrendingUp className="h-8 w-8 text-orange-600" />
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-1">Current Streak</p>
-                    <p className="text-3xl font-bold">{stats?.current_streak || 0}</p>
-                    <p className="text-xs text-muted-foreground">days</p>
-                </Card>
-
-                <Card className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                        <Target className="h-8 w-8 text-purple-600" />
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-1">Longest Streak</p>
-                    <p className="text-3xl font-bold">{stats?.longest_streak || 0}</p>
-                    <p className="text-xs text-muted-foreground">days</p>
-                </Card>
+                <div className="flex items-center gap-6">
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="outline" size="icon" className="rounded-full">
+                                    <Settings2 className="h-4 w-4" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>Analytics Settings</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                </div>
             </div>
 
-            {/* Detailed Analytics */}
-            <Card className="p-6">
-                <Tabs defaultValue="progress" className="w-full">
-                    <TabsList>
-                        <TabsTrigger value="progress">Daily Progress</TabsTrigger>
-                        <TabsTrigger value="retention">Retention</TabsTrigger>
-                        <TabsTrigger value="activity">Activity</TabsTrigger>
-                        <TabsTrigger value="fsrs">FSRS Stats</TabsTrigger>
-                    </TabsList>
+            {/* Hero Section: Health & Insights */}
+            <div className="grid gap-8 md:grid-cols-5 items-stretch">
+                <Card className="md:col-span-2 flex flex-col items-center justify-center bg-card border-none shadow-sm pb-8">
+                    <MemoryHealthScore score={healthScore} isLoading={isLoading} />
+                </Card>
 
-                    <TabsContent value="progress" className="mt-6">
-                        <div className="space-y-4">
-                            <h3 className="text-lg font-semibold">Study Consistency</h3>
-                            <p className="text-sm text-muted-foreground">
-                                Your daily study activity. Consistency is the key to moving information into long-term memory.
-                            </p>
-                            {stats?.daily_progress && stats.daily_progress.length > 0 ? (
-                                <DailyProgressChart data={stats.daily_progress} />
-                            ) : (
-                                <div className="text-center py-12 bg-muted/30 rounded-lg border border-dashed">
-                                    <Brain className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
-                                    <h4 className="font-semibold">No progress data yet</h4>
-                                    <p className="text-sm text-muted-foreground mt-1">
-                                        Start studying to see your daily progress here!
-                                    </p>
-                                </div>
-                            )}
-                        </div>
-                    </TabsContent>
+                <div className="md:col-span-3 flex flex-col gap-8">
+                    <TodayInsight
+                        streak={stats?.current_streak}
+                        totalLearned={stats?.total_cards_learned}
+                        isLoading={isLoading}
+                    />
+                    <QuickStats
+                        streak={stats?.current_streak || 0}
+                        totalLearned={stats?.total_cards_learned || 0}
+                        isLoading={isLoading}
+                    />
+                </div>
+            </div>
 
-                    <TabsContent value="retention" className="mt-6">
-                        <div className="space-y-4">
-                            <h3 className="text-lg font-semibold">Memory Forecast</h3>
-                            <p className="text-sm text-muted-foreground mb-4">
-                                This graph shows your predicted chance of recalling information over time.
-                                We use the <span className="font-mono text-xs bg-muted px-1 rounded">FSRS</span> model to ensure you review at the perfect moment.
-                            </p>
-                            <div className="bg-muted/30 p-4 rounded-lg border">
-                                <RetentionChart data={retentionData} />
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                                <div className="p-3 rounded bg-blue-500/10 border border-blue-500/20 text-xs text-blue-700 dark:text-blue-400">
-                                    <strong>Tip:</strong> Reviewing when retention is between 80-90% is the most efficient way to learn.
-                                </div>
-                                <div className="p-3 rounded bg-purple-500/10 border border-purple-500/20 text-xs text-purple-700 dark:text-purple-400">
-                                    <strong>Science:</strong> Spaced repetition flattens the forgetting curve, making memories permanent.
-                                </div>
-                            </div>
-                        </div>
-                    </TabsContent>
+            {/* Activity Section */}
+            <section className="space-y-4">
+                <div className="flex items-center justify-between px-2">
+                    <h2 className="text-xl font-bold flex items-center gap-2">
+                        <BarChart3 className="h-5 w-5 text-blue-500" />
+                        Study Consistency
+                    </h2>
+                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
+                        Last 12 Weeks
+                    </span>
+                </div>
+                <Card className="p-8 border-none shadow-sm bg-card/50 overflow-hidden">
+                    <ActivityHeatmap data={stats?.activity_heatmap || []} />
+                </Card>
+            </section>
 
-                    <TabsContent value="activity" className="mt-6">
-                        <div className="space-y-4">
-                            <h3 className="text-lg font-semibold">Study Activity</h3>
-                            <p className="text-sm text-muted-foreground mb-4">
-                                Your study consistency over the last 30 days.
-                            </p>
-                            <div className="bg-muted/30 p-4 rounded-lg border overflow-hidden">
-                                <ActivityHeatmap data={heatmapData} />
-                            </div>
-                        </div>
-                    </TabsContent>
+            {/* Detailed Stats Toggle */}
+            <div className="pt-4 flex flex-col items-center">
+                <Button
+                    variant="ghost"
+                    onClick={() => setShowDetails(!showDetails)}
+                    className="group text-muted-foreground hover:text-foreground transition-all rounded-full px-8 py-6 border border-border/50 hover:border-border"
+                >
+                    <div className="flex flex-col items-center gap-1">
+                        <span className="text-sm font-semibold">
+                            {showDetails ? "Hide Deep Analytics" : "Show Deep Analytics"}
+                        </span>
+                        {showDetails ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4 group-hover:translate-y-1 transition-transform" />}
+                    </div>
+                </Button>
 
-                    <TabsContent value="fsrs" className="mt-6">
-                        <div className="space-y-4">
-                            <h3 className="text-lg font-semibold">FSRS Algorithm Statistics</h3>
-                            <p className="text-sm text-muted-foreground mb-4">
-                                Your spaced repetition cards are managed by the FSRS (Free Spaced Repetition Scheduler) algorithm.
+                {showDetails && (
+                    <div className="w-full mt-10 space-y-10 animate-in fade-in slide-in-from-top-4 duration-500">
+                        {/* Daily Progress */}
+                        <Card className="p-8 border-none shadow-sm bg-card/30">
+                            <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+                                <TrendingUp className="h-5 w-5 text-green-500" />
+                                Memory Growth Rate
+                            </h3>
+                            <DailyProgressChart data={stats?.daily_progress || []} />
+                        </Card>
+
+                        {/* Retention Curve */}
+                        <Card className="p-8 border-none shadow-sm bg-card/30">
+                            <h3 className="text-lg font-bold mb-2 flex items-center gap-2">
+                                <Brain className="h-5 w-5 text-purple-500" />
+                                Retention Forecast
+                            </h3>
+                            <p className="text-sm text-muted-foreground mb-8">
+                                Predicted probability of remembering information over the next 30 days.
                             </p>
-                            <div className="grid gap-4 md:grid-cols-2">
-                                <div className="p-4 bg-muted/30 rounded-lg border">
-                                    <p className="text-sm text-muted-foreground mb-2">How FSRS Works</p>
-                                    <ul className="text-xs space-y-1 text-muted-foreground">
-                                        <li>• <strong className="text-foreground">Stability</strong> - days until 90% retention probability</li>
-                                        <li>• <strong className="text-foreground">Difficulty</strong> - card complexity (1-10 scale)</li>
-                                        <li>• <strong className="text-foreground">Lapses</strong> - times you forgot this card</li>
-                                    </ul>
-                                </div>
-                                <a href="/dashboard/review-queue" className="p-4 bg-primary/10 rounded-lg border border-primary/30 hover:bg-primary/20 transition-colors flex flex-col justify-center">
-                                    <p className="font-semibold text-primary">View Review Queue →</p>
-                                    <p className="text-xs text-muted-foreground mt-1">
-                                        See all your cards with detailed FSRS data
-                                    </p>
-                                </a>
+                            <RetentionChart data={stats?.retention_curve || []} />
+                        </Card>
+
+                        {/* FSRS Info (Simplified) */}
+                        <div className="bg-blue-500/5 border border-blue-500/10 rounded-2xl p-6 flex items-start gap-4">
+                            <Info className="h-6 w-6 text-blue-500 mt-1 shrink-0" />
+                            <div>
+                                <h4 className="font-bold text-blue-700 dark:text-blue-400">Advanced Learning Model</h4>
+                                <p className="text-sm text-blue-600/80 dark:text-blue-400/80 mt-1">
+                                    Your learning is powered by the FSRS algorithm, which optimizes review intervals based on your unique memory performance.
+                                </p>
+                                <Button variant="link" asChild className="p-0 h-auto mt-2 text-blue-700 dark:text-blue-400 font-bold underline decoration-2 underline-offset-4">
+                                    <a href="/dashboard/review-queue">View Technical Data →</a>
+                                </Button>
                             </div>
                         </div>
-                    </TabsContent>
-                </Tabs>
-            </Card>
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
+
