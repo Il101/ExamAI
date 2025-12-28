@@ -31,6 +31,11 @@ const navigation = [
 const adminNavigation = [
     { name: 'Admin Panel', href: '/dashboard/admin', icon: Shield },
 ];
+interface MobileNavProps {
+    open: boolean;
+    onClose: () => void;
+    isAdmin?: boolean;
+}
 
 export function MobileNav({ open, onClose, isAdmin = false }: MobileNavProps) {
     const pathname = usePathname();
