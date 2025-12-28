@@ -47,7 +47,7 @@ export function BlockNoteEditor({
 
     // Handle content changes with debounce
     useEffect(() => {
-        if (!editable || !onChange) return;
+        if (!onChange) return;
 
         let timeoutId: NodeJS.Timeout;
 
@@ -65,7 +65,7 @@ export function BlockNoteEditor({
             clearTimeout(timeoutId);
             unsubscribe();
         };
-    }, [editor, editable, onChange]);
+    }, [editor, onChange]);
 
     // Auto-save effect
     useEffect(() => {
