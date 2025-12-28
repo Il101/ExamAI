@@ -6,7 +6,7 @@ export interface NavItem {
     name: string;
     href: string;
     icon?: any;
-    status?: 'ready' | 'pending' | 'locked';
+    completed?: boolean;
     id?: string;
 }
 

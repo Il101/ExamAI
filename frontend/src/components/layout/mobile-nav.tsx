@@ -155,7 +155,7 @@ export function MobileNav({ open, onClose, isAdmin = false }: MobileNavProps) {
 
                                                         const getIcon = () => {
                                                             if (isActive) return <BookOpen className="h-4 w-4 text-primary animate-pulse" />;
-                                                            if (item.status === 'ready') return <CheckCircle2 className="h-4 w-4 text-emerald-500/80" />;
+                                                            if (item.completed) return <CheckCircle2 className="h-4 w-4 text-emerald-500/80" />;
                                                             return <Circle className="h-4 w-4 text-muted-foreground/30" />;
                                                         };
 

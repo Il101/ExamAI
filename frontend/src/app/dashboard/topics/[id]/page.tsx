@@ -52,8 +52,8 @@ export default function TopicDetailPage() {
     // Update contextual nav when exam or topic changes
     useEffect(() => {
         if (exam && exam.topics && exam.topics.length > 0) {
-            const topics = exam.topics; // Use exam.topics directly
-            const completedCount = topics.filter(t => t.status === 'ready').length;
+            const topics = exam.topics;
+            const completedCount = topics.filter(t => t.quiz_completed === true).length;
             const progressPercent = topics.length > 0 ? (completedCount / topics.length) * 100 : 0;
 
             setContextualNav({
@@ -63,7 +63,7 @@ export default function TopicDetailPage() {
                     id: t.id,
                     name: t.topic_name,
                     href: `/dashboard/topics/${t.id}`,
-                    status: t.status as any
+                    completed: t.quiz_completed === true
                 }))
             });
         }
