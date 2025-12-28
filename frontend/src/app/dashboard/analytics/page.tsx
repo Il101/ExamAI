@@ -159,6 +159,7 @@ export default function AnalyticsPage() {
                         <TabsTrigger value="progress">Daily Progress</TabsTrigger>
                         <TabsTrigger value="retention">Retention</TabsTrigger>
                         <TabsTrigger value="activity">Activity</TabsTrigger>
+                        <TabsTrigger value="fsrs">FSRS Stats</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="progress" className="mt-6">
@@ -210,6 +211,31 @@ export default function AnalyticsPage() {
                             </p>
                             <div className="bg-muted/30 p-4 rounded-lg border overflow-hidden">
                                 <ActivityHeatmap data={heatmapData} />
+                            </div>
+                        </div>
+                    </TabsContent>
+
+                    <TabsContent value="fsrs" className="mt-6">
+                        <div className="space-y-4">
+                            <h3 className="text-lg font-semibold">FSRS Algorithm Statistics</h3>
+                            <p className="text-sm text-muted-foreground mb-4">
+                                Your spaced repetition cards are managed by the FSRS (Free Spaced Repetition Scheduler) algorithm.
+                            </p>
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <div className="p-4 bg-muted/30 rounded-lg border">
+                                    <p className="text-sm text-muted-foreground mb-2">How FSRS Works</p>
+                                    <ul className="text-xs space-y-1 text-muted-foreground">
+                                        <li>• <strong className="text-foreground">Stability</strong> - days until 90% retention probability</li>
+                                        <li>• <strong className="text-foreground">Difficulty</strong> - card complexity (1-10 scale)</li>
+                                        <li>• <strong className="text-foreground">Lapses</strong> - times you forgot this card</li>
+                                    </ul>
+                                </div>
+                                <a href="/dashboard/review-queue" className="p-4 bg-primary/10 rounded-lg border border-primary/30 hover:bg-primary/20 transition-colors flex flex-col justify-center">
+                                    <p className="font-semibold text-primary">View Review Queue →</p>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        See all your cards with detailed FSRS data
+                                    </p>
+                                </a>
                             </div>
                         </div>
                     </TabsContent>

@@ -15,6 +15,7 @@ import { CourseList } from '@/components/course/CourseList';
 import { CreateCourseModal } from '@/components/modals/create-course-modal';
 import { useState } from 'react';
 import { FolderPlus } from 'lucide-react';
+import { CardsDueWidget } from '@/components/dashboard/cards-due-widget';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -74,19 +75,7 @@ export default function DashboardPage() {
 
       {/* Stats Grid */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="p-6 border-border bg-card/50 backdrop-blur-xl">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Total Exams</p>
-              <p className="text-3xl font-bold text-foreground">
-                {isLoadingExams ? '...' : exams?.length || 0}
-              </p>
-            </div>
-            <div className="h-12 w-12 rounded-full bg-blue-500/20 flex items-center justify-center">
-              <BookOpen className="h-6 w-6 text-blue-400" />
-            </div>
-          </div>
-        </Card>
+        <CardsDueWidget />
 
         <Card className="p-6 border-border bg-card/50 backdrop-blur-xl">
           <div className="flex items-center justify-between">

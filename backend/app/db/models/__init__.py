@@ -1,3 +1,4 @@
+from .chat import ChatMessageModel  # noqa: F401
 from .course import CourseModel  # noqa: F401
 from .exam import ExamModel  # noqa: F401
 from .llm_usage import LLMUsageLogModel  # noqa: F401

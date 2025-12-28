@@ -7,18 +7,16 @@ import { Dialog, Transition } from '@headlessui/react';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
-    LayoutDashboard,
-    BookOpen,
     Brain,
     BarChart3,
     Settings,
     CreditCard,
     Shield,
+    Folder,
 } from 'lucide-react';
 
 const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Exams', href: '/dashboard/exams', icon: BookOpen },
+    { name: 'Courses', href: '/dashboard/courses', icon: Folder },
     { name: 'Flashcards', href: '/dashboard/flashcards', icon: Brain },
     { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
     { name: 'Settings', href: '/dashboard/settings', icon: Settings },

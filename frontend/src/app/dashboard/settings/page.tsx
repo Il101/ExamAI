@@ -95,12 +95,12 @@ export default function SettingsPage() {
                     <Separator />
 
                     <div>
-                        <h3 className="text-lg font-semibold mb-2 text-red-600">Danger Zone</h3>
-                        <Card className="p-4 border-red-200 bg-red-50">
+                        <h3 className="text-lg font-semibold mb-2 text-red-500">Danger Zone</h3>
+                        <Card className="p-4 border-red-500/20 bg-red-500/5 dark:bg-red-500/10 hover:bg-red-500/10 transition-colors duration-300">
                             <div className="flex items-start justify-between">
                                 <div>
-                                    <h4 className="font-medium text-red-900">Delete Account</h4>
-                                    <p className="text-sm text-red-700 mt-1">
+                                    <h4 className="font-medium text-red-600 dark:text-red-400">Delete Account</h4>
+                                    <p className="text-sm text-muted-foreground mt-1">
                                         Once you delete your account, there is no going back. Please be certain.
                                     </p>
                                 </div>

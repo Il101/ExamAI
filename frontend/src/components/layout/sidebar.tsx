@@ -23,9 +23,7 @@ import {
 } from '@/components/ui/tooltip';
 
 const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Exams', href: '/dashboard/exams', icon: BookOpen },
-    { name: 'Folders', href: '/dashboard/courses', icon: Folder },
+    { name: 'Courses', href: '/dashboard/courses', icon: Folder },
     { name: 'Flashcards', href: '/dashboard/flashcards', icon: Brain },
     { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
     { name: 'Settings', href: '/dashboard/settings', icon: Settings },

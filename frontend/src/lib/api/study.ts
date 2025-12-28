@@ -14,12 +14,16 @@ export interface StudySession {
 export interface ReviewItem {
     id: string;
     topic_id: string;
+    user_id: string;
     question: string;
     answer: string;
-    review_type: 'flashcard' | 'question';
     difficulty: number;
     stability: number;
     state: 'new' | 'learning' | 'review' | 'relearning';
+    scheduled_days: number;
+    reps: number;
+    lapses: number;
+    next_review_date: string;
 }
 
 export interface ReviewStats {

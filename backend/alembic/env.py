@@ -14,13 +14,19 @@ from app.core.config import settings
 from app.db.base import Base
 
 # Import all models to ensure they're registered
-from app.db.models.user import UserModel
-from app.db.models.exam import ExamModel
-from app.db.models.topic import TopicModel
-from app.db.models.review import ReviewItemModel
-from app.db.models.study_session import StudySessionModel
-from app.db.models.subscription import SubscriptionModel
-from app.db.models.review_log import ReviewLogModel
+from app.db.models import *  # This will import everything from __init__.py
+
+
+def include_object(obj, name, type_, reflected, compare_to):
+    """
+    Safeguard: Prevent Alembic from proposing DROP TABLE for tables that exist in DB
+    but are not currently tracked in the models layer.
+    """
+    if type_ == "table" and reflected and compare_to is None:
+        # Table exists in DB (reflected=True) but has no matching model (compare_to=None)
+        # We return False to tell Alembic to ignore this 'orphaned' table instead of dropping it.
+        return False
+    return True
 
 
 config = context.config
@@ -65,6 +71,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        include_object=include_object,
     )
 
     with context.begin_transaction():
@@ -101,7 +108,11 @@ async def run_migrations_online() -> None:
 
 
 def do_run_migrations(connection: Connection) -> None:
-    context.configure(connection=connection, target_metadata=target_metadata)
+    context.configure(
+        connection=connection, 
+        target_metadata=target_metadata,
+        include_object=include_object
+    )
 
     with context.begin_transaction():
         context.run_migrations()
