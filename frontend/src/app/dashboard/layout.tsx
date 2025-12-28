@@ -71,7 +71,7 @@ function DashboardLayoutContent({
       <Sidebar isAdmin={isAdmin} />
 
       {/* Main content area */}
-      <div className={`transition-all duration-300 ${isCollapsed ? 'lg:pl-20' : 'lg:pl-56'}`}>
+      <div className={`transition-all duration-300 ${isCollapsed ? 'lg:pl-20' : 'lg:pl-48'}`}>
         <Header onMenuClick={() => setMobileMenuOpen(true)} />
 
         <main className={isTopicPage ? "" : "py-10"}>

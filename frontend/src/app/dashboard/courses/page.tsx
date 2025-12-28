@@ -24,10 +24,7 @@ export default function CoursesPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <div className="flex items-center gap-2 mb-2">
-                        <Link href="/dashboard" className="text-muted-foreground hover:text-primary transition-colors">
-                            <ArrowLeft className="h-4 w-4" />
-                        </Link>
+                    <div className="flex flex-col gap-2 mb-2">
                         <h1 className="text-3xl font-bold text-foreground">My Courses</h1>
                     </div>
                     <p className="text-muted-foreground">

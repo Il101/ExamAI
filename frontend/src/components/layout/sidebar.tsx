@@ -54,7 +54,7 @@ export function Sidebar({ isAdmin = false }: SidebarProps) {
         <div
             className={cn(
                 "hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:flex-col transition-all duration-300 ease-in-out",
-                isExpanded ? "lg:w-56" : "lg:w-20"
+                isExpanded ? "lg:w-48" : "lg:w-20"
             )}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
