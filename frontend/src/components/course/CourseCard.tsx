@@ -40,7 +40,7 @@ export function CourseCard({ course, onClick }: CourseCardProps) {
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                             <Folder className="h-4 w-4 text-primary" />
-                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Course Folder</span>
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Course</span>
                         </div>
                         <h3 className="text-lg font-bold text-foreground leading-tight group-hover:text-primary transition-colors line-clamp-1">
                             {course.title}

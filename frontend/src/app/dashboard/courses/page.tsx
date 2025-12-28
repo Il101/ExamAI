@@ -28,7 +28,7 @@ export default function CoursesPage() {
                         <Link href="/dashboard" className="text-muted-foreground hover:text-primary transition-colors">
                             <ArrowLeft className="h-4 w-4" />
                         </Link>
-                        <h1 className="text-3xl font-bold text-foreground">My Folders</h1>
+                        <h1 className="text-3xl font-bold text-foreground">My Courses</h1>
                     </div>
                     <p className="text-muted-foreground">
                         Organize your exams into courses and semesters
@@ -39,7 +39,7 @@ export default function CoursesPage() {
                     className="h-10 px-4 font-bold"
                 >
                     <FolderPlus className="h-4 w-4 mr-2" />
-                    New Folder
+                    New Course
                 </Button>
             </div>
 
@@ -47,7 +47,7 @@ export default function CoursesPage() {
             <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                    placeholder="Search folders..."
+                    placeholder="Search courses..."
                     className="pl-10"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}

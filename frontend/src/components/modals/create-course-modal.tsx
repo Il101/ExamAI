@@ -75,7 +75,7 @@ export function CreateCourseModal({ isOpen, onClose }: CreateCourseModalProps) {
             });
             // Update user study days
             await usersApi.updateProfile({ study_days: studyDays });
-            toast.success('Course folder created!');
+            toast.success('Course created!');
             setFormData({ title: '', subject: '', description: '', semester_start: '', semester_end: '', exam_date: '' });
             onClose();
         } catch (error) {
@@ -90,9 +90,9 @@ export function CreateCourseModal({ isOpen, onClose }: CreateCourseModalProps) {
                     <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
                         <FolderPlus className="h-6 w-6 text-primary" />
                     </div>
-                    <DialogTitle className="text-2xl font-bold">Create Course Folder</DialogTitle>
+                    <DialogTitle className="text-2xl font-bold">Create Course</DialogTitle>
                     <DialogDescription className="text-muted-foreground">
-                        Organize your exams into a semester-long course folder with custom study schedule.
+                        Organize your exams into a semester-long course with custom study schedule.
                     </DialogDescription>
                 </DialogHeader>
 
