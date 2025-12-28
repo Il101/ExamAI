@@ -2,7 +2,7 @@
 
 import { useExams } from '@/lib/hooks/use-exams';
 import { Button } from '@/components/ui/button';
-import { Plus, Search, Folder } from 'lucide-react';
+import { Plus, Search, Folder, BookOpen } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
