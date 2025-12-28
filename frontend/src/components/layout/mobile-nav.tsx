@@ -13,7 +13,12 @@ import {
     CreditCard,
     Shield,
     Folder,
+    CheckCircle2,
+    Circle,
+    BookOpen,
 } from 'lucide-react';
+import { useSidebar } from '@/lib/contexts/sidebar-context';
+import { Progress } from '@/components/ui/progress';
 
 const navigation = [
     { name: 'Courses', href: '/dashboard/courses', icon: Folder },
@@ -27,15 +32,9 @@ const adminNavigation = [
     { name: 'Admin Panel', href: '/dashboard/admin', icon: Shield },
 ];
 
-interface MobileNavProps {
-    open: boolean;
-    onClose: () => void;
-    isAdmin?: boolean;
-}
-
 export function MobileNav({ open, onClose, isAdmin = false }: MobileNavProps) {
     const pathname = usePathname();
-
+    const { contextualNav } = useSidebar();
     const allNavigation = isAdmin
         ? [...navigation, ...adminNavigation]
         : navigation;
@@ -129,6 +128,55 @@ export function MobileNav({ open, onClose, isAdmin = false }: MobileNavProps) {
                                                 })}
                                             </ul>
                                         </li>
+
+                                        {contextualNav && (
+                                            <li>
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <div className="text-xs font-semibold leading-6 text-muted-foreground uppercase tracking-wider">
+                                                        {contextualNav.title}
+                                                    </div>
+                                                    {contextualNav.progress !== undefined && (
+                                                        <span className="text-[10px] font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+                                                            {Math.round(contextualNav.progress)}%
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {contextualNav.progress !== undefined && (
+                                                    <Progress value={contextualNav.progress} className="h-1 mb-4 bg-white/5" />
+                                                )}
+                                                <ul role="list" className="-mx-2 space-y-1">
+                                                    {contextualNav.items.map((item) => {
+                                                        const isActive = pathname === item.href;
+
+                                                        const getIcon = () => {
+                                                            if (isActive) return <BookOpen className="h-4 w-4 text-primary animate-pulse" />;
+                                                            if (item.status === 'ready') return <CheckCircle2 className="h-4 w-4 text-emerald-500/80" />;
+                                                            return <Circle className="h-4 w-4 text-muted-foreground/30" />;
+                                                        };
+
+                                                        return (
+                                                            <li key={item.id || item.name}>
+                                                                <Link
+                                                                    href={item.href}
+                                                                    onClick={onClose}
+                                                                    className={cn(
+                                                                        isActive
+                                                                            ? 'bg-primary/10 text-primary'
+                                                                            : 'text-muted-foreground hover:text-primary hover:bg-white/5',
+                                                                        'group flex items-center gap-x-3 rounded-md p-2 text-[13px] leading-6 font-medium transition-colors'
+                                                                    )}
+                                                                >
+                                                                    <div className="flex-shrink-0">
+                                                                        {getIcon()}
+                                                                    </div>
+                                                                    <span className="truncate">{item.name}</span>
+                                                                </Link>
+                                                            </li>
+                                                        );
+                                                    })}
+                                                </ul>
+                                            </li>
+                                        )}
                                     </ul>
                                 </nav>
                             </div>

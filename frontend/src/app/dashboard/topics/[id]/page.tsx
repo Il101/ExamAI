@@ -27,7 +27,7 @@ import { toast } from 'sonner';
 export default function TopicDetailPage() {
     const params = useParams();
     const topicId = params.id as string;
-    const { setIsCollapsed } = useSidebar();
+    const { setIsCollapsed, setContextualNav } = useSidebar();
 
     const [topic, setTopic] = useState<Topic | null>(null);
     const [exam, setExam] = useState<ExamWithTopics | null>(null);
@@ -45,8 +45,29 @@ export default function TopicDetailPage() {
         setIsCollapsed(true);
         return () => {
             setIsCollapsed(false);
+            setContextualNav(null);
         };
-    }, [setIsCollapsed]);
+    }, [setIsCollapsed, setContextualNav]);
+
+    // Update contextual nav when exam or topic changes
+    useEffect(() => {
+        if (exam && exam.topics && exam.topics.length > 0) {
+            const topics = exam.topics; // Use exam.topics directly
+            const completedCount = topics.filter(t => t.status === 'ready').length;
+            const progressPercent = topics.length > 0 ? (completedCount / topics.length) * 100 : 0;
+
+            setContextualNav({
+                title: 'Exam Topics',
+                progress: progressPercent,
+                items: topics.map(t => ({
+                    id: t.id,
+                    name: t.topic_name,
+                    href: `/dashboard/topics/${t.id}`,
+                    status: t.status as any
+                }))
+            });
+        }
+    }, [exam, setContextualNav]);
 
     useEffect(() => {
         loadTopicData();
