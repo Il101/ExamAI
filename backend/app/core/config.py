@@ -114,6 +114,18 @@ class Settings(BaseSettings):
     STRIPE_PRICE_ID_PRO: str = ""  # price_xxx from Stripe Dashboard
     STRIPE_PRICE_ID_PREMIUM: str = ""  # price_xxx from Stripe Dashboard
 
+    # Lemon Squeezy
+    LEMON_SQUEEZY_API_KEY: str = ""
+    LEMON_SQUEEZY_STORE_ID: str = ""
+    LEMON_SQUEEZY_WEBHOOK_SECRET: str = ""
+    LEMON_SQUEEZY_VARIANT_ID_PRO: str = ""
+    LEMON_SQUEEZY_VARIANT_ID_PRO_YEARLY: str = ""
+    LEMON_SQUEEZY_VARIANT_ID_PREMIUM: str = ""
+    LEMON_SQUEEZY_VARIANT_ID_PREMIUM_YEARLY: str = ""
+    LEMON_SQUEEZY_VARIANT_ID_TEAM: str = ""
+    LEMON_SQUEEZY_VARIANT_ID_TEAM_YEARLY: str = ""
+
+
     # Frontend
     FRONTEND_URL: str = "http://localhost:3000"
 
