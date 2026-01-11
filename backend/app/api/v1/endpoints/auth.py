@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.core.exceptions import AuthenticationException, ValidationException
+from app.core.config import settings
 from app.dependencies import get_auth_service, get_current_user
 from app.domain.user import User
 from app.schemas.auth import (
