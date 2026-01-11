@@ -88,7 +88,7 @@ async def login(
             user_id=user_id,
             session_id=session_id,
             limit=max_sessions,
-            ttl=auth_data.get("expires_in", 3600)
+            ttl=settings.PERMANENT_SESSION_TTL
         )
     except Exception as e:
         import logging
@@ -104,7 +104,9 @@ async def login(
 
 @router.post("/refresh", response_model=TokenResponse, dependencies=[Depends(general_rate_limiter)])
 async def refresh_token(
-    request: RefreshTokenRequest, auth_service: AuthService = Depends(get_auth_service)
+    request: RefreshTokenRequest, 
+    auth_service: AuthService = Depends(get_auth_service),
+    subscription_service: SubscriptionService = Depends(get_subscription_service),
 ):
     """
     Refresh access token using refresh token.
@@ -114,6 +116,28 @@ async def refresh_token(
 
     if not auth_data:
         raise AuthenticationException("Invalid or expired refresh token")
+
+    # Sync session tracker with new access token
+    try:
+        access_token = auth_data["access_token"]
+        user_id = str(auth_data["user"].id)
+        session_id = hashlib.sha256(access_token.encode()).hexdigest()
+        
+        # Get plan limits
+        subscription = await subscription_service.get_user_subscription(auth_data["user"].id)
+        limits = subscription.get_limits()
+        max_sessions = limits.get("max_simultaneous_sessions", 1)
+        
+        # Track session in Redis (Kick others if limit reached)
+        await session_tracker.add_session(
+            user_id=user_id,
+            session_id=session_id,
+            limit=max_sessions,
+            ttl=settings.PERMANENT_SESSION_TTL
+        )
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Failed to sync session on refresh: {e}")
 
     return TokenResponse(
         access_token=auth_data["access_token"],

@@ -126,6 +126,7 @@ class AuthService:
             return {
                 "access_token": response.session.access_token,
                 "refresh_token": response.session.refresh_token,
+                "expires_in": response.session.expires_in,
                 "user": response.user,
             }
 
@@ -146,6 +147,7 @@ class AuthService:
             return {
                 "access_token": response.session.access_token,
                 "refresh_token": response.session.refresh_token,
+                "expires_in": response.session.expires_in,
                 "user": response.user,
             }
         except Exception as e:
