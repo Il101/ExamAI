@@ -49,10 +49,8 @@ class Settings(BaseSettings):
     # AI Configuration
     GEMINI_API_KEY: str
     GEMINI_MODEL: str = "gemini-1.5-flash"  # For exam generation (quality)
-    GEMINI_QUIZ_MODEL: str = "gemini-2.5-flash-lite"  # For flashcards/MCQs (speed + economy)
     GEMINI_CHAT_MODEL: str = "gemini-1.5-flash-8b"  # For chat tutor (speed + economy)
     GEMINI_FALLBACK_MODEL: str = "gemini-1.5-flash"  # Fallback for 503 errors
-    GEMINI_QUIZ_FALLBACK_MODEL: str = "gemini-1.5-flash-8b"  # Fallback for quiz generation
     OPENAI_API_KEY: str = ""
     OPENAI_MODEL: str = "gpt-4o-mini"
     LLM_PROVIDER: Literal["gemini", "openai"] = "gemini"  # Which LLM to use
@@ -102,11 +100,6 @@ class Settings(BaseSettings):
     SMTP_USER: Optional[str] = None
     SMTP_PASSWORD: Optional[str] = None
 
-    # Browser Push Notifications (VAPID)
-    VAPID_PUBLIC_KEY: Optional[str] = None
-    VAPID_PRIVATE_KEY: Optional[str] = None
-    VAPID_MAILTO: Optional[str] = "mailto:admin@examai.pro"
-
     # SendGrid
     SENDGRID_API_KEY: str = ""
     SENDGRID_FROM_EMAIL: str = "noreply@examai.pro"
@@ -114,16 +107,12 @@ class Settings(BaseSettings):
     # Notification Settings
     NOTIFICATION_PROVIDER: Literal["sendgrid", "smtp", "mock"] = "sendgrid"
 
-    # Lemon Squeezy
-    LEMON_SQUEEZY_API_KEY: str = ""
-    LEMON_SQUEEZY_WEBHOOK_SECRET: str = ""
-    LEMON_SQUEEZY_STORE_ID: str = ""
-    LEMON_SQUEEZY_VARIANT_ID_PRO: str = ""
-    LEMON_SQUEEZY_VARIANT_ID_PRO_YEARLY: str = ""
-    LEMON_SQUEEZY_VARIANT_ID_PREMIUM: str = ""
-    LEMON_SQUEEZY_VARIANT_ID_PREMIUM_YEARLY: str = ""
-    LEMON_SQUEEZY_VARIANT_ID_TEAM: str = ""
-    LEMON_SQUEEZY_VARIANT_ID_TEAM_YEARLY: str = ""
+    # Stripe
+    STRIPE_SECRET_KEY: str = ""
+    STRIPE_PUBLISHABLE_KEY: str = ""
+    STRIPE_WEBHOOK_SECRET: str = ""
+    STRIPE_PRICE_ID_PRO: str = ""  # price_xxx from Stripe Dashboard
+    STRIPE_PRICE_ID_PREMIUM: str = ""  # price_xxx from Stripe Dashboard
 
     # Frontend
     FRONTEND_URL: str = "http://localhost:3000"

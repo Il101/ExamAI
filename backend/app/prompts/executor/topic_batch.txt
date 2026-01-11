@@ -52,7 +52,8 @@ For EACH topic listed above, generate a response following this structure:
 - Use **bold** ONLY for terms at their FIRST mention.
 
 #### Иллюстрации (Optional)
-- If applicable, insert: `[[MEDIA_REF: {{"page": X, "box_2d": [ymin, xmin, ymax, xmax], "caption": "..."}}]]`
+- If applicable, insert: `[[MEDIAREF: {"file_index": 0, "page": X, "box_2d": [ymin, xmin, ymax, xmax], "caption": "..."}]]`
+- `file_index`: index of source file (0 for first uploaded file, 1 for second, etc.)
 
 #### Пример
 - Provide a concrete example from the materials or real life.

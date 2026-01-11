@@ -2,6 +2,8 @@
 Content Enricher Service
 Parses AI-generated content for media markers, extracts images from source PDF,
 uploads them to storage, and replaces markers with markdown image links.
+
+Supports multi-file scenarios by reading source_meta.json and using file_index.
 """
 import re
 import json
@@ -20,40 +22,40 @@ logger = logging.getLogger(__name__)
 
 class ContentEnricher:
     """
-    Enriches content by replacing [[MEDIA_REF]] markers with actual image links.
+    Enriches content by replacing [[MEDIAREF]] or [[MEDIA_REF]] markers with actual image links.
+    Supports multi-file uploads using file_index in markers.
     """
     
     def __init__(self, storage: SupabaseStorage):
         self.storage = storage
         self.extractor = MediaExtractor()
-        # Regex to find [[MEDIA_REF: {...}]]
-        # Non-greedy match for content inside [[...]]
-        self.marker_pattern = re.compile(r'\[\[MEDIA_REF:\s*({.*?})\]\]', re.DOTALL)
+        # Regex to find [[MEDIAREF: {...}]] or [[MEDIA_REF: {...}]]
+        # Makes the underscore optional with _?
+        self.marker_pattern = re.compile(r'\[\[MEDIA_?REF:\s*({.*?})\]\]', re.DOTALL)
         
     async def enrich_content(
         self, 
         content: str, 
         exam_id: UUID, 
         topic_id: UUID,
-        original_file_url: str
+        original_file_url: Optional[str] = None
     ) -> Tuple[str, List[Dict[str, Any]]]:
         """
         Process content, extract images, and replace markers.
+        
+        Supports multi-file scenarios by loading source_meta.json for the exam.
+        Each marker can include file_index to specify which source file to use.
         
         Args:
             content: Raw content with markers
             exam_id: Exam UUID
             topic_id: Topic UUID
-            original_file_url: Path to original PDF in storage
+            original_file_url: Path to primary PDF in storage (fallback for file_index=0)
             
         Returns:
             Tuple[enriched_content, media_references_list]
         """
-        if not original_file_url:
-            logger.warning(f"No original file URL for exam {exam_id}, skipping enrichment")
-            return content, []
-            
-        # Find all markers
+        # Find all markers first
         markers = []
         for match in self.marker_pattern.finditer(content):
             try:
@@ -70,33 +72,55 @@ class ContentEnricher:
                 
         if not markers:
             return content, []
-            
-        # Download original PDF
-        local_pdf_path = await self._download_pdf(original_file_url)
-        if not local_pdf_path:
+        
+        # Load source files metadata
+        source_files = await self._load_source_meta(exam_id)
+        
+        # If no source_meta.json, fallback to original_file_url
+        if not source_files and original_file_url:
+            source_files = [{"storage_path": original_file_url, "file_index": 0}]
+        
+        if not source_files:
+            logger.warning(f"No source files available for exam {exam_id}, skipping enrichment")
             return content, []
             
         enriched_content = content
         media_references = []
         
+        # Cache for downloaded PDFs: file_index -> local_path
+        downloaded_pdfs: Dict[int, str] = {}
+        
         try:
-            # Process markers in reverse order to maintain string indices
-            # (though we are doing replace, so order matters less if matches are unique)
-            # But replace() might replace identical markers, so we should be careful.
-            # Better strategy: Reconstruct string or use unique replacements.
-            # Since markers might be identical, let's process them one by one.
-            
-            # Actually, simpler approach: Iterate and replace.
-            # But we need to handle the case where extraction fails.
-            
             for i, marker in enumerate(markers):
                 data = marker["data"]
                 page = data.get("page")
                 box_2d = data.get("box_2d")
                 caption = data.get("caption", "Image")
+                file_index = data.get("file_index", 0)  # Default to first file
                 
                 if not page or not box_2d:
+                    logger.warning(f"Marker missing page or box_2d: {data}")
                     continue
+                
+                # Get the correct source file
+                source_file = self._get_source_file(source_files, file_index)
+                if not source_file or not source_file.get("storage_path"):
+                    logger.warning(f"No source file found for file_index={file_index}")
+                    enriched_content = enriched_content.replace(marker['full_match'], "", 1)
+                    continue
+                
+                storage_path = source_file["storage_path"]
+                
+                # Download PDF if not already cached
+                if file_index not in downloaded_pdfs:
+                    local_path = await self._download_pdf(storage_path)
+                    if local_path:
+                        downloaded_pdfs[file_index] = local_path
+                    else:
+                        enriched_content = enriched_content.replace(marker['full_match'], "", 1)
+                        continue
+                
+                local_pdf_path = downloaded_pdfs[file_index]
                     
                 # Extract image
                 image = await self.extractor.extract_image_region(
@@ -113,58 +137,66 @@ class ContentEnricher:
                     
                     # Upload to storage
                     file_name = f"{topic_id}_{i+1}.webp"
-                    storage_path = f"exams/{exam_id}/media/{file_name}"
+                    media_storage_path = f"exams/{exam_id}/media/{file_name}"
                     
-                    # Upload (content_type is supported now)
                     public_url = await self.storage.upload_file(
                         img_bytes, 
-                        storage_path, 
+                        media_storage_path, 
                         content_type="image/webp"
                     )
                     
-                    # Construct markdown
-                    # We use the storage path relative to bucket or full URL?
-                    # Frontend usually needs full URL or we have a proxy.
-                    # SupabaseStorage returns the path.
-                    # Let's assume we need to construct the full URL or use the path if frontend handles it.
-                    # For now, let's use the path returned by upload_file.
-                    
-                    # Get public URL if possible, or just use the path
-                    # If bucket is private, we might need signed URLs, but for now assuming public access or proxy
-                    # Let's use the path and let frontend resolve it
-                    
-                    # Actually, let's try to get a full URL if we can, but SupabaseStorage.upload_file returns file_path.
-                    # Let's stick to file_path for now.
-                    
                     markdown = f"![{caption}]({public_url})"
-                    
-                    # Replace marker in content
-                    # We use replace(marker['full_match'], markdown, 1) to replace only the first occurrence
-                    # But if there are duplicates, we might replace the wrong one if we are not careful.
-                    # However, since we iterate in order, and if we replace from the start...
-                    # Wait, if we have duplicates, replace(..., 1) will always replace the first one.
-                    # So we should iterate and replace.
-                    
                     enriched_content = enriched_content.replace(marker['full_match'], markdown, 1)
                     
                     media_references.append({
                         "url": public_url,
                         "caption": caption,
                         "source_page": page,
+                        "source_file_index": file_index,
                         "box_2d": box_2d,
                         "original_marker": marker['data']
                     })
                 else:
                     logger.warning(f"Failed to extract image for marker: {data}")
-                    # Remove marker or leave it? Better to remove it to clean up.
                     enriched_content = enriched_content.replace(marker['full_match'], "", 1)
                     
         finally:
-            # Cleanup local PDF
-            if os.path.exists(local_pdf_path):
-                os.unlink(local_pdf_path)
+            # Cleanup all downloaded PDFs
+            for local_path in downloaded_pdfs.values():
+                if os.path.exists(local_path):
+                    try:
+                        os.unlink(local_path)
+                    except Exception as e:
+                        logger.warning(f"Failed to cleanup temp PDF {local_path}: {e}")
                 
         return enriched_content, media_references
+
+    async def _load_source_meta(self, exam_id: UUID) -> List[Dict[str, Any]]:
+        """Load source_meta.json for the exam to get list of source files."""
+        try:
+            meta_path = f"exams/{exam_id}/source_meta.json"
+            meta_bytes = await self.storage.download_file(meta_path)
+            meta_data = json.loads(meta_bytes.decode('utf-8'))
+            
+            # Add file_index to each entry for easier lookup
+            for idx, item in enumerate(meta_data):
+                item["file_index"] = idx
+                
+            logger.info(f"Loaded source_meta.json for exam {exam_id}: {len(meta_data)} files")
+            return meta_data
+        except Exception as e:
+            logger.debug(f"Could not load source_meta.json for exam {exam_id}: {e}")
+            return []
+    
+    def _get_source_file(self, source_files: List[Dict], file_index: int) -> Optional[Dict]:
+        """Get source file by index."""
+        for sf in source_files:
+            if sf.get("file_index") == file_index:
+                return sf
+        # Fallback to first file if index not found
+        if source_files and file_index == 0:
+            return source_files[0]
+        return None
 
     async def _download_pdf(self, file_path: str) -> Optional[str]:
         """Downloads PDF from storage to temp file"""

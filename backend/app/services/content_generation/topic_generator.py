@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, TYPE_CHECKING
 from uuid import UUID
 import logging
 
@@ -10,6 +10,7 @@ from app.repositories.topic_repository import TopicRepository
 from app.repositories.exam_repository import ExamRepository
 from app.agent.state import AgentState, PlanStep, Priority
 from app.utils.content_cleaner import strip_thinking_tags
+from app.utils.content_enricher import ContentEnricher
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +54,8 @@ class TopicContentGenerator:
         flashcard_gen: FlashcardGenerator,
         fallback_service: CacheFallbackService,
         topic_repo: TopicRepository,
-        exam_repo: ExamRepository
+        exam_repo: ExamRepository,
+        content_enricher: Optional[ContentEnricher] = None
     ):
         """
         Initialize topic content generator.
@@ -64,12 +66,14 @@ class TopicContentGenerator:
             fallback_service: CacheFallbackService for cache expiration handling
             topic_repo: Repository for topic CRUD
             exam_repo: Repository for exam CRUD
+            content_enricher: Optional ContentEnricher for replacing media markers with images
         """
         self.executor = executor
         self.flashcard_gen = flashcard_gen
         self.fallback = fallback_service
         self.topic_repo = topic_repo
         self.exam_repo = exam_repo
+        self.enricher = content_enricher
     
     async def generate_topic(
         self,
@@ -191,6 +195,22 @@ class TopicContentGenerator:
                     else:
                         logger.warning(f"Skipping topic {topic.id}: reached unexpected status {topic.status}")
                         continue
+                
+                # Enrich content with media (extract images from PDF)
+                if self.enricher:
+                    try:
+                        enriched_content, media_refs = await self.enricher.enrich_content(
+                            content=content,
+                            exam_id=exam_id,
+                            topic_id=topic.id,
+                            original_file_url=exam.original_file_url
+                        )
+                        if media_refs:
+                            logger.info(f"Enriched topic {topic.id} with {len(media_refs)} media items")
+                        content = enriched_content
+                    except Exception as e:
+                        logger.error(f"Content enrichment failed for topic {topic.id}: {e}")
+                        # Continue with original content if enrichment fails
                 
                 topic.mark_as_ready(content)
                 await self.topic_repo.update(topic)

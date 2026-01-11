@@ -6,10 +6,6 @@ export interface UserUpdateRequest {
     preferred_language?: string;
     timezone?: string;
     daily_study_goal_minutes?: number;
-    notification_exam_ready?: boolean;
-    notification_study_reminders?: boolean;
-    notification_product_updates?: boolean;
-    study_days?: number[];
 }
 
 export interface ChangePasswordRequest {
@@ -30,10 +26,5 @@ export const usersApi = {
 
     deleteAccount: async (): Promise<void> => {
         await api.delete('/users/me');
-    },
-
-    sendTestNotification: async (): Promise<{ message: string; subscription_count: number }> => {
-        const response = await api.post<{ message: string; subscription_count: number }>('/push/test');
-        return response.data;
     },
 };

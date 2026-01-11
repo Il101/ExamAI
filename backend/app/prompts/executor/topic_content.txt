@@ -110,7 +110,8 @@ Use the following structure. Each section should follow pedagogical best practic
 #### Иллюстрации (Optional)
 Если в исходном материале есть важные диаграммы, схемы или графики для этого раздела:
 1. Найдите их в исходном PDF.
-2. Вставьте маркер: `[[MEDIA_REF: {{"page": 5, "box_2d": [ymin, xmin, ymax, xmax], "caption": "Описание"}}]]`
+2. Вставьте маркер: `[[MEDIAREF: {"file_index": 0, "page": 5, "box_2d": [ymin, xmin, ymax, xmax], "caption": "Описание"}]]`
+   - `file_index`: индекс файла (0 для первого загруженного файла, 1 для второго и т.д.)
    - `page`: номер страницы (начиная с 1)
    - `box_2d`: координаты [ymin, xmin, ymax, xmax] в масштабе 0-1000 (0=верх/лево, 1000=низ/право)
 3. НЕ используйте markdown images `![alt](url)` напрямую.

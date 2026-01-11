@@ -299,12 +299,17 @@ async def _generate_exam_content_async(
         fallback_service = CacheFallbackService(storage, cache_manager)
         print(f"[CELERY ASYNC] Fallback service created successfully")
 
+        # Initialize ContentEnricher for media extraction from PDFs
+        from app.utils.content_enricher import ContentEnricher
+        content_enricher = ContentEnricher(storage)
+
         topic_gen = TopicContentGenerator(
             executor=executor,
             flashcard_gen=flashcard_gen,
             fallback_service=fallback_service,
             topic_repo=topic_repo,
             exam_repo=exam_repo,
+            content_enricher=content_enricher,
         )
 
         # Progress callback to update Celery task state

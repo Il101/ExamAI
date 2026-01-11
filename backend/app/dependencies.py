@@ -382,8 +382,21 @@ async def get_topic_content_generator(
     """Get topic content generator"""
     from app.agent.executor import TopicExecutor
     from app.services.content_generation.topic_generator import TopicContentGenerator
+    from app.utils.content_enricher import ContentEnricher
+    from app.integrations.storage.supabase_storage import SupabaseStorage
     
     executor = TopicExecutor(llm_provider)
-    return TopicContentGenerator(
-        executor, flashcard_gen, fallback_service, topic_repo, exam_repo
+    
+    # Initialize ContentEnricher for media extraction
+    storage = SupabaseStorage(
+        url=settings.SUPABASE_URL,
+        key=settings.SUPABASE_KEY,
+        bucket=settings.SUPABASE_BUCKET
     )
+    content_enricher = ContentEnricher(storage)
+    
+    return TopicContentGenerator(
+        executor, flashcard_gen, fallback_service, topic_repo, exam_repo,
+        content_enricher=content_enricher
+    )
+
