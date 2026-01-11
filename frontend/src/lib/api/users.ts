@@ -7,6 +7,9 @@ export interface UserUpdateRequest {
     timezone?: string;
     daily_study_goal_minutes?: number;
     study_days?: number[];
+    notification_exam_ready?: boolean;
+    notification_study_reminders?: boolean;
+    notification_product_updates?: boolean;
 }
 
 export interface ChangePasswordRequest {
