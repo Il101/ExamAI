@@ -6,6 +6,7 @@ export interface UserUpdateRequest {
     preferred_language?: string;
     timezone?: string;
     daily_study_goal_minutes?: number;
+    study_days?: number[];
 }
 
 export interface ChangePasswordRequest {
