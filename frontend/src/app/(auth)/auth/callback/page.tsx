@@ -19,11 +19,26 @@ function AuthCallbackContent() {
                 const hash = window.location.hash;
                 const params = new URLSearchParams(hash.substring(1)); // Remove # and parse
 
+                // Also check query params (Supabase sometimes uses these)
+                const queryParams = new URLSearchParams(window.location.search);
+
                 const accessToken = params.get('access_token');
                 const refreshToken = params.get('refresh_token');
-                const error = params.get('error');
-                const errorDescription = params.get('error_description');
-                const type = params.get('type');
+                const error = params.get('error') || queryParams.get('error');
+                const errorDescription = params.get('error_description') || queryParams.get('error_description');
+                const type = params.get('type') || queryParams.get('type');
+                const tokenHash = queryParams.get('token_hash');
+
+                // Debug logging
+                console.log('Auth callback received:', {
+                    hash: hash ? 'present' : 'empty',
+                    accessToken: accessToken ? 'present' : 'missing',
+                    refreshToken: refreshToken ? 'present' : 'missing',
+                    type,
+                    tokenHash: tokenHash ? 'present' : 'missing',
+                    error,
+                    fullUrl: window.location.href
+                });
 
                 // Check for errors from Supabase
                 if (error) {
@@ -61,17 +76,23 @@ function AuthCallbackContent() {
                         localStorage.removeItem('access_token');
                         localStorage.removeItem('refresh_token');
                     }
-                } else if (type === 'signup' || type === 'email') {
-                    // Fallback: if no tokens but type is signup/email
+                } else if (type === 'signup' || type === 'email' || type === 'email_change' || tokenHash) {
+                    // Email verification without auto-login (older Supabase flow or token_hash flow)
                     setStatus('success');
-                    setMessage('Email verified successfully! Redirecting to login page...');
+                    setMessage('Email verified successfully! You can now log in.');
 
                     setTimeout(() => {
                         router.push('/login?verified=true');
                     }, 2000);
                 } else {
-                    // For other types or if no type specified, redirect to login
-                    router.push('/login');
+                    // Unknown callback type - show message instead of silent redirect
+                    console.warn('Unknown callback type, redirecting to login');
+                    setStatus('success');
+                    setMessage('Verification complete. Redirecting to login...');
+
+                    setTimeout(() => {
+                        router.push('/login');
+                    }, 1500);
                 }
             } catch (err) {
                 console.error('Email verification error:', err);

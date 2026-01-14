@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -19,9 +19,11 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
-export default function LoginPage() {
+function LoginContent() {
   const { login, isLoggingIn, isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const emailVerified = searchParams.get('verified') === 'true';
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
@@ -43,6 +45,17 @@ export default function LoginPage() {
         <h1 className="text-3xl font-bold mb-2 text-foreground">Welcome back</h1>
         <p className="text-muted-foreground">Sign in to ExamAI Pro</p>
       </div>
+
+      {emailVerified && (
+        <div className="mb-6 rounded-lg border border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800 px-4 py-3 text-sm text-green-700 dark:text-green-300">
+          <div className="flex items-center gap-2">
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            <p className="font-medium">Email verified successfully! You can now sign in.</p>
+          </div>
+        </div>
+      )}
 
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <div>
@@ -102,5 +115,19 @@ export default function LoginPage() {
         </Link>
       </p>
     </Card>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <Card className="w-full p-8 shadow-2xl border-white/10 bg-card/50 backdrop-blur-xl">
+        <div className="flex items-center justify-center py-8">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+        </div>
+      </Card>
+    }>
+      <LoginContent />
+    </Suspense>
   );
 }
