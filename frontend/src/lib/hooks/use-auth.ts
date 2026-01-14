@@ -95,8 +95,8 @@ export function useAuth() {
     const registerMutation = useMutation({
         mutationFn: authApi.register,
         onSuccess: () => {
+            // Success is handled by the register page UI - don't redirect
             toast.success('Registration successful! Please check your email to verify your account.');
-            router.push('/login');
         },
         onError: (error: unknown) => {
             const message = error instanceof Error && 'response' in error

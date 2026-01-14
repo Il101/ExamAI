@@ -68,7 +68,11 @@ async def login(
     Returns JWT access token and refresh token.
     """
 
-    auth_data = await auth_service.authenticate(request.email, request.password)
+    try:
+        auth_data = await auth_service.authenticate(request.email, request.password)
+    except ValueError as e:
+        # Specific auth errors (email not confirmed, etc.)
+        raise AuthenticationException(str(e))
 
     if not auth_data:
         raise AuthenticationException("Invalid email or password")

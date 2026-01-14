@@ -131,8 +131,21 @@ class AuthService:
             }
 
         except Exception as e:
-            self.logger.warning("Login failed", extra={"email": email, "error": str(e).lower()})
-            return None
+            error_msg = str(e).lower()
+            self.logger.warning("Login failed", extra={"email": email, "error": error_msg})
+            
+            # Parse specific Supabase errors and raise meaningful exceptions
+            if "email not confirmed" in error_msg:
+                raise ValueError("Email not confirmed. Please check your inbox and confirm your email address.")
+            elif "invalid login credentials" in error_msg or "invalid credentials" in error_msg:
+                raise ValueError("Invalid email or password")
+            elif "user not found" in error_msg:
+                raise ValueError("Invalid email or password")
+            elif "too many requests" in error_msg:
+                raise ValueError("Too many login attempts. Please try again later.")
+            else:
+                # For unexpected errors, return None to trigger generic auth error
+                return None
 
     async def refresh_token(self, refresh_token: str) -> Optional[Dict[str, Any]]:
         """
