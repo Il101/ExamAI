@@ -94,3 +94,11 @@ backups/
 Thumbs.db
 .DS_Store
 
+
+# Portfolio cleanup
+VO Physik ges 2022.pdf
+logs.*.json
+backend/venv/
+backend/htmlcov/
+backend/**/__pycache__/
+backend/**/*.pyc
