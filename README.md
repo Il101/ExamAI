@@ -356,7 +356,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - **Documentation**: [docs/](docs/)
 - **Issues**: [GitHub Issues](https://github.com/yourusername/examai-pro/issues)
-- **Email**: support@examai-pro.com (if configured)
+- **Email**: (contact via GitHub Issues)
 
 ## 🗺️ Roadmap
 
@@ -368,14 +368,14 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [x] Authentication
 - [x] Docker deployment
 
-### v1.1 (Q1 2026)
+### v1.1 (Planned)
 - [ ] Complete frontend implementation
 - [ ] Email notifications
 - [ ] Social authentication
 - [ ] Custom domain
 - [ ] Mobile app (React Native)
 
-### v2.0 (Q2 2026)
+### v2.0 (Planned)
 - [ ] Advanced analytics
 - [ ] Collaborative study groups
 - [ ] AI quiz generation
@@ -383,7 +383,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [ ] Gamification
 
 ---
-
-**Built with ❤️ by GitHub Copilot + Human Developer**
 
 **Status**: ✅ Production Ready | **Version**: 1.0.0 | **Last Updated**: November 19, 2025
