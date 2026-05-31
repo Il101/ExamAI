@@ -68,8 +68,8 @@ ExamAI Pro is a full-stack application that uses AI (Google Gemini 2.0 Flash) to
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/examai-pro.git
-cd examai-pro/backend
+git clone https://github.com/Il101/ExamAI.git
+cd ExamAI/backend
 
 # Create virtual environment
 python3 -m venv venv
@@ -125,9 +125,9 @@ docker-compose -f docker-compose.prod.yml up --build
 - **Project Summary**: [PROJECT_SUMMARY.md](PROJECT_SUMMARY.md)
 - **Stage 10 Status**: [docs/STAGE_10_STATUS.md](docs/STAGE_10_STATUS.md)
 - **Installation Guide**: [docs/STAGE_10_INSTALLATION.md](docs/STAGE_10_INSTALLATION.md)
-- **Database Schema**: [docs/DATABASE_SCHEMA_EN.md](docs/DATABASE_SCHEMA_EN.md)
-- **API Specification**: [docs/API_SPECIFICATION_EN.md](docs/API_SPECIFICATION_EN.md)
-- **Testing Strategy**: [docs/TESTING_STRATEGY_EN.md](docs/TESTING_STRATEGY_EN.md)
+- **Database Schema**: [docs/DATABASE_SCHEMA_EN.md](docs/specifications/DATABASE_SCHEMA_EN.md)
+- **API Specification**: [docs/API_SPECIFICATION_EN.md](docs/specifications/API_SPECIFICATION_EN.md)
+- **Testing Strategy**: [docs/TESTING_STRATEGY_EN.md](docs/specifications/TESTING_STRATEGY_EN.md)
 
 ## 🧪 Testing
 
@@ -355,7 +355,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📞 Support
 
 - **Documentation**: [docs/](docs/)
-- **Issues**: [GitHub Issues](https://github.com/yourusername/examai-pro/issues)
+- **Issues**: [GitHub Issues](https://github.com/Il101/ExamAI/issues)
 - **Email**: (contact via GitHub Issues)
 
 ## 🗺️ Roadmap
